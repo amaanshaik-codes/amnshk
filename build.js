@@ -80,7 +80,11 @@ function layout(title, body, currentPath = '/') {
     .category-link { color: black; font-size: clamp(1rem, 2.5vw, 1.1rem); }
     .reads-list { max-width: 60ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
     .reads-list li { border-bottom: 1px solid var(--border); padding: .75rem 0; }
+    .book-entry { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    .book-info { min-width: 0; }
     .reads-list a { font-size: 1.05rem; }
+    .read-button { flex: 0 0 auto; border: 1px solid var(--border); padding: .35rem .65rem; color: var(--text) !important; }
+    .read-button:hover { color: black !important; }
     .book-title, .book-author { display: block; }
     .book-author { margin-top: .25rem; font-size: .9rem; }
     .category-link { color: var(--text); }
@@ -203,7 +207,7 @@ function renderReadsListing(sourceDir, relativeDir) {
     const title = markdownTitle(sourceText, displayName(entry.name));
     const authorLine = sourceLines.find((line) => /^by\s+/i.test(line));
     const author = authorLine ? authorLine.replace(/^by\s+/i, '') : '';
-    return `<li><a class="EXEC" href="${urlPath(linkPath)}"><span class="book-title">${escapeHtml(title)}</span>${author ? `<span class="book-author">${escapeHtml(author)}</span>` : ''}</a></li>`;
+    return `<li class="book-entry"><div class="book-info"><span class="book-title">${escapeHtml(title)}</span>${author ? `<span class="book-author">${escapeHtml(author)}</span>` : ''}</div><a class="read-button" href="${urlPath(linkPath)}">Read</a></li>`;
   });
   return `<ul class="reads-list">${items.join('')}</ul>`;
 }
@@ -413,8 +417,8 @@ function buildFolder(sourceDir, relativeDir = '') {
     ? `<p>${countFiles(sourceDir)} journal entries</p>`
     : isReadsPath(relativeDir)
       ? (relativeDir === 'reads' && countDirectories(sourceDir) > 0
-        ? `<p>${countDirectories(sourceDir)} ${countDirectories(sourceDir) === 1 ? 'collection' : 'collections'}, ${countFiles(sourceDir)} book notes</p>`
-        : `<p>${countFiles(sourceDir)} book notes</p>`)
+        ? `<p>${countDirectories(sourceDir)} ${countDirectories(sourceDir) === 1 ? 'collection' : 'collections'}, ${countFiles(sourceDir)} books</p>`
+        : `<p>${countFiles(sourceDir)} books</p>`)
     : `<p>${countDirectories(sourceDir)} directories, ${countFiles(sourceDir)} files</p>`;
   fs.writeFileSync(path.join(outputDir, 'index.html'), layout(publicLabel(title), `${folderDescription}<h2>${escapeHtml(publicLabel(folderDisplayName(title)))}</h2>${listing}${report}`, currentPath));
 }
