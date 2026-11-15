@@ -31,7 +31,7 @@ function urlPath(relativePath) {
 }
 
 function layout(title, body, currentPath = '/') {
-  const description = 'Amaan Shaik\'s personal site, journals, lists, and reading notes.';
+  const description = 'Amaan Shaik\'s personal site, journals, lists, and books.';
   const navLink = ({ label, href, path }) => `<li><a href="${href}"${currentPath === path || (path !== '/' && currentPath.startsWith(path)) ? ' aria-current="page"' : ''}>${label}</a></li>`;
   const breadcrumbs = currentPath === '/' ? '' : `<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/">Home</a>${currentPath.split('/').filter(Boolean).map((part, index, parts) => {
     const isLast = index === parts.length - 1;
@@ -78,11 +78,11 @@ function layout(title, body, currentPath = '/') {
     .journal-list li { margin: .6rem 0; }
     .category-links { display: inline-flex; max-width: 100%; box-sizing: border-box; flex-wrap: wrap; align-items: center; justify-content: center; gap: .5rem; border: 1px solid black; padding: .75rem 1rem; }
     .category-link { color: black; font-size: clamp(1rem, 2.5vw, 1.1rem); }
-    .reads-list { max-width: 60ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
-    .reads-list li { border-bottom: 1px solid var(--border); padding: .75rem 0; }
+    .books-list { max-width: 60ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
+    .books-list li { border-bottom: 1px solid var(--border); padding: .75rem 0; }
     .book-entry { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
     .book-info { min-width: 0; }
-    .reads-list a { font-size: 1.05rem; }
+    .books-list a { font-size: 1.05rem; }
     .read-button { flex: 0 0 auto; border: 1px solid var(--border); padding: .35rem .65rem; color: var(--text) !important; }
     .read-button:hover { color: black !important; }
     .book-title, .book-author { display: block; }
@@ -146,6 +146,8 @@ function folderDisplayName(folderName) {
 function publicLabel(value) {
   return value.toLowerCase() === 'journalish'
     ? 'Journal'
+    : value.toLowerCase() === 'books'
+      ? 'Books'
     : value.charAt(0).toUpperCase() + value.slice(1);
 }
 
@@ -153,8 +155,8 @@ function isJournalishPath(relativePath) {
   return relativePath === 'journalish' || relativePath.startsWith(`journalish${path.sep}`);
 }
 
-function isReadsPath(relativePath) {
-  return relativePath === 'reads' || relativePath.startsWith(`reads${path.sep}`);
+function isBooksPath(relativePath) {
+  return relativePath === 'books' || relativePath.startsWith(`books${path.sep}`);
 }
 
 function journalEntrySort(a, b) {
@@ -193,10 +195,10 @@ function renderJournalListing(sourceDir, relativeDir) {
   return `<ul class="journal-list">${items.join('')}</ul>`;
 }
 
-function renderReadsListing(sourceDir, relativeDir) {
+function renderBooksListing(sourceDir, relativeDir) {
   const entries = sortEntries(fs.readdirSync(sourceDir, { withFileTypes: true }))
     .filter((entry) => entry.isDirectory() || (entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md' && !isHiddenContent(path.join(relativeDir, entry.name))));
-  if (!entries.length) return '<p>No reading notes yet.</p>';
+  if (!entries.length) return '<p>No books yet.</p>';
   const items = entries.map((entry) => {
     const relativePath = path.join(relativeDir, entry.name);
     if (entry.isDirectory()) return `<li><a class="DIR" href="${urlPath(relativePath)}/">${escapeHtml(publicLabel(folderDisplayName(entry.name)))}</a></li>`;
@@ -209,7 +211,7 @@ function renderReadsListing(sourceDir, relativeDir) {
     const author = authorLine ? authorLine.replace(/^by\s+/i, '') : '';
     return `<li class="book-entry"><div class="book-info"><span class="book-title">${escapeHtml(title)}</span>${author ? `<span class="book-author">${escapeHtml(author)}</span>` : ''}</div><a class="read-button" href="${urlPath(linkPath)}">Read</a></li>`;
   });
-  return `<ul class="reads-list">${items.join('')}</ul>`;
+  return `<ul class="books-list">${items.join('')}</ul>`;
 }
 
 function renderHomeCategories() {
@@ -409,13 +411,13 @@ function buildFolder(sourceDir, relativeDir = '') {
   const tree = renderTree(sourceDir, relativeDir);
   const listing = isJournalishPath(relativeDir)
     ? renderJournalListing(sourceDir, relativeDir)
-    : isReadsPath(relativeDir)
-      ? renderReadsListing(sourceDir, relativeDir)
+    : isBooksPath(relativeDir)
+      ? renderBooksListing(sourceDir, relativeDir)
     : (tree.length ? `<pre>${tree.join('\n')}</pre>` : '<p>No entries yet.</p>');
   const currentPath = relativeDir ? `${urlPath(relativeDir)}/` : '/';
   const report = isJournalishPath(relativeDir)
     ? `<p>${countFiles(sourceDir)} journal entries</p>`
-    : isReadsPath(relativeDir)
+    : isBooksPath(relativeDir)
       ? ''
     : `<p>${countDirectories(sourceDir)} directories, ${countFiles(sourceDir)} files</p>`;
   fs.writeFileSync(path.join(outputDir, 'index.html'), layout(publicLabel(title), `${folderDescription}<h2>${escapeHtml(publicLabel(folderDisplayName(title)))}</h2>${listing}${report}`, currentPath));
