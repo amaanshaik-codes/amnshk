@@ -14,7 +14,7 @@ const builtAt = `${new Intl.DateTimeFormat('en-IN', {
 const navigation = [
   { label: 'Home', href: '/', path: '/' },
   { label: 'Journal-ish', href: '/journalish/', path: '/journalish/' },
-  { label: 'File Tree', href: '/file-tree/', path: '/file-tree/' }
+  { label: 'File Tree', href: '/file-tree/', path: '/file-tree/' },
 ];
 
 function escapeHtml(value) {
@@ -52,22 +52,24 @@ function layout(title, body, currentPath = '/') {
   <title>${escapeHtml(title)} · Amaan Shaik</title>
   <style>
     :root { color-scheme: light; }
-    body { font-family: monospace, sans-serif; color: black; margin: 8px; }
+    body { max-width: 1100px; font-family: monospace, sans-serif; color: black; margin: 0 auto; padding: 1rem; }
+    header, footer { text-align: center; }
     header h1 { margin-bottom: .5rem; }
     header h1 a { color: inherit; text-decoration: none; }
     nav ul { display: flex; flex-wrap: wrap; gap: 0; padding: 0; list-style: none; }
     nav li:not(:last-child)::after { content: ' · '; }
     nav a[aria-current="page"] { font-weight: bold; }
-    .breadcrumbs { margin: 1rem 0; }
+    .breadcrumbs { margin: 1rem 0; text-align: center; }
     a:link, a:visited { text-decoration: none; }
     a:hover { text-decoration: underline; background-color: yellow; }
     .DIR { color: blue; }
     .EXEC { color: green; }
-    main { min-height: 45vh; }
-    pre { overflow-x: auto; }
-    .text-viewer { max-width: 72ch; font-family: inherit; font-size: clamp(1rem, 2.5vw, 1.2rem); line-height: 1.75; white-space: pre-wrap; overflow-wrap: anywhere; }
-    .text-meta { color: #555; font-size: .9rem; }
-    .journal-list { padding-left: 1.5rem; }
+    main { min-height: 45vh; text-align: center; }
+    main > p { max-width: 72ch; margin: 1rem auto; text-align: left; }
+    pre { max-width: 100%; overflow-x: auto; margin: 1rem auto; text-align: left; width: max-content; }
+    .text-viewer { max-width: 72ch; margin: 1rem auto; font-family: inherit; font-size: clamp(1rem, 2.5vw, 1.2rem); line-height: 1.75; overflow-wrap: anywhere; text-align: left; }
+    .text-viewer p, .text-viewer ul, .text-viewer ol, .text-viewer blockquote { margin: 1rem 0; }
+    .journal-list { max-width: 45ch; margin: 1rem auto; padding-left: 1.5rem; text-align: left; }
     .journal-list li { margin: .6rem 0; }
     .skip-link { position: absolute; left: -9999px; }
     .skip-link:focus { left: 1rem; top: 1rem; }
@@ -169,7 +171,7 @@ function markdownToHtml(value) {
   const lines = value.split(/\r?\n/);
   const output = [];
   let paragraph = [];
-  let listOpen = false;
+  let listType = null;
 
   const flushParagraph = () => {
     if (!paragraph.length) return;
@@ -177,9 +179,9 @@ function markdownToHtml(value) {
     paragraph = [];
   };
   const closeList = () => {
-    if (!listOpen) return;
-    output.push('</ul>');
-    listOpen = false;
+    if (!listType) return;
+    output.push(`</${listType}>`);
+    listType = null;
   };
 
   for (const line of lines) {
@@ -190,18 +192,26 @@ function markdownToHtml(value) {
     }
     const heading = line.match(/^(#{1,6})\s+(.+)$/);
     const listItem = line.match(/^[-*+]\s+(.+)$/);
+    const orderedItem = line.match(/^\d+[.)]\s+(.+)$/);
+    const quote = line.match(/^>\s?(.+)$/);
     if (heading) {
       flushParagraph();
       closeList();
       const level = heading[1].length;
       output.push(`<h${level}>${inlineMarkdown(heading[2])}</h${level}>`);
-    } else if (listItem) {
+    } else if (listItem || orderedItem) {
       flushParagraph();
-      if (!listOpen) {
-        output.push('<ul>');
-        listOpen = true;
+      const nextListType = orderedItem ? 'ol' : 'ul';
+      if (listType !== nextListType) {
+        closeList();
+        output.push(`<${nextListType}>`);
+        listType = nextListType;
       }
-      output.push(`<li>${inlineMarkdown(listItem[1])}</li>`);
+      output.push(`<li>${inlineMarkdown((listItem || orderedItem)[1])}</li>`);
+    } else if (quote) {
+      flushParagraph();
+      closeList();
+      output.push(`<blockquote>${inlineMarkdown(quote[1])}</blockquote>`);
     } else {
       closeList();
       paragraph.push(line);
@@ -304,7 +314,7 @@ function buildFolder(sourceDir, relativeDir = '') {
       fs.writeFileSync(destinationPath, text, 'ascii');
       const readerPath = `${destinationPath}.html`;
       const readerTitle = markdownTitle(sourceText, displayName(entry.name));
-      const readerBody = `<div class="text-viewer">${escapeHtml(text)}</div>`;
+      const readerBody = `<article class="text-viewer">${markdownToHtml(text)}</article>`;
       fs.writeFileSync(readerPath, layout(readerTitle, readerBody, urlPath(path.join(relativeDir, destinationName))));
     } else {
       const title = markdownTitle(sourceText, displayName(entry.name));
