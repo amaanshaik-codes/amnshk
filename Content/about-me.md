@@ -1,7 +1,5 @@
 # About Me
 
-I am Amaan Shaik, as of 15th November 2026 i am a student, studying a course named chartered accountancy. 
-
 this site is primarily a collection of plain text files that i have either written or collected or converted. 
 
 while this site is mainly for my personal use, i am happy to share it. please feel free to read and/or download anything you find interesting. 
