@@ -52,6 +52,10 @@ function displayName(fileName) {
   return fileName.replace(/\.md$/i, '.txt');
 }
 
+function toUsAscii(value) {
+  return value.normalize('NFKD').replace(/[^\x00-\x7F]/g, '?');
+}
+
 function sortEntries(entries) {
   return entries
     .filter((entry) => !entry.name.startsWith('.'))
@@ -59,6 +63,34 @@ function sortEntries(entries) {
       if (a.isDirectory() !== b.isDirectory()) return a.isDirectory() ? -1 : 1;
       return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
     });
+}
+
+// ASCII tree branches match tree 1.8.0's -A output style.
+function renderTree(sourceDir, relativeDir = '', indent = '') {
+  const entries = sortEntries(fs.readdirSync(sourceDir, { withFileTypes: true }));
+  const lines = [];
+
+  entries.forEach((entry, index) => {
+    const isLast = index === entries.length - 1;
+    const branch = isLast ? '`-- ' : '|-- ';
+    const childIndent = indent + (isLast ? '    ' : '|   ');
+    const sourcePath = path.join(sourceDir, entry.name);
+    const relativePath = path.join(relativeDir, entry.name);
+
+    if (entry.isDirectory()) {
+      lines.push(`${indent}${branch}<a href="${urlPath(relativePath)}/">${escapeHtml(entry.name)}/</a>`);
+      lines.push(...renderTree(sourcePath, relativePath, childIndent));
+      return;
+    }
+
+    if (entry.name.toLowerCase().endsWith('.md')) {
+      const destinationName = displayName(entry.name);
+      const publicPath = path.join(relativeDir, destinationName);
+      lines.push(`${indent}${branch}<a href="${urlPath(publicPath)}">${escapeHtml(destinationName)}</a>`);
+    }
+  });
+
+  return lines;
 }
 
 function buildFolder(sourceDir, relativeDir = '') {
@@ -79,14 +111,16 @@ function buildFolder(sourceDir, relativeDir = '') {
     if (!entry.name.toLowerCase().endsWith('.md')) continue;
     const destinationName = displayName(entry.name);
     const destinationPath = path.join(outputDir, destinationName);
-    fs.copyFileSync(sourcePath, destinationPath);
+    const sourceText = fs.readFileSync(sourcePath, 'utf8');
+    fs.writeFileSync(destinationPath, toUsAscii(sourceText), 'ascii');
     const publicPath = path.join(relativeDir, destinationName);
-    links.push(`<li><a href="${urlPath(publicPath)}">${escapeHtml(destinationName)}</a></li>`);
+    links.push(publicPath);
   }
 
   const title = relativeDir ? path.basename(relativeDir) : 'Home';
   const parentLink = relativeDir ? '<p><a href="/">← Home</a></p>' : '';
-  const listing = links.length ? `<ul>${links.join('')}</ul>` : '<p>No entries yet.</p>';
+  const tree = renderTree(sourceDir, relativeDir);
+  const listing = tree.length ? `<pre>${tree.join('\n')}</pre>` : '<p>No entries yet.</p>';
   fs.writeFileSync(path.join(outputDir, 'index.html'), layout(title, `${parentLink}<h2>${escapeHtml(title)}</h2>${listing}`));
 }
 
