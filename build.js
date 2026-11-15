@@ -4,6 +4,7 @@ const path = require('path');
 const root = __dirname;
 const contentRoot = path.join(root, 'Content');
 const outputRoot = path.join(root, 'public');
+const builtAt = new Date().toISOString();
 
 function escapeHtml(value) {
   return value
@@ -34,8 +35,14 @@ function layout(title, body) {
       <a href="/journalish/">Journalish</a>
       <a href="/about-me.txt">About Me</a>
     </nav>
+    <hr>
   </header>
   <main>${body}</main>
+  <hr>
+  <footer>
+    <p>Email: <a href="mailto:amaanshaik.work@gmail.com">amaanshaik.work@gmail.com</a></p>
+    <p>Last updated: ${builtAt}</p>
+  </footer>
 </body>
 </html>
 `;
