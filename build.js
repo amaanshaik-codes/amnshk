@@ -87,6 +87,11 @@ function layout(title, body, currentPath = '/') {
     .read-button:hover { color: black !important; }
     .book-title, .book-author { display: block; }
     .book-author { margin-top: .25rem; font-size: .9rem; }
+    .article-categories { max-width: 60ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
+    .article-category { border-bottom: 1px solid var(--border); padding: .8rem 0; }
+    .article-category-link { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+    .article-category-title { font-size: 1.05rem; }
+    .article-category-count { white-space: nowrap; font-size: .9rem; }
     .category-link { color: var(--text); }
     .category-separator { margin: 0 .25rem; }
     .skip-link { position: absolute; left: -9999px; }
@@ -155,6 +160,10 @@ function isJournalishPath(relativePath) {
   return relativePath === 'journalish' || relativePath.startsWith(`journalish${path.sep}`);
 }
 
+function isArticlesPath(relativePath) {
+  return relativePath === 'articles' || relativePath.startsWith(`articles${path.sep}`);
+}
+
 function isBooksPath(relativePath) {
   return relativePath === 'books' || relativePath.startsWith(`books${path.sep}`);
 }
@@ -212,6 +221,40 @@ function renderBooksListing(sourceDir, relativeDir) {
     return `<li class="book-entry"><div class="book-info"><span class="book-title">${escapeHtml(title)}</span>${author ? `<span class="book-author">${escapeHtml(author)}</span>` : ''}</div><a class="read-button" href="${urlPath(linkPath)}">Read</a></li>`;
   });
   return `<ul class="books-list">${items.join('')}</ul>`;
+}
+
+function countArticleLinks(sourceText) {
+  return (sourceText.match(/\[[^\]]+\]\([^)]+\)/g) || []).length;
+}
+
+function sortArticleLinks(sourceText) {
+  const lines = sourceText.split(/\r?\n/);
+  const nonEmptyLines = lines.map((line) => line.trim()).filter(Boolean);
+  const linkLines = nonEmptyLines.filter((line) => /^\[[^\]]+\]\([^)]+\)$/.test(line));
+  if (linkLines.length < 2 || linkLines.length !== nonEmptyLines.length) return sourceText;
+  return [...linkLines].sort((a, b) => {
+    const aLabel = a.match(/^\[([^\]]+)\]/)[1];
+    const bLabel = b.match(/^\[([^\]]+)\]/)[1];
+    return aLabel.localeCompare(bLabel, undefined, { sensitivity: 'base' });
+  }).join('\n\n');
+}
+
+function renderArticlesListing(sourceDir, relativeDir) {
+  const entries = sortEntries(fs.readdirSync(sourceDir, { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory() || (entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md' && !isHiddenContent(path.join(relativeDir, entry.name))));
+  if (!entries.length) return '<p>No article categories yet.</p>';
+  const items = entries.map((entry) => {
+    const relativePath = path.join(relativeDir, entry.name);
+    const title = publicLabel(folderDisplayName(entry.name.replace(/\.md$/i, '')));
+    if (entry.isDirectory()) {
+      return `<li class="article-category"><a class="article-category-link DIR" href="${urlPath(relativePath)}/"><span class="article-category-title">${escapeHtml(title)}</span><span class="article-category-count">Browse category</span></a></li>`;
+    }
+    const sourceText = fs.readFileSync(path.join(sourceDir, entry.name), 'utf8');
+    const count = countArticleLinks(sourceText);
+    const destinationName = outputName(entry.name, relativePath);
+    return `<li class="article-category"><a class="article-category-link EXEC" href="${urlPath(path.join(relativeDir, destinationName))}"><span class="article-category-title">${escapeHtml(title)}</span><span class="article-category-count">${count} ${count === 1 ? 'article' : 'articles'}</span></a></li>`;
+  });
+  return `<ul class="article-categories">${items.join('')}</ul>`;
 }
 
 function renderHomeCategories() {
@@ -395,7 +438,7 @@ function buildFolder(sourceDir, relativeDir = '') {
       fs.writeFileSync(readerPath, layout(readerTitle, readerBody, urlPath(path.join(relativeDir, destinationName))));
     } else {
       const title = markdownTitle(sourceText, displayName(entry.name));
-      const body = markdownToHtml(sourceText);
+      const body = markdownToHtml(isArticlesPath(relativeDir) ? sortArticleLinks(sourceText) : sourceText);
       fs.writeFileSync(destinationPath, layout(title, body, urlPath(path.join(relativeDir, destinationName))));
     }
   }
@@ -408,6 +451,8 @@ function buildFolder(sourceDir, relativeDir = '') {
   const tree = renderTree(sourceDir, relativeDir);
   const listing = isJournalishPath(relativeDir)
     ? renderJournalListing(sourceDir, relativeDir)
+    : isArticlesPath(relativeDir)
+      ? renderArticlesListing(sourceDir, relativeDir)
     : isBooksPath(relativeDir)
       ? renderBooksListing(sourceDir, relativeDir)
     : (tree.length ? `<pre>${tree.join('\n')}</pre>` : '<p>No entries yet.</p>');
