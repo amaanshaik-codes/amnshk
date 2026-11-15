@@ -97,7 +97,7 @@ function layout(title, body, currentPath = '/') {
     <nav aria-label="Primary navigation">
       <ul>
         ${navigation.map(navLink).join('\n        ')}
-        <li><button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">dark</button></li>
+        <li><button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">dark mode</button></li>
       </ul>
     </nav>
     <hr>
