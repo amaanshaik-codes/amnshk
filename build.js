@@ -186,8 +186,8 @@ function renderTree(sourceDir, relativeDir = '', indent = '') {
 
   entries.forEach((entry, index) => {
     const isLast = index === entries.length - 1;
-    const branch = isLast ? '`-- ' : '|-- ';
-    const childIndent = indent + (isLast ? '    ' : '|   ');
+    const branch = isLast ? '└── ' : '├── ';
+    const childIndent = indent + (isLast ? '    ' : '│   ');
     const sourcePath = path.join(sourceDir, entry.name);
     const relativePath = path.join(relativeDir, entry.name);
 
@@ -236,22 +236,11 @@ function buildFolder(sourceDir, relativeDir = '') {
   }
 
   const title = relativeDir ? path.basename(relativeDir) : 'Home';
-  const parentDirectory = relativeDir ? path.dirname(relativeDir) : '';
-  const parentHref = parentDirectory && parentDirectory !== '.' ? `${urlPath(parentDirectory)}/` : '/';
-  const parentLabel = parentDirectory && parentDirectory !== '.' ? path.basename(parentDirectory) : 'Home';
-  const parentLink = relativeDir ? `<p><a href="${parentHref}">← Back to ${escapeHtml(parentLabel)}</a></p>` : '';
   const tree = renderTree(sourceDir, relativeDir);
-  const rootSize = formatSize(4096);
-  const rootName = relativeDir ? path.basename(relativeDir) : "Amaan Shaik's Personal Site";
-  const rootPath = relativeDir ? `${urlPath(relativeDir)}/` : '/';
-  const rootLine = `${rootSize}    <a class="DIR" href="${rootPath}">${escapeHtml(rootName)}</a>`;
-  const listing = tree.length ? `<pre>${rootLine}\n${tree.join('\n')}</pre>` : `<pre>${rootLine}</pre><p>No entries yet.</p>`;
-  const itemCount = fs.readdirSync(sourceDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() || entry.name.toLowerCase().endsWith('.md')).length;
-  const itemLabel = itemCount === 1 ? 'item' : 'items';
+  const listing = tree.length ? `<pre>${tree.join('\n')}</pre>` : '<p>No entries yet.</p>';
   const currentPath = relativeDir ? `${urlPath(relativeDir)}/` : '/';
   const report = `<p>${countDirectories(sourceDir)} directories, ${countFiles(sourceDir)} files</p>`;
-  fs.writeFileSync(path.join(outputDir, 'index.html'), layout(title, `${parentLink}<h2>${escapeHtml(title)}</h2>${listing}${report}`, currentPath));
+  fs.writeFileSync(path.join(outputDir, 'index.html'), layout(title, `<h2>${escapeHtml(title)}</h2>${listing}${report}`, currentPath));
 }
 
 function countDirectories(directory) {
