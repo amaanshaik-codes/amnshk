@@ -205,7 +205,8 @@ function renderTree(sourceDir, relativeDir = '', indent = '') {
       const publicPath = path.join(relativeDir, destinationName);
       const outputPath = path.join(outputRoot, publicPath);
       const size = fs.existsSync(outputPath) ? fs.statSync(outputPath).size : 0;
-      lines.push(`${indent}${branch}${formatSize(size)}    <a class="EXEC" href="${urlPath(publicPath)}">${escapeHtml(destinationName)}</a>`);
+      const linkPath = isTextOutput(entry.name, relativePath) ? `${publicPath}.html` : publicPath;
+      lines.push(`${indent}${branch}${formatSize(size)}    <a class="EXEC" href="${urlPath(linkPath)}">${escapeHtml(destinationName)}</a>`);
     }
   });
 

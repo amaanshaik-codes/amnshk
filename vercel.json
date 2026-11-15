@@ -1,8 +1,5 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "public",
-  "framework": null,
-  "rewrites": [
-    { "source": "/(.*\\.txt)", "destination": "/$1.html" }
-  ]
+  "framework": null
 }
