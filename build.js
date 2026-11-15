@@ -322,10 +322,7 @@ function toUsAscii(value) {
 function sortEntries(entries) {
   return entries
     .filter((entry) => !entry.name.startsWith('.'))
-    .sort((a, b) => {
-      if (a.isDirectory() !== b.isDirectory()) return a.isDirectory() ? -1 : 1;
-      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-    });
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 }
 
 function isHiddenContent(relativePath) {
