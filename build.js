@@ -52,32 +52,34 @@ function layout(title, body, currentPath = '/') {
   <title>${escapeHtml(title)} · Amaan Shaik</title>
   <style>
     :root { color-scheme: light; }
-    body { max-width: 1100px; font-family: monospace, sans-serif; color: black; margin: 0 auto; padding: 1rem; }
+    body { max-width: 1100px; font-family: monospace, sans-serif; font-size: 16px; line-height: 1.55; color: black; margin: 0 auto; padding: 1rem; }
     header, footer { text-align: center; }
-    header h1 { margin-bottom: .5rem; }
+    header h1 { margin: 0 0 .75rem; font-size: clamp(1.5rem, 5vw, 2.25rem); line-height: 1.2; }
     header h1 a { color: inherit; text-decoration: none; }
+    nav a { font-size: 1rem; }
     nav ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; padding: 0; list-style: none; }
     nav li:not(:last-child)::after { content: ' · '; }
     nav a[aria-current="page"] { font-weight: bold; }
-    .breadcrumbs { margin: 1rem 0; text-align: center; }
+    .breadcrumbs { margin: 1.25rem 0; text-align: center; font-size: .98rem; }
     a:link, a:visited { text-decoration: none; }
     a:hover { text-decoration: underline; background-color: yellow; }
     .DIR { color: blue; }
     .EXEC { color: green; }
     main { min-height: 45vh; text-align: center; }
+    main h2 { font-size: clamp(1.3rem, 3.5vw, 1.75rem); line-height: 1.25; }
     main > p { max-width: 72ch; margin: 1rem auto; text-align: left; }
     main ul, main ol { padding-left: 1.25rem; }
     pre { max-width: 100%; overflow-x: auto; margin: 1rem auto; text-align: left; width: max-content; }
-    .text-viewer { max-width: 72ch; margin: 1rem auto; font-family: inherit; font-size: clamp(1rem, 2.5vw, 1.2rem); line-height: 1.75; overflow-wrap: anywhere; text-align: left; }
+    .text-viewer { max-width: 72ch; margin: 1rem auto; font-family: inherit; font-size: clamp(1.05rem, 2.5vw, 1.22rem); line-height: 1.8; overflow-wrap: anywhere; text-align: left; }
     .text-viewer p, .text-viewer ul, .text-viewer ol, .text-viewer blockquote { margin: 1rem 0; }
     .journal-list { max-width: 45ch; margin: 1rem auto; padding-left: 1.5rem; text-align: left; }
     .journal-list li { margin: .6rem 0; }
     .category-links { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .5rem; }
-    .category-link { display: inline-block; border: 1px solid black; padding: .65rem 1rem; }
+    .category-link { display: inline-block; border: 1px solid black; padding: .65rem 1rem; font-size: clamp(1rem, 2.5vw, 1.1rem); }
     .category-separator { margin: 0 .25rem; }
     .skip-link { position: absolute; left: -9999px; }
     .skip-link:focus { left: 1rem; top: 1rem; }
-    footer { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+    footer { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: .95rem; }
   </style>
 </head>
 <body>
