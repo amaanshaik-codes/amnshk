@@ -74,8 +74,8 @@ function layout(title, body, currentPath = '/') {
     .text-viewer p, .text-viewer ul, .text-viewer ol, .text-viewer blockquote { margin: 1rem 0; }
     .journal-list { max-width: 45ch; margin: 1rem auto; padding-left: 1.5rem; text-align: left; }
     .journal-list li { margin: .6rem 0; }
-    .category-links { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .5rem; }
-    .category-link { display: inline-block; border: 1px solid black; padding: .65rem 1rem; color: black; font-size: clamp(1rem, 2.5vw, 1.1rem); }
+    .category-links { display: inline-flex; max-width: 100%; box-sizing: border-box; flex-wrap: wrap; align-items: center; justify-content: center; gap: .5rem; border: 1px solid black; padding: .75rem 1rem; }
+    .category-link { color: black; font-size: clamp(1rem, 2.5vw, 1.1rem); }
     .category-separator { margin: 0 .25rem; }
     .skip-link { position: absolute; left: -9999px; }
     .skip-link:focus { left: 1rem; top: 1rem; }
