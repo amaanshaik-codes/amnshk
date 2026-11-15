@@ -84,6 +84,7 @@ function displayName(fileName) {
 }
 
 function outputName(fileName, relativePath) {
+  if (fileName.toLowerCase() === 'index.md') return 'index.html';
   if (/\.(txt|html)\.md$/i.test(fileName)) return displayName(fileName);
   return /(^|[\\/])journalish([\\/]|$)/i.test(relativePath) ? `${displayName(fileName)}.txt` : `${displayName(fileName)}.html`;
 }
@@ -181,7 +182,7 @@ function formatSize(bytes) {
 // ASCII tree branches match tree 1.8.0's -A output style.
 function renderTree(sourceDir, relativeDir = '', indent = '') {
   const entries = sortEntries(fs.readdirSync(sourceDir, { withFileTypes: true }))
-    .filter((entry) => entry.isDirectory() || entry.name.toLowerCase().endsWith('.md'));
+    .filter((entry) => entry.isDirectory() || (entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md'));
   const lines = [];
 
   entries.forEach((entry, index) => {
@@ -222,7 +223,7 @@ function buildFolder(sourceDir, relativeDir = '') {
       continue;
     }
 
-    if (!entry.name.toLowerCase().endsWith('.md')) continue;
+    if (!entry.name.toLowerCase().endsWith('.md') || entry.name.toLowerCase() === 'index.md') continue;
     const destinationName = outputName(entry.name, relativePath);
     const destinationPath = path.join(outputDir, destinationName);
     const sourceText = fs.readFileSync(sourcePath, 'utf8');
@@ -236,11 +237,15 @@ function buildFolder(sourceDir, relativeDir = '') {
   }
 
   const title = relativeDir ? path.basename(relativeDir) : 'Home';
+  const folderIndexPath = path.join(sourceDir, 'index.md');
+  const folderDescription = fs.existsSync(folderIndexPath)
+    ? markdownToHtml(fs.readFileSync(folderIndexPath, 'utf8'))
+    : '';
   const tree = renderTree(sourceDir, relativeDir);
   const listing = tree.length ? `<pre>${tree.join('\n')}</pre>` : '<p>No entries yet.</p>';
   const currentPath = relativeDir ? `${urlPath(relativeDir)}/` : '/';
   const report = `<p>${countDirectories(sourceDir)} directories, ${countFiles(sourceDir)} files</p>`;
-  fs.writeFileSync(path.join(outputDir, 'index.html'), layout(title, `<h2>${escapeHtml(title)}</h2>${listing}${report}`, currentPath));
+  fs.writeFileSync(path.join(outputDir, 'index.html'), layout(title, `${folderDescription}<h2>${escapeHtml(title)}</h2>${listing}${report}`, currentPath));
 }
 
 function countDirectories(directory) {
@@ -253,7 +258,7 @@ function countFiles(directory) {
   return fs.readdirSync(directory, { withFileTypes: true })
     .reduce((total, entry) => {
       if (entry.isDirectory()) return total + countFiles(path.join(directory, entry.name));
-      return total + (entry.name.toLowerCase().endsWith('.md') ? 1 : 0);
+      return total + (entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md' ? 1 : 0);
     }, 0);
 }
 
