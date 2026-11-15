@@ -38,13 +38,18 @@ function layout(title, body, currentPath = '/') {
   <title>${escapeHtml(title)} · Amaan Shaik</title>
   <style>
     :root { color-scheme: light; }
-    body { max-width: 880px; margin: 0 auto; padding: 1.25rem; line-height: 1.55; }
+    body { font-family: monospace, sans-serif; color: black; margin: 8px; }
     header h1 { margin-bottom: .5rem; }
     header h1 a { color: inherit; text-decoration: none; }
-    nav ul { display: flex; flex-wrap: wrap; gap: 1.25rem; padding: 0; list-style: none; }
+    nav ul { display: flex; flex-wrap: wrap; gap: 0; padding: 0; list-style: none; }
+    nav li:not(:last-child)::after { content: ' · '; }
     nav a[aria-current="page"] { font-weight: bold; }
+    a:link, a:visited { text-decoration: none; }
+    a:hover { text-decoration: underline; background-color: yellow; }
+    .DIR { color: blue; }
+    .EXEC { color: green; }
     main { min-height: 45vh; }
-    pre { overflow-x: auto; padding: 1rem; border: 1px solid #bbb; }
+    pre { overflow-x: auto; }
     .skip-link { position: absolute; left: -9999px; }
     .skip-link:focus { left: 1rem; top: 1rem; }
     footer { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
@@ -58,7 +63,7 @@ function layout(title, body, currentPath = '/') {
       <ul>
         ${navLink('Home', '/', '/')}
         ${navLink('Journalish', '/journalish/', '/journalish/')}
-        ${navLink('About Me', '/about-me.txt', '/about-me.txt')}
+        ${navLink('About Me', '/about-me.html', '/about-me.html')}
       </ul>
     </nav>
     <hr>
@@ -75,7 +80,76 @@ function layout(title, body, currentPath = '/') {
 }
 
 function displayName(fileName) {
-  return fileName.replace(/\.md$/i, '.txt');
+  return fileName.replace(/\.md$/i, '');
+}
+
+function outputName(fileName, relativePath) {
+  if (/\.(txt|html)\.md$/i.test(fileName)) return displayName(fileName);
+  return /(^|[\\/])journalish([\\/]|$)/i.test(relativePath) ? `${displayName(fileName)}.txt` : `${displayName(fileName)}.html`;
+}
+
+function isTextOutput(fileName, relativePath) {
+  return outputName(fileName, relativePath).toLowerCase().endsWith('.txt');
+}
+
+function markdownTitle(value, fallback) {
+  const heading = value.match(/^#\s+(.+)$/m);
+  return heading ? heading[1].trim() : fallback;
+}
+
+function markdownToHtml(value) {
+  const lines = value.split(/\r?\n/);
+  const output = [];
+  let paragraph = [];
+  let listOpen = false;
+
+  const flushParagraph = () => {
+    if (!paragraph.length) return;
+    output.push(`<p>${inlineMarkdown(paragraph.join(' '))}</p>`);
+    paragraph = [];
+  };
+  const closeList = () => {
+    if (!listOpen) return;
+    output.push('</ul>');
+    listOpen = false;
+  };
+
+  for (const line of lines) {
+    if (!line.trim()) {
+      flushParagraph();
+      closeList();
+      continue;
+    }
+    const heading = line.match(/^(#{1,6})\s+(.+)$/);
+    const listItem = line.match(/^[-*+]\s+(.+)$/);
+    if (heading) {
+      flushParagraph();
+      closeList();
+      const level = heading[1].length;
+      output.push(`<h${level}>${inlineMarkdown(heading[2])}</h${level}>`);
+    } else if (listItem) {
+      flushParagraph();
+      if (!listOpen) {
+        output.push('<ul>');
+        listOpen = true;
+      }
+      output.push(`<li>${inlineMarkdown(listItem[1])}</li>`);
+    } else {
+      closeList();
+      paragraph.push(line);
+    }
+  }
+  flushParagraph();
+  closeList();
+  return output.join('\n');
+}
+
+function inlineMarkdown(value) {
+  return escapeHtml(value)
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
 }
 
 function toUsAscii(value) {
@@ -96,6 +170,14 @@ function sortEntries(entries) {
     });
 }
 
+function formatSize(bytes) {
+  if (bytes >= 1024) {
+    const value = bytes >= 10240 ? `${Math.round(bytes / 1024)}` : `${(bytes / 1024).toFixed(1)}`;
+    return `[${value.padStart(4, ' ')}K]`;
+  }
+  return `[${String(bytes).padStart(4, ' ')}]`;
+}
+
 // ASCII tree branches match tree 1.8.0's -A output style.
 function renderTree(sourceDir, relativeDir = '', indent = '') {
   const entries = sortEntries(fs.readdirSync(sourceDir, { withFileTypes: true }))
@@ -110,15 +192,17 @@ function renderTree(sourceDir, relativeDir = '', indent = '') {
     const relativePath = path.join(relativeDir, entry.name);
 
     if (entry.isDirectory()) {
-      lines.push(`${indent}${branch}<a href="${urlPath(relativePath)}/">${escapeHtml(entry.name)}/</a>`);
+      lines.push(`${indent}${branch}${formatSize(4096)}    <a class="DIR" href="${urlPath(relativePath)}/">${escapeHtml(entry.name)}</a>`);
       lines.push(...renderTree(sourcePath, relativePath, childIndent));
       return;
     }
 
     if (entry.name.toLowerCase().endsWith('.md')) {
-      const destinationName = displayName(entry.name);
+      const destinationName = outputName(entry.name, relativePath);
       const publicPath = path.join(relativeDir, destinationName);
-      lines.push(`${indent}${branch}<a href="${urlPath(publicPath)}">${escapeHtml(destinationName)}</a>`);
+      const outputPath = path.join(outputRoot, publicPath);
+      const size = fs.existsSync(outputPath) ? fs.statSync(outputPath).size : 0;
+      lines.push(`${indent}${branch}${formatSize(size)}    <a class="EXEC" href="${urlPath(publicPath)}">${escapeHtml(destinationName)}</a>`);
     }
   });
 
@@ -139,10 +223,16 @@ function buildFolder(sourceDir, relativeDir = '') {
     }
 
     if (!entry.name.toLowerCase().endsWith('.md')) continue;
-    const destinationName = displayName(entry.name);
+    const destinationName = outputName(entry.name, relativePath);
     const destinationPath = path.join(outputDir, destinationName);
     const sourceText = fs.readFileSync(sourcePath, 'utf8');
-    fs.writeFileSync(destinationPath, toUsAscii(sourceText), 'ascii');
+    if (isTextOutput(entry.name, relativePath)) {
+      fs.writeFileSync(destinationPath, toUsAscii(sourceText), 'ascii');
+    } else {
+      const title = markdownTitle(sourceText, displayName(entry.name));
+      const body = markdownToHtml(sourceText);
+      fs.writeFileSync(destinationPath, layout(title, body, urlPath(path.join(relativeDir, destinationName))));
+    }
   }
 
   const title = relativeDir ? path.basename(relativeDir) : 'Home';
@@ -151,12 +241,31 @@ function buildFolder(sourceDir, relativeDir = '') {
   const parentLabel = parentDirectory && parentDirectory !== '.' ? path.basename(parentDirectory) : 'Home';
   const parentLink = relativeDir ? `<p><a href="${parentHref}">← Back to ${escapeHtml(parentLabel)}</a></p>` : '';
   const tree = renderTree(sourceDir, relativeDir);
-  const listing = tree.length ? `<pre>${tree.join('\n')}</pre>` : '<p>No entries yet.</p>';
+  const rootSize = formatSize(4096);
+  const rootName = relativeDir ? path.basename(relativeDir) : "Amaan Shaik's Personal Site";
+  const rootPath = relativeDir ? `${urlPath(relativeDir)}/` : '/';
+  const rootLine = `${rootSize}    <a class="DIR" href="${rootPath}">${escapeHtml(rootName)}</a>`;
+  const listing = tree.length ? `<pre>${rootLine}\n${tree.join('\n')}</pre>` : `<pre>${rootLine}</pre><p>No entries yet.</p>`;
   const itemCount = fs.readdirSync(sourceDir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory() || entry.name.toLowerCase().endsWith('.md')).length;
   const itemLabel = itemCount === 1 ? 'item' : 'items';
   const currentPath = relativeDir ? `${urlPath(relativeDir)}/` : '/';
-  fs.writeFileSync(path.join(outputDir, 'index.html'), layout(title, `${parentLink}<h2>${escapeHtml(title)}</h2><p>${itemCount} ${itemLabel}</p>${listing}`, currentPath));
+  const report = `<p>${countDirectories(sourceDir)} directories, ${countFiles(sourceDir)} files</p>`;
+  fs.writeFileSync(path.join(outputDir, 'index.html'), layout(title, `${parentLink}<h2>${escapeHtml(title)}</h2>${listing}${report}`, currentPath));
+}
+
+function countDirectories(directory) {
+  return fs.readdirSync(directory, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .reduce((total, entry) => total + 1 + countDirectories(path.join(directory, entry.name)), 0);
+}
+
+function countFiles(directory) {
+  return fs.readdirSync(directory, { withFileTypes: true })
+    .reduce((total, entry) => {
+      if (entry.isDirectory()) return total + countFiles(path.join(directory, entry.name));
+      return total + (entry.name.toLowerCase().endsWith('.md') ? 1 : 0);
+    }, 0);
 }
 
 fs.rmSync(outputRoot, { recursive: true, force: true });
