@@ -1,0 +1,10 @@
+{
+  "name": "amnshk-personal-site",
+  "private": true,
+  "scripts": {
+    "build": "node build.js"
+  },
+  "dependencies": {
+    "vercel": "^65.16.0"
+  }
+}
