@@ -76,7 +76,7 @@ function layout(title, body, currentPath = '/') {
     .text-viewer p, .text-viewer ul, .text-viewer ol, .text-viewer blockquote { margin: 1rem 0; }
     .journal-list { max-width: 45ch; margin: 1rem auto; padding-left: 1.5rem; text-align: left; }
     .journal-list li { margin: .6rem 0; }
-    .category-links { display: inline-flex; max-width: 100%; box-sizing: border-box; flex-wrap: wrap; align-items: center; justify-content: center; gap: .5rem; border: 1px solid black; padding: .75rem 1rem; }
+    .category-links { display: inline-flex; max-width: 100%; box-sizing: border-box; flex-wrap: wrap; align-items: center; justify-content: center; gap: .5rem; border: 1px solid var(--border); padding: .75rem 1rem; }
     .category-link { color: black; font-size: clamp(1rem, 2.5vw, 1.1rem); }
     .books-list { max-width: 60ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
     .books-list li { border-bottom: 1px solid var(--border); padding: .75rem 0; }
@@ -459,7 +459,7 @@ function buildFolder(sourceDir, relativeDir = '') {
   const currentPath = relativeDir ? `${urlPath(relativeDir)}/` : '/';
   const report = isJournalishPath(relativeDir)
     ? `<p>${countFiles(sourceDir)} journal entries</p>`
-    : isBooksPath(relativeDir)
+    : isArticlesPath(relativeDir) || isBooksPath(relativeDir)
       ? ''
     : `<p>${countDirectories(sourceDir)} directories, ${countFiles(sourceDir)} files</p>`;
   fs.writeFileSync(path.join(outputDir, 'index.html'), layout(publicLabel(title), `${folderDescription}<h2>${escapeHtml(publicLabel(folderDisplayName(title)))}</h2>${listing}${report}`, currentPath));
