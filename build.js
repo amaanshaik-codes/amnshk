@@ -157,13 +157,18 @@ function renderJournalListing(sourceDir, relativeDir) {
 }
 
 function renderHomeCategories() {
-  const folders = sortEntries(fs.readdirSync(contentRoot, { withFileTypes: true }))
-    .filter((entry) => entry.isDirectory());
-  if (!folders.length) return '';
-  const links = folders.flatMap((entry, index) => {
+  const entries = sortEntries(fs.readdirSync(contentRoot, { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory() || (entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md' && !isHiddenContent(entry.name)));
+  if (!entries.length) return '';
+  const links = entries.flatMap((entry, index) => {
     const relativePath = entry.name;
     const separator = index ? '<span class="category-separator" aria-hidden="true">|</span>' : '';
-    return [separator, `<a class="category-link DIR" href="${urlPath(relativePath)}/">${escapeHtml(publicLabel(folderDisplayName(entry.name)))}</a>`];
+    if (entry.isDirectory()) {
+      return [separator, `<a class="category-link DIR" href="${urlPath(relativePath)}/">${escapeHtml(publicLabel(folderDisplayName(entry.name)))}</a>`];
+    }
+    const destinationName = outputName(entry.name, relativePath);
+    const linkPath = isTextOutput(entry.name, relativePath) ? `${destinationName}.html` : destinationName;
+    return [separator, `<a class="category-link EXEC" href="${urlPath(linkPath)}">${escapeHtml(publicLabel(displayName(destinationName)))}</a>`];
   }).join('');
   return `<h2>Browse</h2><div class="category-links">${links}</div>`;
 }
