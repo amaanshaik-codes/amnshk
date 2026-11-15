@@ -23,8 +23,9 @@ function urlPath(relativePath) {
   return '/' + relativePath.split(path.sep).map(encodeURIComponent).join('/');
 }
 
-function layout(title, body) {
+function layout(title, body, currentPath = '/') {
   const description = 'Amaan Shaik\'s personal site, journals, lists, and reading notes.';
+  const navLink = (label, href, path) => `<li><a href="${href}"${currentPath === path ? ' aria-current="page"' : ''}>${label}</a></li>`;
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -35,18 +36,34 @@ function layout(title, body) {
   <meta property="og:description" content="${description}">
   <meta property="og:type" content="website">
   <title>${escapeHtml(title)} · Amaan Shaik</title>
+  <style>
+    :root { color-scheme: light; }
+    body { max-width: 880px; margin: 0 auto; padding: 1.25rem; line-height: 1.55; }
+    header h1 { margin-bottom: .5rem; }
+    header h1 a { color: inherit; text-decoration: none; }
+    nav ul { display: flex; flex-wrap: wrap; gap: 1.25rem; padding: 0; list-style: none; }
+    nav a[aria-current="page"] { font-weight: bold; }
+    main { min-height: 45vh; }
+    pre { overflow-x: auto; padding: 1rem; border: 1px solid #bbb; }
+    .skip-link { position: absolute; left: -9999px; }
+    .skip-link:focus { left: 1rem; top: 1rem; }
+    footer { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  </style>
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
   <header>
-    <h1>Amaan Shaik's Personal Site</h1>
+    <h1><a href="/">Amaan Shaik's Personal Site</a></h1>
     <nav aria-label="Primary navigation">
-      <a href="/">Home</a>
-      <a href="/journalish/">Journalish</a>
-      <a href="/about-me.txt">About Me</a>
+      <ul>
+        ${navLink('Home', '/', '/')}
+        ${navLink('Journalish', '/journalish/', '/journalish/')}
+        ${navLink('About Me', '/about-me.txt', '/about-me.txt')}
+      </ul>
     </nav>
     <hr>
   </header>
-  <main>${body}</main>
+  <main id="main-content">${body}</main>
   <hr>
   <footer>
     <p>Email: <a href="mailto:amaanshaik.work@gmail.com">amaanshaik.work@gmail.com</a></p>
@@ -129,10 +146,17 @@ function buildFolder(sourceDir, relativeDir = '') {
   }
 
   const title = relativeDir ? path.basename(relativeDir) : 'Home';
-  const parentLink = relativeDir ? '<p><a href="/">← Home</a></p>' : '';
+  const parentDirectory = relativeDir ? path.dirname(relativeDir) : '';
+  const parentHref = parentDirectory && parentDirectory !== '.' ? `${urlPath(parentDirectory)}/` : '/';
+  const parentLabel = parentDirectory && parentDirectory !== '.' ? path.basename(parentDirectory) : 'Home';
+  const parentLink = relativeDir ? `<p><a href="${parentHref}">← Back to ${escapeHtml(parentLabel)}</a></p>` : '';
   const tree = renderTree(sourceDir, relativeDir);
   const listing = tree.length ? `<pre>${tree.join('\n')}</pre>` : '<p>No entries yet.</p>';
-  fs.writeFileSync(path.join(outputDir, 'index.html'), layout(title, `${parentLink}<h2>${escapeHtml(title)}</h2>${listing}`));
+  const itemCount = fs.readdirSync(sourceDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() || entry.name.toLowerCase().endsWith('.md')).length;
+  const itemLabel = itemCount === 1 ? 'item' : 'items';
+  const currentPath = relativeDir ? `${urlPath(relativeDir)}/` : '/';
+  fs.writeFileSync(path.join(outputDir, 'index.html'), layout(title, `${parentLink}<h2>${escapeHtml(title)}</h2><p>${itemCount} ${itemLabel}</p>${listing}`, currentPath));
 }
 
 fs.rmSync(outputRoot, { recursive: true, force: true });
@@ -142,6 +166,6 @@ buildFolder(contentRoot);
 const homeTree = fs.readFileSync(path.join(outputRoot, 'index.html'), 'utf8')
   .replace('<h2>Home</h2>', '<p>Welcome. This is the living index of my notes, journals, lists, and reading.</p><h2>File tree</h2>');
 fs.writeFileSync(path.join(outputRoot, 'index.html'), homeTree);
-fs.writeFileSync(path.join(outputRoot, '404.html'), layout('Page not found', '<h2>Page not found</h2><p><a href="/">Return home</a> or <a href="/journalish/">browse Journalish</a>.</p>'));
+fs.writeFileSync(path.join(outputRoot, '404.html'), layout('Page not found', '<h2>Page not found</h2><p><a href="/">Return home</a> or <a href="/journalish/">browse Journalish</a>.</p>', ''));
 
 console.log(`Built ${outputRoot}`);
