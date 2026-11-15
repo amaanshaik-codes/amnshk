@@ -13,7 +13,7 @@ const builtAt = `${new Intl.DateTimeFormat('en-IN', {
 // Add future header buttons here. Each item becomes one link in the header.
 const navigation = [
   { label: 'Home', href: '/', path: '/' },
-  { label: 'Journal', href: '/journalish/', path: '/journalish/' },
+  { label: 'Journal', href: '/journal/', path: '/journal/' },
   { label: 'File Tree', href: '/file-tree/', path: '/file-tree/' },
 ];
 
@@ -149,15 +149,15 @@ function folderDisplayName(folderName) {
 }
 
 function publicLabel(value) {
-  return value.toLowerCase() === 'journalish'
+  return ['journal', 'journalish'].includes(value.toLowerCase())
     ? 'Journal'
     : value.toLowerCase() === 'books'
       ? 'Books'
     : value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-function isJournalishPath(relativePath) {
-  return relativePath === 'journalish' || relativePath.startsWith(`journalish${path.sep}`);
+function isJournalPath(relativePath) {
+  return relativePath === 'journal' || relativePath.startsWith(`journal${path.sep}`) || relativePath === 'journalish' || relativePath.startsWith(`journalish${path.sep}`);
 }
 
 function isArticlesPath(relativePath) {
@@ -277,7 +277,7 @@ function renderHomeCategories() {
 function outputName(fileName, relativePath) {
   if (fileName.toLowerCase() === 'index.md') return 'index.html';
   if (/\.(txt|html)\.md$/i.test(fileName)) return displayName(fileName);
-  return /(^|[\\/])journalish([\\/]|$)/i.test(relativePath) ? `${displayName(fileName)}.txt` : `${displayName(fileName)}.html`;
+  return /(^|[\\/])journal(?:ish)?([\\/]|$)/i.test(relativePath) ? `${displayName(fileName)}.txt` : `${displayName(fileName)}.html`;
 }
 
 function isTextOutput(fileName, relativePath) {
@@ -449,7 +449,7 @@ function buildFolder(sourceDir, relativeDir = '') {
     ? markdownToHtml(fs.readFileSync(folderIndexPath, 'utf8'))
     : '';
   const tree = renderTree(sourceDir, relativeDir);
-  const listing = isJournalishPath(relativeDir)
+  const listing = isJournalPath(relativeDir)
     ? renderJournalListing(sourceDir, relativeDir)
     : isArticlesPath(relativeDir)
       ? renderArticlesListing(sourceDir, relativeDir)
@@ -457,7 +457,7 @@ function buildFolder(sourceDir, relativeDir = '') {
       ? renderBooksListing(sourceDir, relativeDir)
     : (tree.length ? `<pre>${tree.join('\n')}</pre>` : '<p>No entries yet.</p>');
   const currentPath = relativeDir ? `${urlPath(relativeDir)}/` : '/';
-  const report = isJournalishPath(relativeDir)
+  const report = isJournalPath(relativeDir)
     ? `<p>${countFiles(sourceDir)} journal entries</p>`
     : isArticlesPath(relativeDir) || isBooksPath(relativeDir)
       ? ''

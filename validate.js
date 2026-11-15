@@ -10,7 +10,7 @@ function outputName(fileName, relativePath) {
   const baseName = fileName.replace(/\.md$/i, '');
   if (fileName.toLowerCase() === 'index.md') return 'index.html';
   if (/\.(txt|html)\.md$/i.test(fileName)) return baseName;
-  return /(^|[\\/])journalish([\\/]|$)/i.test(relativePath) ? `${baseName}.txt` : `${baseName}.html`;
+  return /(^|[\\/])journal(?:ish)?([\\/]|$)/i.test(relativePath) ? `${baseName}.txt` : `${baseName}.html`;
 }
 
 function walk(directory) {
