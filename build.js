@@ -13,7 +13,7 @@ const builtAt = `${new Intl.DateTimeFormat('en-IN', {
 // Add future header buttons here. Each item becomes one link in the header.
 const navigation = [
   { label: 'Home', href: '/', path: '/' },
-  { label: 'Journal-ish', href: '/journalish/', path: '/journalish/' },
+  { label: 'Journal', href: '/journalish/', path: '/journalish/' },
   { label: 'File Tree', href: '/file-tree/', path: '/file-tree/' },
 ];
 
@@ -35,7 +35,7 @@ function layout(title, body, currentPath = '/') {
   const navLink = ({ label, href, path }) => `<li><a href="${href}"${currentPath === path || (path !== '/' && currentPath.startsWith(path)) ? ' aria-current="page"' : ''}>${label}</a></li>`;
   const breadcrumbs = currentPath === '/' ? '' : `<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/">Home</a>${currentPath.split('/').filter(Boolean).map((part, index, parts) => {
     const isLast = index === parts.length - 1;
-    const cleanName = part.replace(/\.(txt|html)$/i, '').replaceAll('-', ' ');
+    const cleanName = decodeURIComponent(part).replace(/\.(txt|html)$/i, '').replaceAll('-', ' ');
     const label = publicLabel(cleanName);
     const href = `/${parts.slice(0, index + 1).join('/')}${isLast && !currentPath.endsWith('/') ? '' : '/'}`;
     return isLast ? ` <span aria-hidden="true">/</span> ${escapeHtml(label)}` : ` <span aria-hidden="true">/</span> <a href="${href}">${escapeHtml(label)}</a>`;
@@ -56,7 +56,7 @@ function layout(title, body, currentPath = '/') {
     header, footer { text-align: center; }
     header h1 { margin-bottom: .5rem; }
     header h1 a { color: inherit; text-decoration: none; }
-    nav ul { display: flex; flex-wrap: wrap; gap: 0; padding: 0; list-style: none; }
+    nav ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; padding: 0; list-style: none; }
     nav li:not(:last-child)::after { content: ' · '; }
     nav a[aria-current="page"] { font-weight: bold; }
     .breadcrumbs { margin: 1rem 0; text-align: center; }
@@ -66,11 +66,15 @@ function layout(title, body, currentPath = '/') {
     .EXEC { color: green; }
     main { min-height: 45vh; text-align: center; }
     main > p { max-width: 72ch; margin: 1rem auto; text-align: left; }
+    main ul, main ol { padding-left: 1.25rem; }
     pre { max-width: 100%; overflow-x: auto; margin: 1rem auto; text-align: left; width: max-content; }
     .text-viewer { max-width: 72ch; margin: 1rem auto; font-family: inherit; font-size: clamp(1rem, 2.5vw, 1.2rem); line-height: 1.75; overflow-wrap: anywhere; text-align: left; }
     .text-viewer p, .text-viewer ul, .text-viewer ol, .text-viewer blockquote { margin: 1rem 0; }
     .journal-list { max-width: 45ch; margin: 1rem auto; padding-left: 1.5rem; text-align: left; }
     .journal-list li { margin: .6rem 0; }
+    .category-links { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .5rem; }
+    .category-link { display: inline-block; border: 1px solid black; padding: .65rem 1rem; }
+    .category-separator { margin: 0 .25rem; }
     .skip-link { position: absolute; left: -9999px; }
     .skip-link:focus { left: 1rem; top: 1rem; }
     footer { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
@@ -108,7 +112,7 @@ function folderDisplayName(folderName) {
 
 function publicLabel(value) {
   return value.toLowerCase() === 'journalish'
-    ? 'Journal-ish'
+    ? 'Journal'
     : value.charAt(0).toUpperCase() + value.slice(1);
 }
 
@@ -150,6 +154,18 @@ function renderJournalListing(sourceDir, relativeDir) {
     return `<li><a class="EXEC" href="${urlPath(path.join(relativeDir, `${destinationName}.html`))}">${escapeHtml(journalFileLabel(entry.name))}</a></li>`;
   });
   return `<ul class="journal-list">${items.join('')}</ul>`;
+}
+
+function renderHomeCategories() {
+  const folders = sortEntries(fs.readdirSync(contentRoot, { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory());
+  if (!folders.length) return '';
+  const links = folders.flatMap((entry, index) => {
+    const relativePath = entry.name;
+    const separator = index ? '<span class="category-separator" aria-hidden="true">|</span>' : '';
+    return [separator, `<a class="category-link DIR" href="${urlPath(relativePath)}/">${escapeHtml(publicLabel(folderDisplayName(entry.name)))}</a>`];
+  }).join('');
+  return `<h2>Browse</h2><div class="category-links">${links}</div>`;
 }
 
 function outputName(fileName, relativePath) {
@@ -358,7 +374,7 @@ fs.rmSync(outputRoot, { recursive: true, force: true });
 fs.mkdirSync(outputRoot, { recursive: true });
 buildFolder(contentRoot);
 
-const homeBody = `<h2>Welcome</h2><p>This site is primarily a collection of plain text files that I have either written or collected or converted.</p><p>While this site is mainly for my personal use, I am happy to share it. Please feel free to read and/or download anything you find interesting.</p><p>Any file with my email address at the bottom is something I have written. Therefore, if you have questions or comments, you can reach out to me by my email.</p>`;
+const homeBody = `<h2>Welcome</h2><p>This site is primarily a collection of plain text files that I have either written or collected or converted.</p><p>While this site is mainly for my personal use, I am happy to share it. Please feel free to read and/or download anything you find interesting.</p><p>Any file with my email address at the bottom is something I have written. Therefore, if you have questions or comments, you can reach out to me by my email.</p>${renderHomeCategories()}`;
 fs.writeFileSync(path.join(outputRoot, 'index.html'), layout('Home', homeBody, '/'));
 
 const fileTreeDir = path.join(outputRoot, 'file-tree');
