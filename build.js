@@ -50,6 +50,8 @@ function layout(title, body, currentPath = '/') {
     .EXEC { color: green; }
     main { min-height: 45vh; }
     pre { overflow-x: auto; }
+    .text-viewer { max-width: 72ch; font-family: inherit; font-size: clamp(1rem, 2.5vw, 1.2rem); line-height: 1.75; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .text-meta { color: #555; font-size: .9rem; }
     .skip-link { position: absolute; left: -9999px; }
     .skip-link:focus { left: 1rem; top: 1rem; }
     footer { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
@@ -228,7 +230,12 @@ function buildFolder(sourceDir, relativeDir = '') {
     const destinationPath = path.join(outputDir, destinationName);
     const sourceText = fs.readFileSync(sourcePath, 'utf8');
     if (isTextOutput(entry.name, relativePath)) {
-      fs.writeFileSync(destinationPath, toUsAscii(sourceText), 'ascii');
+      const text = toUsAscii(sourceText);
+      fs.writeFileSync(destinationPath, text, 'ascii');
+      const readerPath = `${destinationPath}.html`;
+      const readerTitle = markdownTitle(sourceText, displayName(entry.name));
+      const readerBody = `<p class="text-meta">Plain-text journal · <a href="${urlPath(path.join(relativeDir, destinationName))}" download>download ${escapeHtml(destinationName)}</a></p><div class="text-viewer">${escapeHtml(text)}</div>`;
+      fs.writeFileSync(readerPath, layout(readerTitle, readerBody, urlPath(path.join(relativeDir, destinationName))));
     } else {
       const title = markdownTitle(sourceText, displayName(entry.name));
       const body = markdownToHtml(sourceText);
