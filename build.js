@@ -25,7 +25,14 @@ function urlPath(relativePath) {
 
 function layout(title, body, currentPath = '/') {
   const description = 'Amaan Shaik\'s personal site, journals, lists, and reading notes.';
-  const navLink = (label, href, path) => `<li><a href="${href}"${currentPath === path ? ' aria-current="page"' : ''}>${label}</a></li>`;
+  const navLink = (label, href, path) => `<li><a href="${href}"${currentPath === path || (path !== '/' && currentPath.startsWith(path)) ? ' aria-current="page"' : ''}>${label}</a></li>`;
+  const breadcrumbs = currentPath === '/' ? '' : `<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/">Home</a>${currentPath.split('/').filter(Boolean).map((part, index, parts) => {
+    const isLast = index === parts.length - 1;
+    const cleanName = part.replace(/\.(txt|html)$/i, '').replaceAll('-', ' ');
+    const label = publicLabel(cleanName);
+    const href = `/${parts.slice(0, index + 1).join('/')}${isLast && !currentPath.endsWith('/') ? '' : '/'}`;
+    return isLast ? ` <span aria-hidden="true">/</span> ${escapeHtml(label)}` : ` <span aria-hidden="true">/</span> <a href="${href}">${escapeHtml(label)}</a>`;
+  }).join('')}</nav>`;
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -44,6 +51,7 @@ function layout(title, body, currentPath = '/') {
     nav ul { display: flex; flex-wrap: wrap; gap: 0; padding: 0; list-style: none; }
     nav li:not(:last-child)::after { content: ' · '; }
     nav a[aria-current="page"] { font-weight: bold; }
+    .breadcrumbs { margin: 1rem 0; }
     a:link, a:visited { text-decoration: none; }
     a:hover { text-decoration: underline; background-color: yellow; }
     .DIR { color: blue; }
@@ -64,13 +72,13 @@ function layout(title, body, currentPath = '/') {
     <nav aria-label="Primary navigation">
       <ul>
         ${navLink('Home', '/', '/')}
-        ${navLink('Journalish', '/journalish/', '/journalish/')}
-        ${navLink('About Me', '/about-me.html', '/about-me.html')}
+        ${navLink('Journal-ish', '/journalish/', '/journalish/')}
+        ${navLink('File Tree', '/file-tree/', '/file-tree/')}
       </ul>
     </nav>
     <hr>
   </header>
-  <main id="main-content">${body}</main>
+  <main id="main-content">${breadcrumbs}${body}</main>
   <hr>
   <footer>
     <p>Email: <a href="mailto:amaanshaik.work@gmail.com">amaanshaik.work@gmail.com</a></p>
@@ -82,7 +90,17 @@ function layout(title, body, currentPath = '/') {
 }
 
 function displayName(fileName) {
-  return fileName.replace(/\.md$/i, '');
+  return fileName.replace(/\.(md|txt|html)$/i, '').replace(/\.html$/i, '');
+}
+
+function folderDisplayName(folderName) {
+  return folderName.replace(/\.html$/i, '');
+}
+
+function publicLabel(value) {
+  return value.toLowerCase() === 'journalish'
+    ? 'Journal-ish'
+    : value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function outputName(fileName, relativePath) {
@@ -173,6 +191,10 @@ function sortEntries(entries) {
     });
 }
 
+function isHiddenContent(relativePath) {
+  return relativePath.toLowerCase() === 'about-me.md';
+}
+
 function formatSize(bytes) {
   if (bytes >= 1024) {
     const value = bytes >= 10240 ? `${Math.round(bytes / 1024)}` : `${(bytes / 1024).toFixed(1)}`;
@@ -184,7 +206,7 @@ function formatSize(bytes) {
 // ASCII tree branches match tree 1.8.0's -A output style.
 function renderTree(sourceDir, relativeDir = '', indent = '') {
   const entries = sortEntries(fs.readdirSync(sourceDir, { withFileTypes: true }))
-    .filter((entry) => entry.isDirectory() || (entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md'));
+    .filter((entry) => entry.isDirectory() || (entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md' && !isHiddenContent(path.join(relativeDir, entry.name))));
   const lines = [];
 
   entries.forEach((entry, index) => {
@@ -195,7 +217,7 @@ function renderTree(sourceDir, relativeDir = '', indent = '') {
     const relativePath = path.join(relativeDir, entry.name);
 
     if (entry.isDirectory()) {
-      lines.push(`${indent}${branch}${formatSize(4096)}    <a class="DIR" href="${urlPath(relativePath)}/">${escapeHtml(entry.name)}</a>`);
+      lines.push(`${indent}${branch}<a class="DIR" href="${urlPath(relativePath)}/">${escapeHtml(publicLabel(folderDisplayName(entry.name)))}</a>`);
       lines.push(...renderTree(sourcePath, relativePath, childIndent));
       return;
     }
@@ -206,7 +228,7 @@ function renderTree(sourceDir, relativeDir = '', indent = '') {
       const outputPath = path.join(outputRoot, publicPath);
       const size = fs.existsSync(outputPath) ? fs.statSync(outputPath).size : 0;
       const linkPath = isTextOutput(entry.name, relativePath) ? `${publicPath}.html` : publicPath;
-      lines.push(`${indent}${branch}${formatSize(size)}    <a class="EXEC" href="${urlPath(linkPath)}">${escapeHtml(destinationName)}</a>`);
+      lines.push(`${indent}${branch}<a class="EXEC" href="${urlPath(linkPath)}">${escapeHtml(publicLabel(displayName(destinationName)))}</a>`);
     }
   });
 
@@ -226,7 +248,7 @@ function buildFolder(sourceDir, relativeDir = '') {
       continue;
     }
 
-    if (!entry.name.toLowerCase().endsWith('.md') || entry.name.toLowerCase() === 'index.md') continue;
+    if (!entry.name.toLowerCase().endsWith('.md') || entry.name.toLowerCase() === 'index.md' || isHiddenContent(relativePath)) continue;
     const destinationName = outputName(entry.name, relativePath);
     const destinationPath = path.join(outputDir, destinationName);
     const sourceText = fs.readFileSync(sourcePath, 'utf8');
@@ -235,7 +257,7 @@ function buildFolder(sourceDir, relativeDir = '') {
       fs.writeFileSync(destinationPath, text, 'ascii');
       const readerPath = `${destinationPath}.html`;
       const readerTitle = markdownTitle(sourceText, displayName(entry.name));
-      const readerBody = `<p class="text-meta">Plain-text journal · <a href="${urlPath(path.join(relativeDir, destinationName))}" download>download ${escapeHtml(destinationName)}</a></p><div class="text-viewer">${escapeHtml(text)}</div>`;
+      const readerBody = `<div class="text-viewer">${escapeHtml(text)}</div>`;
       fs.writeFileSync(readerPath, layout(readerTitle, readerBody, urlPath(path.join(relativeDir, destinationName))));
     } else {
       const title = markdownTitle(sourceText, displayName(entry.name));
@@ -253,7 +275,7 @@ function buildFolder(sourceDir, relativeDir = '') {
   const listing = tree.length ? `<pre>${tree.join('\n')}</pre>` : '<p>No entries yet.</p>';
   const currentPath = relativeDir ? `${urlPath(relativeDir)}/` : '/';
   const report = `<p>${countDirectories(sourceDir)} directories, ${countFiles(sourceDir)} files</p>`;
-  fs.writeFileSync(path.join(outputDir, 'index.html'), layout(title, `${folderDescription}<h2>${escapeHtml(title)}</h2>${listing}${report}`, currentPath));
+  fs.writeFileSync(path.join(outputDir, 'index.html'), layout(publicLabel(title), `${folderDescription}<h2>${escapeHtml(publicLabel(folderDisplayName(title)))}</h2>${listing}${report}`, currentPath));
 }
 
 function countDirectories(directory) {
@@ -262,11 +284,12 @@ function countDirectories(directory) {
     .reduce((total, entry) => total + 1 + countDirectories(path.join(directory, entry.name)), 0);
 }
 
-function countFiles(directory) {
+function countFiles(directory, relativeDir = '') {
   return fs.readdirSync(directory, { withFileTypes: true })
     .reduce((total, entry) => {
-      if (entry.isDirectory()) return total + countFiles(path.join(directory, entry.name));
-      return total + (entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md' ? 1 : 0);
+      const relativePath = path.join(relativeDir, entry.name);
+      if (entry.isDirectory()) return total + countFiles(path.join(directory, entry.name), relativePath);
+      return total + (entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md' && !isHiddenContent(relativePath) ? 1 : 0);
     }, 0);
 }
 
@@ -274,9 +297,14 @@ fs.rmSync(outputRoot, { recursive: true, force: true });
 fs.mkdirSync(outputRoot, { recursive: true });
 buildFolder(contentRoot);
 
-const homeTree = fs.readFileSync(path.join(outputRoot, 'index.html'), 'utf8')
-  .replace('<h2>Home</h2>', '<p>Welcome. This is the living index of my notes, journals, lists, and reading.</p><h2>File tree</h2>');
-fs.writeFileSync(path.join(outputRoot, 'index.html'), homeTree);
-fs.writeFileSync(path.join(outputRoot, '404.html'), layout('Page not found', '<h2>Page not found</h2><p><a href="/">Return home</a> or <a href="/journalish/">browse Journalish</a>.</p>', ''));
+const homeBody = `<h2>Welcome</h2><p>This site is primarily a collection of plain text files that I have either written or collected or converted.</p><p>While this site is mainly for my personal use, I am happy to share it. Please feel free to read and/or download anything you find interesting.</p><p>Any file with my email address at the bottom is something I have written. Therefore, if you have questions or comments, you can reach out to me by my email.</p>`;
+fs.writeFileSync(path.join(outputRoot, 'index.html'), layout('Home', homeBody, '/'));
+
+const fileTreeDir = path.join(outputRoot, 'file-tree');
+fs.mkdirSync(fileTreeDir, { recursive: true });
+const rootTree = renderTree(contentRoot);
+const rootListing = rootTree.length ? `<pre>${rootTree.join('\n')}</pre>` : '<p>No entries yet.</p>';
+fs.writeFileSync(path.join(fileTreeDir, 'index.html'), layout('File Tree', `<h2>File Tree</h2>${rootListing}<p>${countDirectories(contentRoot)} directories, ${countFiles(contentRoot)} files</p>`, '/file-tree/'));
+fs.writeFileSync(path.join(outputRoot, '404.html'), layout('Page not found', '<h2>Page not found</h2><p><a href="/">Return home</a> or <a href="/file-tree/">browse the File Tree</a>.</p>', ''));
 
 console.log(`Built ${outputRoot}`);

@@ -22,8 +22,10 @@ function walk(directory) {
 
 for (const sourcePath of walk(contentRoot).filter((filePath) => filePath.endsWith('.md'))) {
   const relativePath = path.relative(contentRoot, sourcePath);
+  if (relativePath.toLowerCase() === 'about-me.md') continue;
   const outputPath = path.join(outputRoot, path.dirname(relativePath), outputName(path.basename(relativePath), relativePath));
   if (!fs.existsSync(outputPath)) failures.push(`Missing output: ${relativePath}`);
+  if (outputPath.endsWith('.txt') && !fs.existsSync(`${outputPath}.html`)) failures.push(`Missing text reader: ${relativePath}`);
   if (outputPath.endsWith('.txt') && fs.existsSync(outputPath) && /[^\x00-\x7F]/.test(fs.readFileSync(outputPath, 'ascii'))) {
     failures.push(`Not US-ASCII: ${relativePath}`);
   }
