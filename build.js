@@ -416,9 +416,7 @@ function buildFolder(sourceDir, relativeDir = '') {
   const report = isJournalishPath(relativeDir)
     ? `<p>${countFiles(sourceDir)} journal entries</p>`
     : isReadsPath(relativeDir)
-      ? (relativeDir === 'reads' && countDirectories(sourceDir) > 0
-        ? `<p>${countDirectories(sourceDir)} ${countDirectories(sourceDir) === 1 ? 'collection' : 'collections'}, ${countFiles(sourceDir)} books</p>`
-        : `<p>${countFiles(sourceDir)} books</p>`)
+      ? ''
     : `<p>${countDirectories(sourceDir)} directories, ${countFiles(sourceDir)} files</p>`;
   fs.writeFileSync(path.join(outputDir, 'index.html'), layout(publicLabel(title), `${folderDescription}<h2>${escapeHtml(publicLabel(folderDisplayName(title)))}</h2>${listing}${report}`, currentPath));
 }
