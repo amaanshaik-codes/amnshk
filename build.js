@@ -75,7 +75,7 @@ function layout(title, body, currentPath = '/') {
     .journal-list { max-width: 45ch; margin: 1rem auto; padding-left: 1.5rem; text-align: left; }
     .journal-list li { margin: .6rem 0; }
     .category-links { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .5rem; }
-    .category-link { display: inline-block; border: 1px solid black; padding: .65rem 1rem; font-size: clamp(1rem, 2.5vw, 1.1rem); }
+    .category-link { display: inline-block; border: 1px solid black; padding: .65rem 1rem; color: black; font-size: clamp(1rem, 2.5vw, 1.1rem); }
     .category-separator { margin: 0 .25rem; }
     .skip-link { position: absolute; left: -9999px; }
     .skip-link:focus { left: 1rem; top: 1rem; }
@@ -170,7 +170,7 @@ function renderHomeCategories() {
     }
     const destinationName = outputName(entry.name, relativePath);
     const linkPath = isTextOutput(entry.name, relativePath) ? `${destinationName}.html` : destinationName;
-    return [separator, `<a class="category-link EXEC" href="${urlPath(linkPath)}">${escapeHtml(publicLabel(displayName(destinationName)))}</a>`];
+    return [separator, `<a class="category-link" href="${urlPath(linkPath)}">${escapeHtml(publicLabel(displayName(destinationName)))}</a>`];
   }).join('');
   return `<h2>Browse</h2><div class="category-links">${links}</div>`;
 }
