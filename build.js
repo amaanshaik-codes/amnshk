@@ -51,8 +51,9 @@ function layout(title, body, currentPath = '/') {
   <meta property="og:type" content="website">
   <title>${escapeHtml(title)} · Amaan Shaik</title>
   <style>
-    :root { color-scheme: light; }
-    body { max-width: 1100px; font-family: monospace, sans-serif; font-size: 16px; line-height: 1.55; color: black; margin: 0 auto; padding: 1rem; }
+    :root { color-scheme: light; --page-bg: white; --text: black; --link: blue; --exec: green; --hover: yellow; --border: black; }
+    :root[data-theme="dark"] { color-scheme: dark; --page-bg: #111; --text: #f5f5f5; --link: #79b8ff; --exec: #75d66f; --hover: #62bd58; --border: #f5f5f5; }
+    body { max-width: 1100px; font-family: monospace, sans-serif; font-size: 16px; line-height: 1.55; color: var(--text); background: var(--page-bg); margin: 0 auto; padding: 1rem; }
     header, footer { text-align: center; }
     header h1 { margin: 0 0 .75rem; font-size: clamp(1.5rem, 5vw, 2.25rem); line-height: 1.2; }
     header h1 a { color: inherit; text-decoration: none; }
@@ -60,11 +61,12 @@ function layout(title, body, currentPath = '/') {
     nav ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; padding: 0; list-style: none; }
     nav li:not(:last-child)::after { content: ' · '; }
     nav a[aria-current="page"] { font-weight: bold; }
+    .theme-toggle { border: 0; padding: 0; color: var(--text); background: transparent; font: inherit; cursor: pointer; }
     .breadcrumbs { margin: 1.25rem 0; text-align: center; font-size: .98rem; }
-    a:link, a:visited { text-decoration: none; }
-    a:hover { text-decoration: underline; background-color: yellow; }
-    .DIR { color: blue; }
-    .EXEC { color: green; }
+    a:link, a:visited { color: var(--link); text-decoration: none; }
+    a:hover, .theme-toggle:hover { text-decoration: underline; background-color: var(--hover); }
+    .DIR { color: var(--link) !important; }
+    .EXEC { color: var(--exec) !important; }
     main { min-height: 45vh; text-align: center; }
     main h2 { font-size: clamp(1.3rem, 3.5vw, 1.75rem); line-height: 1.25; }
     main > p { max-width: 72ch; margin: 1rem auto; text-align: left; }
@@ -76,6 +78,12 @@ function layout(title, body, currentPath = '/') {
     .journal-list li { margin: .6rem 0; }
     .category-links { display: inline-flex; max-width: 100%; box-sizing: border-box; flex-wrap: wrap; align-items: center; justify-content: center; gap: .5rem; border: 1px solid black; padding: .75rem 1rem; }
     .category-link { color: black; font-size: clamp(1rem, 2.5vw, 1.1rem); }
+    .reads-list { max-width: 60ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
+    .reads-list li { border-bottom: 1px solid var(--border); padding: .75rem 0; }
+    .reads-list a { font-size: 1.05rem; }
+    .book-title, .book-author { display: block; }
+    .book-author { margin-top: .25rem; font-size: .9rem; }
+    .category-link { color: var(--text); }
     .category-separator { margin: 0 .25rem; }
     .skip-link { position: absolute; left: -9999px; }
     .skip-link:focus { left: 1rem; top: 1rem; }
@@ -89,6 +97,7 @@ function layout(title, body, currentPath = '/') {
     <nav aria-label="Primary navigation">
       <ul>
         ${navigation.map(navLink).join('\n        ')}
+        <li><button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">dark</button></li>
       </ul>
     </nav>
     <hr>
@@ -99,6 +108,24 @@ function layout(title, body, currentPath = '/') {
     <p>Email: <a href="mailto:amaanshaik.work@gmail.com">amaanshaik.work@gmail.com</a></p>
     <p>Last updated: ${builtAt}</p>
   </footer>
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const button = document.getElementById('theme-toggle');
+      const savedTheme = localStorage.getItem('theme');
+      const applyTheme = (theme) => {
+        root.dataset.theme = theme;
+        button.textContent = theme === 'dark' ? 'light' : 'dark';
+        button.setAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
+      };
+      applyTheme(savedTheme === 'dark' ? 'dark' : 'light');
+      button.addEventListener('click', () => {
+        const nextTheme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+        localStorage.setItem('theme', nextTheme);
+        applyTheme(nextTheme);
+      });
+    })();
+  </script>
 </body>
 </html>
 `;
@@ -120,6 +147,10 @@ function publicLabel(value) {
 
 function isJournalishPath(relativePath) {
   return relativePath === 'journalish' || relativePath.startsWith(`journalish${path.sep}`);
+}
+
+function isReadsPath(relativePath) {
+  return relativePath === 'reads' || relativePath.startsWith(`reads${path.sep}`);
 }
 
 function journalEntrySort(a, b) {
@@ -156,6 +187,25 @@ function renderJournalListing(sourceDir, relativeDir) {
     return `<li><a class="EXEC" href="${urlPath(path.join(relativeDir, `${destinationName}.html`))}">${escapeHtml(journalFileLabel(entry.name))}</a></li>`;
   });
   return `<ul class="journal-list">${items.join('')}</ul>`;
+}
+
+function renderReadsListing(sourceDir, relativeDir) {
+  const entries = sortEntries(fs.readdirSync(sourceDir, { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory() || (entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md' && !isHiddenContent(path.join(relativeDir, entry.name))));
+  if (!entries.length) return '<p>No reading notes yet.</p>';
+  const items = entries.map((entry) => {
+    const relativePath = path.join(relativeDir, entry.name);
+    if (entry.isDirectory()) return `<li><a class="DIR" href="${urlPath(relativePath)}/">${escapeHtml(publicLabel(folderDisplayName(entry.name)))}</a></li>`;
+    const destinationName = outputName(entry.name, relativePath);
+    const linkPath = isTextOutput(entry.name, relativePath) ? `${path.join(relativeDir, `${destinationName}.html`)}` : path.join(relativeDir, destinationName);
+    const sourceText = fs.readFileSync(path.join(sourceDir, entry.name), 'utf8');
+    const sourceLines = sourceText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    const title = markdownTitle(sourceText, displayName(entry.name));
+    const authorLine = sourceLines.find((line) => /^by\s+/i.test(line));
+    const author = authorLine ? authorLine.replace(/^by\s+/i, '') : '';
+    return `<li><a class="EXEC" href="${urlPath(linkPath)}"><span class="book-title">${escapeHtml(title)}</span>${author ? `<span class="book-author">${escapeHtml(author)}</span>` : ''}</a></li>`;
+  });
+  return `<ul class="reads-list">${items.join('')}</ul>`;
 }
 
 function renderHomeCategories() {
@@ -355,10 +405,16 @@ function buildFolder(sourceDir, relativeDir = '') {
   const tree = renderTree(sourceDir, relativeDir);
   const listing = isJournalishPath(relativeDir)
     ? renderJournalListing(sourceDir, relativeDir)
+    : isReadsPath(relativeDir)
+      ? renderReadsListing(sourceDir, relativeDir)
     : (tree.length ? `<pre>${tree.join('\n')}</pre>` : '<p>No entries yet.</p>');
   const currentPath = relativeDir ? `${urlPath(relativeDir)}/` : '/';
   const report = isJournalishPath(relativeDir)
     ? `<p>${countFiles(sourceDir)} journal entries</p>`
+    : isReadsPath(relativeDir)
+      ? (relativeDir === 'reads'
+        ? `<p>${countDirectories(sourceDir)} ${countDirectories(sourceDir) === 1 ? 'collection' : 'collections'}, ${countFiles(sourceDir)} book notes</p>`
+        : `<p>${countFiles(sourceDir)} book notes</p>`)
     : `<p>${countDirectories(sourceDir)} directories, ${countFiles(sourceDir)} files</p>`;
   fs.writeFileSync(path.join(outputDir, 'index.html'), layout(publicLabel(title), `${folderDescription}<h2>${escapeHtml(publicLabel(folderDisplayName(title)))}</h2>${listing}${report}`, currentPath));
 }
