@@ -2,4 +2,5 @@
 - [Ed Gein](https://en.wikipedia.org/wiki/Ed_Gein)
 - [John Wayne Gacy](https://en.wikipedia.org/wiki/John_Wayne_Gacy)
 - [Lizzie Borden](https://en.wikipedia.org/wiki/Lizzie_Borden)
+- [Bonnie and Clyde](https://en.wikipedia.org/wiki/Bonnie_and_Clyde)
 - 
