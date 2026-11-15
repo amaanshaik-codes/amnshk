@@ -206,6 +206,7 @@ function markdownToHtml(value) {
       closeList();
       continue;
     }
+    if (/^[-*+]\s*$/.test(line)) continue;
     const heading = line.match(/^(#{1,6})\s+(.+)$/);
     const listItem = line.match(/^[-*+]\s+(.+)$/);
     const orderedItem = line.match(/^\d+[.)]\s+(.+)$/);
