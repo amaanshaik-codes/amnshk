@@ -10,6 +10,13 @@ const builtAt = `${new Intl.DateTimeFormat('en-IN', {
   timeZone: 'Asia/Kolkata'
 }).format(new Date())} IST`;
 
+// Add future header buttons here. Each item becomes one link in the header.
+const navigation = [
+  { label: 'Home', href: '/', path: '/' },
+  { label: 'Journal-ish', href: '/journalish/', path: '/journalish/' },
+  { label: 'File Tree', href: '/file-tree/', path: '/file-tree/' }
+];
+
 function escapeHtml(value) {
   return value
     .replaceAll('&', '&amp;')
@@ -25,7 +32,7 @@ function urlPath(relativePath) {
 
 function layout(title, body, currentPath = '/') {
   const description = 'Amaan Shaik\'s personal site, journals, lists, and reading notes.';
-  const navLink = (label, href, path) => `<li><a href="${href}"${currentPath === path || (path !== '/' && currentPath.startsWith(path)) ? ' aria-current="page"' : ''}>${label}</a></li>`;
+  const navLink = ({ label, href, path }) => `<li><a href="${href}"${currentPath === path || (path !== '/' && currentPath.startsWith(path)) ? ' aria-current="page"' : ''}>${label}</a></li>`;
   const breadcrumbs = currentPath === '/' ? '' : `<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/">Home</a>${currentPath.split('/').filter(Boolean).map((part, index, parts) => {
     const isLast = index === parts.length - 1;
     const cleanName = part.replace(/\.(txt|html)$/i, '').replaceAll('-', ' ');
@@ -60,6 +67,8 @@ function layout(title, body, currentPath = '/') {
     pre { overflow-x: auto; }
     .text-viewer { max-width: 72ch; font-family: inherit; font-size: clamp(1rem, 2.5vw, 1.2rem); line-height: 1.75; white-space: pre-wrap; overflow-wrap: anywhere; }
     .text-meta { color: #555; font-size: .9rem; }
+    .journal-list { padding-left: 1.5rem; }
+    .journal-list li { margin: .6rem 0; }
     .skip-link { position: absolute; left: -9999px; }
     .skip-link:focus { left: 1rem; top: 1rem; }
     footer { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
@@ -71,9 +80,7 @@ function layout(title, body, currentPath = '/') {
     <h1><a href="/">Amaan Shaik's Personal Site</a></h1>
     <nav aria-label="Primary navigation">
       <ul>
-        ${navLink('Home', '/', '/')}
-        ${navLink('Journal-ish', '/journalish/', '/journalish/')}
-        ${navLink('File Tree', '/file-tree/', '/file-tree/')}
+        ${navigation.map(navLink).join('\n        ')}
       </ul>
     </nav>
     <hr>
@@ -101,6 +108,46 @@ function publicLabel(value) {
   return value.toLowerCase() === 'journalish'
     ? 'Journal-ish'
     : value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function isJournalishPath(relativePath) {
+  return relativePath === 'journalish' || relativePath.startsWith(`journalish${path.sep}`);
+}
+
+function journalEntrySort(a, b) {
+  if (a.isDirectory() !== b.isDirectory()) return a.isDirectory() ? -1 : 1;
+  const aDate = a.name.match(/^(\d{2})-(\d{2})-(\d{4})\.md$/i);
+  const bDate = b.name.match(/^(\d{2})-(\d{2})-(\d{4})\.md$/i);
+  if (aDate && bDate) {
+    return `${bDate[3]}-${bDate[2]}-${bDate[1]}`.localeCompare(`${aDate[3]}-${aDate[2]}-${aDate[1]}`);
+  }
+  if (/^\d{4}$/.test(a.name) && /^\d{4}$/.test(b.name)) return b.name.localeCompare(a.name);
+  const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+  const aMonth = months.indexOf(a.name.toLowerCase());
+  const bMonth = months.indexOf(b.name.toLowerCase());
+  if (aMonth !== -1 && bMonth !== -1) return bMonth - aMonth;
+  return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+}
+
+function journalFileLabel(fileName) {
+  const date = fileName.match(/^(\d{2})-(\d{2})-(\d{4})\.md$/i);
+  if (!date) return publicLabel(displayName(fileName));
+  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
+    .format(new Date(Date.UTC(Number(date[3]), Number(date[2]) - 1, Number(date[1]))));
+}
+
+function renderJournalListing(sourceDir, relativeDir) {
+  const entries = fs.readdirSync(sourceDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() || (entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md' && !isHiddenContent(path.join(relativeDir, entry.name))))
+    .sort(journalEntrySort);
+  if (!entries.length) return '<p>No journal entries yet.</p>';
+  const items = entries.map((entry) => {
+    const relativePath = path.join(relativeDir, entry.name);
+    if (entry.isDirectory()) return `<li><a class="DIR" href="${urlPath(relativePath)}/">${escapeHtml(publicLabel(folderDisplayName(entry.name)))}</a></li>`;
+    const destinationName = outputName(entry.name, relativePath);
+    return `<li><a class="EXEC" href="${urlPath(path.join(relativeDir, `${destinationName}.html`))}">${escapeHtml(journalFileLabel(entry.name))}</a></li>`;
+  });
+  return `<ul class="journal-list">${items.join('')}</ul>`;
 }
 
 function outputName(fileName, relativePath) {
@@ -272,9 +319,13 @@ function buildFolder(sourceDir, relativeDir = '') {
     ? markdownToHtml(fs.readFileSync(folderIndexPath, 'utf8'))
     : '';
   const tree = renderTree(sourceDir, relativeDir);
-  const listing = tree.length ? `<pre>${tree.join('\n')}</pre>` : '<p>No entries yet.</p>';
+  const listing = isJournalishPath(relativeDir)
+    ? renderJournalListing(sourceDir, relativeDir)
+    : (tree.length ? `<pre>${tree.join('\n')}</pre>` : '<p>No entries yet.</p>');
   const currentPath = relativeDir ? `${urlPath(relativeDir)}/` : '/';
-  const report = `<p>${countDirectories(sourceDir)} directories, ${countFiles(sourceDir)} files</p>`;
+  const report = isJournalishPath(relativeDir)
+    ? `<p>${countFiles(sourceDir)} journal entries</p>`
+    : `<p>${countDirectories(sourceDir)} directories, ${countFiles(sourceDir)} files</p>`;
   fs.writeFileSync(path.join(outputDir, 'index.html'), layout(publicLabel(title), `${folderDescription}<h2>${escapeHtml(publicLabel(folderDisplayName(title)))}</h2>${listing}${report}`, currentPath));
 }
 
