@@ -4,7 +4,11 @@ const path = require('path');
 const root = __dirname;
 const contentRoot = path.join(root, 'Content');
 const outputRoot = path.join(root, 'public');
-const builtAt = new Date().toISOString();
+const builtAt = `${new Intl.DateTimeFormat('en-IN', {
+  dateStyle: 'long',
+  timeStyle: 'short',
+  timeZone: 'Asia/Kolkata'
+}).format(new Date())} IST`;
 
 function escapeHtml(value) {
   return value
@@ -20,11 +24,16 @@ function urlPath(relativePath) {
 }
 
 function layout(title, body) {
+  const description = 'Amaan Shaik\'s personal site, journals, lists, and reading notes.';
   return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="${description}">
+  <meta property="og:title" content="${escapeHtml(title)} · Amaan Shaik">
+  <meta property="og:description" content="${description}">
+  <meta property="og:type" content="website">
   <title>${escapeHtml(title)} · Amaan Shaik</title>
 </head>
 <body>
@@ -53,7 +62,12 @@ function displayName(fileName) {
 }
 
 function toUsAscii(value) {
-  return value.normalize('NFKD').replace(/[^\x00-\x7F]/g, '?');
+  const replacements = {
+    '“': '"', '”': '"', '‘': "'", '’': "'", '–': '-', '—': '--',
+    '…': '...', '•': '*', '→': '->', '←': '<-', '©': '(c)', '™': '(tm)'
+  };
+  const normalized = value.replace(/[“”‘’–—…•→←©™]/g, (character) => replacements[character]);
+  return normalized.normalize('NFKD').replace(/[^\x00-\x7F]/g, '?');
 }
 
 function sortEntries(entries) {
@@ -67,7 +81,8 @@ function sortEntries(entries) {
 
 // ASCII tree branches match tree 1.8.0's -A output style.
 function renderTree(sourceDir, relativeDir = '', indent = '') {
-  const entries = sortEntries(fs.readdirSync(sourceDir, { withFileTypes: true }));
+  const entries = sortEntries(fs.readdirSync(sourceDir, { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory() || entry.name.toLowerCase().endsWith('.md'));
   const lines = [];
 
   entries.forEach((entry, index) => {
@@ -96,7 +111,6 @@ function renderTree(sourceDir, relativeDir = '', indent = '') {
 function buildFolder(sourceDir, relativeDir = '') {
   const outputDir = path.join(outputRoot, relativeDir);
   fs.mkdirSync(outputDir, { recursive: true });
-  const links = [];
 
   for (const entry of sortEntries(fs.readdirSync(sourceDir, { withFileTypes: true }))) {
     const sourcePath = path.join(sourceDir, entry.name);
@@ -104,7 +118,6 @@ function buildFolder(sourceDir, relativeDir = '') {
 
     if (entry.isDirectory()) {
       buildFolder(sourcePath, relativePath);
-      links.push(`<li><a href="${urlPath(relativePath)}/">${escapeHtml(entry.name)}/</a></li>`);
       continue;
     }
 
@@ -113,8 +126,6 @@ function buildFolder(sourceDir, relativeDir = '') {
     const destinationPath = path.join(outputDir, destinationName);
     const sourceText = fs.readFileSync(sourcePath, 'utf8');
     fs.writeFileSync(destinationPath, toUsAscii(sourceText), 'ascii');
-    const publicPath = path.join(relativeDir, destinationName);
-    links.push(publicPath);
   }
 
   const title = relativeDir ? path.basename(relativeDir) : 'Home';
@@ -131,5 +142,6 @@ buildFolder(contentRoot);
 const homeTree = fs.readFileSync(path.join(outputRoot, 'index.html'), 'utf8')
   .replace('<h2>Home</h2>', '<p>Welcome. This is the living index of my notes, journals, lists, and reading.</p><h2>File tree</h2>');
 fs.writeFileSync(path.join(outputRoot, 'index.html'), homeTree);
+fs.writeFileSync(path.join(outputRoot, '404.html'), layout('Page not found', '<h2>Page not found</h2><p><a href="/">Return home</a> or <a href="/journalish/">browse Journalish</a>.</p>'));
 
 console.log(`Built ${outputRoot}`);
