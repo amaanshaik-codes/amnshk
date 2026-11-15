@@ -64,7 +64,7 @@ function layout(title, body, currentPath = '/') {
     .theme-toggle { border: 0; padding: 0; color: var(--text); background: transparent; font: inherit; cursor: pointer; }
     .breadcrumbs { margin: 1.25rem 0; text-align: center; font-size: .98rem; }
     a:link, a:visited { color: var(--link); text-decoration: none; }
-    a:hover, .theme-toggle:hover { text-decoration: underline; background-color: var(--hover); }
+    a:hover, .theme-toggle:hover { color: black !important; text-decoration: underline; background-color: var(--hover); }
     .DIR { color: var(--link) !important; }
     .EXEC { color: var(--exec) !important; }
     main { min-height: 45vh; text-align: center; }
@@ -115,7 +115,7 @@ function layout(title, body, currentPath = '/') {
       const savedTheme = localStorage.getItem('theme');
       const applyTheme = (theme) => {
         root.dataset.theme = theme;
-        button.textContent = theme === 'dark' ? 'light' : 'dark';
+        button.textContent = theme === 'dark' ? 'light mode' : 'dark mode';
         button.setAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
       };
       applyTheme(savedTheme === 'dark' ? 'dark' : 'light');
@@ -412,7 +412,7 @@ function buildFolder(sourceDir, relativeDir = '') {
   const report = isJournalishPath(relativeDir)
     ? `<p>${countFiles(sourceDir)} journal entries</p>`
     : isReadsPath(relativeDir)
-      ? (relativeDir === 'reads'
+      ? (relativeDir === 'reads' && countDirectories(sourceDir) > 0
         ? `<p>${countDirectories(sourceDir)} ${countDirectories(sourceDir) === 1 ? 'collection' : 'collections'}, ${countFiles(sourceDir)} book notes</p>`
         : `<p>${countFiles(sourceDir)} book notes</p>`)
     : `<p>${countDirectories(sourceDir)} directories, ${countFiles(sourceDir)} files</p>`;
