@@ -51,9 +51,10 @@ function layout(title, body, currentPath = '/') {
   <meta property="og:type" content="website">
   <title>${escapeHtml(title)} · Amaan Shaik</title>
   <style>
-    :root { color-scheme: light; --page-bg: white; --text: black; --link: blue; --exec: green; --hover: yellow; --border: black; }
-    :root[data-theme="dark"] { color-scheme: dark; --page-bg: #111; --text: #f5f5f5; --link: #79b8ff; --exec: #75d66f; --hover: #62bd58; --border: #f5f5f5; }
-    body { max-width: 1100px; font-family: monospace, sans-serif; font-size: 16px; line-height: 1.55; color: var(--text); background: var(--page-bg); margin: 0 auto; padding: 1rem; }
+    :root { color-scheme: light; --page-bg: #d6d6d6; --surface: #fff; --panel: #e9e9e9; --text: black; --link: blue; --exec: green; --hover: yellow; --border: black; --shadow-light: white; --shadow-dark: #777; }
+    :root[data-theme="dark"] { color-scheme: dark; --page-bg: #111; --surface: #1d1d1d; --panel: #292929; --text: #f5f5f5; --link: #79b8ff; --exec: #75d66f; --hover: #62bd58; --border: #f5f5f5; --shadow-light: #555; --shadow-dark: #000; }
+    body { max-width: 1200px; font-family: monospace, sans-serif; font-size: 16px; line-height: 1.55; color: var(--text); background: var(--page-bg); margin: 0 auto; padding: 1rem; }
+    .site-shell { background: var(--surface); border: 1px solid var(--border); padding: 1rem; box-shadow: 2px 2px 0 var(--shadow-dark), -1px -1px 0 var(--shadow-light); }
     header, footer { text-align: center; }
     header h1 { margin: 0 0 .75rem; font-size: clamp(1.5rem, 5vw, 2.25rem); line-height: 1.2; }
     header h1 a { color: inherit; text-decoration: none; }
@@ -61,7 +62,8 @@ function layout(title, body, currentPath = '/') {
     nav ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; padding: 0; list-style: none; }
     nav li:not(:last-child)::after { content: ' · '; }
     nav a[aria-current="page"] { font-weight: bold; }
-    .theme-toggle { border: 0; padding: 0; color: var(--text); background: transparent; font: inherit; cursor: pointer; }
+    .theme-toggle, .read-button { border: 1px solid var(--border); padding: .25rem .5rem; color: var(--text); background: var(--panel); font: inherit; cursor: pointer; box-shadow: 1px 1px 0 var(--shadow-dark), -1px -1px 0 var(--shadow-light); }
+    .theme-toggle:active, .read-button:active { box-shadow: inset 1px 1px 0 var(--shadow-dark); }
     .breadcrumbs { margin: 1.25rem 0; text-align: center; font-size: .98rem; }
     a:link, a:visited { color: var(--link); text-decoration: none; }
     a:hover, .theme-toggle:hover { color: black !important; text-decoration: underline; background-color: var(--hover); }
@@ -83,7 +85,7 @@ function layout(title, body, currentPath = '/') {
     .book-entry { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
     .book-info { min-width: 0; }
     .books-list a { font-size: 1.05rem; }
-    .read-button { flex: 0 0 auto; border: 1px solid var(--border); padding: .35rem .65rem; color: var(--text) !important; }
+    .read-button { flex: 0 0 auto; padding: .35rem .65rem; color: var(--text) !important; text-decoration: none !important; }
     .read-button:hover { color: black !important; }
     .book-title, .book-author { display: block; }
     .book-author { margin-top: .25rem; font-size: .9rem; }
@@ -97,9 +99,16 @@ function layout(title, body, currentPath = '/') {
     .skip-link { position: absolute; left: -9999px; }
     .skip-link:focus { left: 1rem; top: 1rem; }
     footer { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: .95rem; }
+    .web-badges { display: flex; flex-wrap: wrap; gap: .35rem; justify-content: center; width: 100%; }
+    .web-badge { display: inline-block; border: 2px outset var(--panel); background: var(--panel); padding: .15rem .35rem; font-size: .7rem; line-height: 1.15; text-align: center; }
+    @media (max-width: 760px) {
+      body { padding: .5rem; }
+      .site-shell { padding: .75rem; }
+    }
   </style>
 </head>
 <body>
+  <div class="site-shell">
   <a class="skip-link" href="#main-content">Skip to content</a>
   <header>
     <h1><a href="/">Amaan Shaik's Personal Site</a></h1>
@@ -116,6 +125,11 @@ function layout(title, body, currentPath = '/') {
   <footer>
     <p>Email: <a href="mailto:amaanshaik.work@gmail.com">amaanshaik.work@gmail.com</a></p>
     <p>Last updated: ${builtAt}</p>
+    <div class="web-badges" aria-label="Web badges">
+      <span class="web-badge">100% COOKIE-FREE</span>
+      <span class="web-badge">PLAIN HTML</span>
+      <span class="web-badge">NO TRACKING</span>
+    </div>
   </footer>
   <script>
     (() => {
@@ -135,6 +149,7 @@ function layout(title, body, currentPath = '/') {
       });
     })();
   </script>
+  </div>
 </body>
 </html>
 `;
