@@ -97,6 +97,8 @@ function layout(title, body, currentPath = '/') {
     .skip-link { position: absolute; left: -9999px; }
     .skip-link:focus { left: 1rem; top: 1rem; }
     footer { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: .95rem; }
+    .badges { display: flex; width: 100%; justify-content: center; align-items: center; flex-wrap: wrap; gap: .5rem; }
+    .badges img { display: block; image-rendering: pixelated; }
   </style>
 </head>
 <body>
@@ -116,6 +118,12 @@ function layout(title, body, currentPath = '/') {
   <footer>
     <p>Email: <a href="mailto:amaanshaik.work@gmail.com">amaanshaik.work@gmail.com</a></p>
     <p>Last updated: ${builtAt}</p>
+    <div class="badges" aria-label="Web badges">
+      <img src="/badges/free-speech.png" width="80" height="15" alt="Free speech">
+      <img src="/badges/cookie-free.png" width="88" height="31" alt="This site is certified 100% cookie free">
+      <a href="https://en.wikipedia.org/wiki/Year_2000_problem" target="_blank" rel="noopener noreferrer"><img src="/badges/y2k-compliant.png" width="160" height="36" alt="Y2K compliant"></a>
+      <img src="/badges/no-ai-human-content.png" width="160" height="36" alt="No AI human content">
+    </div>
   </footer>
   <script>
     (() => {
@@ -482,6 +490,12 @@ function countFiles(directory, relativeDir = '') {
 
 fs.rmSync(outputRoot, { recursive: true, force: true });
 fs.mkdirSync(outputRoot, { recursive: true });
+const badgesSourceDir = path.join(root, 'assets', 'badges');
+const badgesOutputDir = path.join(outputRoot, 'badges');
+fs.mkdirSync(badgesOutputDir, { recursive: true });
+for (const badge of fs.readdirSync(badgesSourceDir)) {
+  fs.copyFileSync(path.join(badgesSourceDir, badge), path.join(badgesOutputDir, badge));
+}
 buildFolder(contentRoot);
 
 const homeBody = `<h2>Welcome</h2><p>This site is primarily a collection of plain text files that I have either written or collected or converted.</p><p>While this site is mainly for my personal use, I am happy to share it. Please feel free to read and/or download anything you find interesting.</p><p>Any file with my email address at the bottom is something I have written. Therefore, if you have questions or comments, you can reach out to me by my email.</p>${renderHomeCategories()}`;
