@@ -266,7 +266,7 @@ function renderBooksListing(sourceDir, relativeDir) {
     const linkPath = isTextOutput(entry.name, relativePath) ? `${path.join(relativeDir, `${destinationName}.html`)}` : path.join(relativeDir, destinationName);
     const sourceText = fs.readFileSync(path.join(sourceDir, entry.name), 'utf8');
     const sourceLines = sourceText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-    const title = markdownTitle(sourceText, displayName(entry.name));
+    const title = markdownTitle(sourceText, publicLabel(displayName(entry.name)));
     const authorLine = sourceLines.find((line) => /^by\s+/i.test(line));
     const author = authorLine ? authorLine.replace(/^by\s+/i, '') : '';
     return `<li class="book-entry"><div class="book-info"><span class="book-title">${escapeHtml(title)}</span>${author ? `<span class="book-author">${escapeHtml(author)}</span>` : ''}</div><a class="read-button" href="${urlPath(linkPath)}">Read</a></li>`;
@@ -532,11 +532,11 @@ function buildFolder(sourceDir, relativeDir = '') {
       const text = toUsAscii(sourceText);
       fs.writeFileSync(destinationPath, text, 'ascii');
       const readerPath = `${destinationPath}.html`;
-      const readerTitle = markdownTitle(sourceText, displayName(entry.name));
+      const readerTitle = markdownTitle(sourceText, publicLabel(displayName(entry.name)));
       const readerBody = `<article class="text-viewer">${markdownToHtml(text, relativeDir)}</article>`;
       fs.writeFileSync(readerPath, layout(readerTitle, readerBody, urlPath(path.join(relativeDir, destinationName))));
     } else {
-      const title = markdownTitle(sourceText, displayName(entry.name));
+      const title = markdownTitle(sourceText, publicLabel(displayName(entry.name)));
       const body = isMusicFile(entry.name, relativePath)
         ? renderMusicPage(sourceText)
         : markdownToHtml(isArticlesPath(relativeDir) ? sortArticleLinks(sourceText) : sourceText, relativeDir);
