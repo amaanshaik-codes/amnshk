@@ -74,6 +74,8 @@ function layout(title, body, currentPath = '/') {
     pre { max-width: 100%; overflow-x: auto; margin: 1rem auto; text-align: left; width: max-content; }
     .text-viewer { max-width: 72ch; margin: 1rem auto; font-family: inherit; font-size: clamp(1.05rem, 2.5vw, 1.22rem); line-height: 1.8; overflow-wrap: anywhere; text-align: left; }
     .text-viewer p, .text-viewer ul, .text-viewer ol, .text-viewer blockquote { margin: 1rem 0; }
+    .music-embed { width: 100%; max-width: 660px; margin: 1.5rem auto; }
+    .music-embed iframe { display: block; width: 100%; min-height: 450px; border: 0; background: transparent; }
     .journal-list { max-width: 45ch; margin: 1rem auto; padding-left: 1.5rem; text-align: left; }
     .journal-list li { margin: .6rem 0; }
     .category-links { display: inline-flex; max-width: 100%; box-sizing: border-box; flex-wrap: wrap; align-items: center; justify-content: center; gap: .5rem; border: 1px solid var(--border); padding: .75rem 1rem; }
@@ -310,6 +312,13 @@ function markdownToHtml(value) {
     if (!line.trim()) {
       flushParagraph();
       closeList();
+      continue;
+    }
+    const appleMusicEmbed = line.trim().match(/^!\[\[<iframe\b[\s\S]*?\bsrc=["'](https:\/\/embed\.music\.apple\.com\/[^"']+)["'][\s\S]*?<\/iframe>\]\]$/i);
+    if (appleMusicEmbed) {
+      flushParagraph();
+      closeList();
+      output.push(`<div class="music-embed"><iframe title="Apple Music player" allow="autoplay *; encrypted-media *;" frameborder="0" height="450" sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation" src="${escapeHtml(appleMusicEmbed[1])}"></iframe></div>`);
       continue;
     }
     if (/^[-*+]\s*$/.test(line)) continue;
