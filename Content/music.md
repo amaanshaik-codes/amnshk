@@ -1,8 +1,1 @@
-i hate Spotify. 
-they track you first,
-then they flaunt it in the name of *Spotify Wrapped*.
-
-Spotify can tell whether users are happy or sad based on what they listen to. it can use that data to manipulate them. and that data sooner or later can used to control people according to the corporate will 
-
-
-btw have you [ever sniffed drugs thru ears?](https://youtu.be/PvM79DJ2PmM?si=xHCnddixyWlxsnyV)
+![[<iframe allow="autoplay *; encrypted-media *;" frameborder="0" height="450" style="width:100%;max-width:660px;overflow:hidden;background:transparent;" sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation" src="https://embed.music.apple.com/in/album/currents/1440838039"></iframe>]]
