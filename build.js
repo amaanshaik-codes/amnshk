@@ -74,8 +74,11 @@ function layout(title, body, currentPath = '/') {
     pre { max-width: 100%; overflow-x: auto; margin: 1rem auto; text-align: left; width: max-content; }
     .text-viewer { max-width: 72ch; margin: 1rem auto; font-family: inherit; font-size: clamp(1.05rem, 2.5vw, 1.22rem); line-height: 1.8; overflow-wrap: anywhere; text-align: left; }
     .text-viewer p, .text-viewer ul, .text-viewer ol, .text-viewer blockquote { margin: 1rem 0; }
-    .journal-list { max-width: 45ch; margin: 1rem auto; padding-left: 1.5rem; text-align: left; }
-    .journal-list li { margin: .6rem 0; }
+    .journal-list { max-width: 60ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
+    .journal-entry { border-bottom: 1px solid var(--border); padding: .8rem 0; }
+    .journal-entry-link { display: block; }
+    .journal-entry-title { display: block; min-height: 3.1em; font-size: 1.05rem; }
+    .journal-entry-date { display: block; margin-top: .25rem; font-size: .9rem; color: var(--text); }
     .category-links { display: inline-flex; max-width: 100%; box-sizing: border-box; flex-wrap: wrap; align-items: center; justify-content: center; gap: .5rem; border: 1px solid var(--border); padding: .75rem 1rem; }
     .category-link { color: black; font-size: clamp(1rem, 2.5vw, 1.1rem); }
     .books-list { max-width: 60ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
@@ -92,13 +95,21 @@ function layout(title, body, currentPath = '/') {
     .article-category-link { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
     .article-category-title { font-size: 1.05rem; }
     .article-category-count { white-space: nowrap; font-size: .9rem; }
+    .music-page { max-width: 62ch; margin: 1rem auto; text-align: left; }
+    .album-list { display: grid; gap: .75rem; margin: 1rem 0; padding: 0; list-style: none; }
+    .album-card { border: 1px solid var(--border); }
+    .album-link { display: grid; grid-template-columns: 1fr auto; gap: .25rem 1rem; align-items: center; padding: .85rem 1rem; }
+    .album-name { font-size: 1.1rem; }
+    .album-artist { grid-column: 1; font-size: .9rem; color: var(--text); }
+    .album-action { grid-column: 2; grid-row: 1 / span 2; }
     .category-link { color: var(--text); }
     .category-separator { margin: 0 .25rem; }
     .skip-link { position: absolute; left: -9999px; }
     .skip-link:focus { left: 1rem; top: 1rem; }
     footer { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: .95rem; }
-    .badges { display: flex; width: 100%; justify-content: center; align-items: center; flex-wrap: wrap; gap: .5rem; }
-    .badges img { display: block; image-rendering: pixelated; }
+    .badges { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: min(100%, 328px); margin: .5rem auto 0; gap: .5rem; }
+    .badge { min-height: 36px; display: flex; align-items: center; justify-content: center; }
+    .badge img { display: block; max-width: 100%; height: auto; image-rendering: pixelated; }
   </style>
 </head>
 <body>
@@ -119,10 +130,10 @@ function layout(title, body, currentPath = '/') {
     <p>Email: <a href="mailto:amaanshaik.work@gmail.com">amaanshaik.work@gmail.com</a></p>
     <p>Last updated: ${builtAt}</p>
     <div class="badges" aria-label="Web badges">
-      <img src="/badges/free-speech.png" width="80" height="15" alt="Free speech">
-      <img src="/badges/cookie-free.png" width="88" height="31" alt="This site is certified 100% cookie free">
-      <a href="https://en.wikipedia.org/wiki/Year_2000_problem" target="_blank" rel="noopener noreferrer"><img src="/badges/y2k-compliant.png" width="160" height="36" alt="Y2K compliant"></a>
-      <img src="/badges/no-ai-human-content.png" width="160" height="36" alt="No AI human content">
+      <span class="badge"><img src="/badges/free-speech.png" width="80" height="15" alt="Free speech"></span>
+      <span class="badge"><img src="/badges/cookie-free.png" width="88" height="31" alt="This site is certified 100% cookie free"></span>
+      <span class="badge"><a href="https://en.wikipedia.org/wiki/Year_2000_problem" target="_blank" rel="noopener noreferrer"><img src="/badges/y2k-compliant.png" width="160" height="36" alt="Y2K compliant"></a></span>
+      <span class="badge"><img src="/badges/no-ai-human-content.png" width="160" height="36" alt="No AI human content"></span>
     </div>
   </footer>
   <script>
@@ -157,11 +168,12 @@ function folderDisplayName(folderName) {
 }
 
 function publicLabel(value) {
-  return ['journal', 'journalish'].includes(value.toLowerCase())
+  const readable = value.replace(/[-_]+/g, ' ');
+  return ['journal', 'journalish'].includes(readable.toLowerCase())
     ? 'Journal'
-    : value.toLowerCase() === 'books'
+    : readable.toLowerCase() === 'books'
       ? 'Books'
-    : value.charAt(0).toUpperCase() + value.slice(1);
+    : readable.charAt(0).toUpperCase() + readable.slice(1);
 }
 
 function isJournalPath(relativePath) {
@@ -174,6 +186,10 @@ function isArticlesPath(relativePath) {
 
 function isBooksPath(relativePath) {
   return relativePath === 'books' || relativePath.startsWith(`books${path.sep}`);
+}
+
+function isMusicFile(fileName, relativePath) {
+  return relativePath === 'music.md' || fileName.toLowerCase() === 'music.md' && relativePath === 'music.md';
 }
 
 function journalEntrySort(a, b) {
@@ -198,6 +214,20 @@ function journalFileLabel(fileName) {
     .format(new Date(Date.UTC(Number(date[3]), Number(date[2]) - 1, Number(date[1]))));
 }
 
+function fixedJournalTitle(sourceText, fallback) {
+  const line = sourceText.split(/\r?\n/)
+    .map((value) => value.trim())
+    .find((value) => value && !/^#{1,6}\s+/.test(value));
+  if (!line) return fallback;
+  const plain = line
+    .replace(/^[-*+]\s+/, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/[*_`>#]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return plain.length > 72 ? `${plain.slice(0, 69).trimEnd()}...` : plain;
+}
+
 function renderJournalListing(sourceDir, relativeDir) {
   const entries = fs.readdirSync(sourceDir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory() || (entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md' && !isHiddenContent(path.join(relativeDir, entry.name))))
@@ -207,9 +237,22 @@ function renderJournalListing(sourceDir, relativeDir) {
     const relativePath = path.join(relativeDir, entry.name);
     if (entry.isDirectory()) return `<li><a class="DIR" href="${urlPath(relativePath)}/">${escapeHtml(publicLabel(folderDisplayName(entry.name)))}</a></li>`;
     const destinationName = outputName(entry.name, relativePath);
-    return `<li><a class="EXEC" href="${urlPath(path.join(relativeDir, `${destinationName}.html`))}">${escapeHtml(journalFileLabel(entry.name))}</a></li>`;
+    const sourceText = fs.readFileSync(path.join(sourceDir, entry.name), 'utf8');
+    return `<li class="journal-entry"><a class="journal-entry-link EXEC" href="${urlPath(path.join(relativeDir, `${destinationName}.html`))}"><span class="journal-entry-title">${escapeHtml(fixedJournalTitle(sourceText, journalFileLabel(entry.name)))}</span><span class="journal-entry-date">${escapeHtml(journalFileLabel(entry.name))}</span></a></li>`;
   });
   return `<ul class="journal-list">${items.join('')}</ul>`;
+}
+
+function renderMusicPage(sourceText) {
+  const albums = [...sourceText.matchAll(/(?:^|\n)\s*[-*+]\s*\[([^\]]+)\]\(([^)]+)\)/g)]
+    .map((match) => {
+      const parts = match[1].split(/\s+-\s+/);
+      return { name: parts[0].trim(), artist: parts.slice(1).join(' - ').trim(), href: match[2] };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  if (!albums.length) return '<section class="music-page"><p>No albums yet.</p></section>';
+  const items = albums.map((album) => `<li class="album-card"><a class="album-link" href="${escapeHtml(album.href)}" target="_blank" rel="noopener noreferrer"><span class="album-name">${escapeHtml(album.name)}</span>${album.artist ? `<span class="album-artist">${escapeHtml(album.artist)}</span>` : ''}<span class="album-action">Open album ↗</span></a></li>`).join('');
+  return `<section class="music-page"><p>Albums I return to, remember, or want to share.</p><ul class="album-list">${items}</ul></section>`;
 }
 
 function renderBooksListing(sourceDir, relativeDir) {
@@ -267,7 +310,7 @@ function renderArticlesListing(sourceDir, relativeDir) {
 
 function renderHomeCategories() {
   const entries = sortEntries(fs.readdirSync(contentRoot, { withFileTypes: true }))
-    .filter((entry) => entry.isDirectory() || (entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md' && !isHiddenContent(entry.name)));
+    .filter((entry) => entry.isDirectory() || (entry.name.toLowerCase().endsWith('.md') && !['index.md', 'welcome.md'].includes(entry.name.toLowerCase()) && !isHiddenContent(entry.name)));
   if (!entries.length) return '';
   const links = entries.flatMap((entry, index) => {
     const relativePath = entry.name;
@@ -284,8 +327,17 @@ function renderHomeCategories() {
 
 function outputName(fileName, relativePath) {
   if (fileName.toLowerCase() === 'index.md') return 'index.html';
-  if (/\.(txt|html)\.md$/i.test(fileName)) return displayName(fileName);
-  return /(^|[\\/])journal(?:ish)?([\\/]|$)/i.test(relativePath) ? `${displayName(fileName)}.txt` : `${displayName(fileName)}.html`;
+  const baseName = fileName.replace(/\.md$/i, '');
+  if (/\.(txt|html)$/i.test(baseName)) return slugify(baseName);
+  return /(^|[\\/])journal(?:ish)?([\\/]|$)/i.test(relativePath) ? `${slugify(baseName)}.txt` : `${slugify(baseName)}.html`;
+}
+
+function slugify(value) {
+  return value
+    .normalize('NFKD')
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase() || 'page';
 }
 
 function isTextOutput(fileName, relativePath) {
@@ -297,7 +349,7 @@ function markdownTitle(value, fallback) {
   return heading ? heading[1].trim() : fallback;
 }
 
-function markdownToHtml(value) {
+function markdownToHtml(value, relativeDir = '') {
   const lines = value.split(/\r?\n/);
   const output = [];
   let paragraph = [];
@@ -305,7 +357,7 @@ function markdownToHtml(value) {
 
   const flushParagraph = () => {
     if (!paragraph.length) return;
-    output.push(`<p>${inlineMarkdown(paragraph.join(' '))}</p>`);
+    output.push(`<p>${inlineMarkdown(paragraph.join(' '), relativeDir)}</p>`);
     paragraph = [];
   };
   const closeList = () => {
@@ -329,7 +381,7 @@ function markdownToHtml(value) {
       flushParagraph();
       closeList();
       const level = heading[1].length;
-      output.push(`<h${level}>${inlineMarkdown(heading[2])}</h${level}>`);
+      output.push(`<h${level}>${inlineMarkdown(heading[2], relativeDir)}</h${level}>`);
     } else if (listItem || orderedItem) {
       flushParagraph();
       const nextListType = orderedItem ? 'ol' : 'ul';
@@ -338,11 +390,11 @@ function markdownToHtml(value) {
         output.push(`<${nextListType}>`);
         listType = nextListType;
       }
-      output.push(`<li>${inlineMarkdown((listItem || orderedItem)[1])}</li>`);
+      output.push(`<li>${inlineMarkdown((listItem || orderedItem)[1], relativeDir)}</li>`);
     } else if (quote) {
       flushParagraph();
       closeList();
-      output.push(`<blockquote>${inlineMarkdown(quote[1])}</blockquote>`);
+      output.push(`<blockquote>${inlineMarkdown(quote[1], relativeDir)}</blockquote>`);
     } else {
       closeList();
       paragraph.push(line);
@@ -353,12 +405,51 @@ function markdownToHtml(value) {
   return output.join('\n');
 }
 
-function inlineMarkdown(value) {
+function inlineMarkdown(value, relativeDir = '') {
   return escapeHtml(value)
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+    .replace(/\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]/g, (_, target, label) => `<a href="${escapeHtml(resolveContentLink(target.trim(), relativeDir))}">${label ? escapeHtml(label.trim()) : escapeHtml(target.trim())}</a>`)
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, href) => `<a href="${escapeHtml(resolveMarkdownLink(href, relativeDir))}">${label}</a>`)
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/\*([^*]+)\*/g, '<em>$1</em>')
     .replace(/`([^`]+)`/g, '<code>$1</code>');
+}
+
+function resolveMarkdownLink(href, relativeDir) {
+  if (/^(?:[a-z]+:|\/|#)/i.test(href)) return href;
+  return resolveContentLink(href, relativeDir);
+}
+
+function findContentFile(target) {
+  const normalized = target.replace(/^\.\//, '').replace(/\.(md|txt|html)$/i, '');
+  const directCandidates = [normalized, `${normalized}.md`, `${normalized}.txt`, `${normalized}.html`];
+  for (const candidate of directCandidates) {
+    const filePath = path.join(contentRoot, candidate);
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) return filePath;
+  }
+  const targetName = path.basename(normalized).toLowerCase();
+  const matches = [];
+  const walk = (directory) => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const filePath = path.join(directory, entry.name);
+      if (entry.isDirectory()) walk(filePath);
+      else if (entry.name.replace(/\.(md|txt|html)$/i, '').toLowerCase() === targetName) matches.push(filePath);
+    }
+  };
+  walk(contentRoot);
+  return matches[0] || null;
+}
+
+function resolveContentLink(target, relativeDir) {
+  const cleanTarget = target.split('#')[0].trim();
+  const candidate = cleanTarget.startsWith('/')
+    ? findContentFile(cleanTarget.slice(1))
+    : findContentFile(path.join(relativeDir, cleanTarget));
+  if (!candidate) return target;
+  const relativePath = path.relative(contentRoot, candidate);
+  const fileName = path.basename(relativePath);
+  const destinationName = outputName(fileName, relativePath);
+  const destinationPath = path.join(path.dirname(relativePath), destinationName);
+  return urlPath(isTextOutput(fileName, relativePath) ? `${destinationPath}.html` : destinationPath);
 }
 
 function toUsAscii(value) {
@@ -442,11 +533,13 @@ function buildFolder(sourceDir, relativeDir = '') {
       fs.writeFileSync(destinationPath, text, 'ascii');
       const readerPath = `${destinationPath}.html`;
       const readerTitle = markdownTitle(sourceText, displayName(entry.name));
-      const readerBody = `<article class="text-viewer">${markdownToHtml(text)}</article>`;
+      const readerBody = `<article class="text-viewer">${markdownToHtml(text, relativeDir)}</article>`;
       fs.writeFileSync(readerPath, layout(readerTitle, readerBody, urlPath(path.join(relativeDir, destinationName))));
     } else {
       const title = markdownTitle(sourceText, displayName(entry.name));
-      const body = markdownToHtml(isArticlesPath(relativeDir) ? sortArticleLinks(sourceText) : sourceText);
+      const body = isMusicFile(entry.name, relativePath)
+        ? renderMusicPage(sourceText)
+        : markdownToHtml(isArticlesPath(relativeDir) ? sortArticleLinks(sourceText) : sourceText, relativeDir);
       fs.writeFileSync(destinationPath, layout(title, body, urlPath(path.join(relativeDir, destinationName))));
     }
   }
@@ -454,7 +547,7 @@ function buildFolder(sourceDir, relativeDir = '') {
   const title = relativeDir ? path.basename(relativeDir) : 'Home';
   const folderIndexPath = path.join(sourceDir, 'index.md');
   const folderDescription = fs.existsSync(folderIndexPath)
-    ? markdownToHtml(fs.readFileSync(folderIndexPath, 'utf8'))
+    ? markdownToHtml(fs.readFileSync(folderIndexPath, 'utf8'), relativeDir)
     : '';
   const tree = renderTree(sourceDir, relativeDir);
   const listing = isJournalPath(relativeDir)
@@ -498,7 +591,10 @@ for (const badge of fs.readdirSync(badgesSourceDir)) {
 }
 buildFolder(contentRoot);
 
-const homeBody = `<h2>Welcome</h2><p>This site is primarily a collection of plain text files that I have either written or collected or converted.</p><p>While this site is mainly for my personal use, I am happy to share it. Please feel free to read and/or download anything you find interesting.</p><p>Any file with my email address at the bottom is something I have written. Therefore, if you have questions or comments, you can reach out to me by my email.</p>${renderHomeCategories()}`;
+const welcomeSource = fs.existsSync(path.join(contentRoot, 'Welcome.md'))
+  ? fs.readFileSync(path.join(contentRoot, 'Welcome.md'), 'utf8')
+  : '';
+const homeBody = `<h2>Welcome</h2>${markdownToHtml(welcomeSource, '')}${renderHomeCategories()}`;
 fs.writeFileSync(path.join(outputRoot, 'index.html'), layout('Home', homeBody, '/'));
 
 const fileTreeDir = path.join(outputRoot, 'file-tree');

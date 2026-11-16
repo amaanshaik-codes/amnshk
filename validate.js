@@ -9,8 +9,16 @@ const failures = [];
 function outputName(fileName, relativePath) {
   const baseName = fileName.replace(/\.md$/i, '');
   if (fileName.toLowerCase() === 'index.md') return 'index.html';
-  if (/\.(txt|html)\.md$/i.test(fileName)) return baseName;
-  return /(^|[\\/])journal(?:ish)?([\\/]|$)/i.test(relativePath) ? `${baseName}.txt` : `${baseName}.html`;
+  if (/\.(txt|html)$/i.test(baseName)) return slugify(baseName);
+  return /(^|[\\/])journal(?:ish)?([\\/]|$)/i.test(relativePath) ? `${slugify(baseName)}.txt` : `${slugify(baseName)}.html`;
+}
+
+function slugify(value) {
+  return value
+    .normalize('NFKD')
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase() || 'page';
 }
 
 function walk(directory) {
