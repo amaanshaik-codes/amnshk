@@ -1,3 +1,10 @@
+---
+tags:
+  - serial-killers
+  - truecrime
+  - psychology
+---
+
 before i start i want to list all the sources that how i got introduced to this person 
 
 - [An Encyclopedia](https://murderpedia.org/male.G/g/gein-edward.htm)

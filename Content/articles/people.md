@@ -14,3 +14,7 @@
 
 [Fidel Castro](https://en.wikipedia.org/wiki/Fidel_Castro)
 
+[Roberto Escobar](https://en.wikipedia.org/wiki/Roberto_Escobar)
+
+[Francois Bertrand](https://en.wikipedia.org/wiki/Fran%C3%A7ois_Bertrand)
+
