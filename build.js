@@ -56,15 +56,16 @@ function layout(title, body, currentPath = '/', tags = []) {
     body { font-family: monospace, sans-serif; font-size: 16px; line-height: 1.55; color: var(--text); background: var(--page-bg); margin: 0; padding: 1rem; }
     .site-shell { width: auto; max-width: 1100px; margin: 0 auto; background: var(--surface); }
     header, footer { text-align: center; padding: 1.25rem 1.5rem; }
+    header { padding-top: .5rem; padding-bottom: .35rem; }
     main { padding: 0 1.5rem 2rem; }
-    header h1 { margin: 0 0 .75rem; font-family: "JMH Typewriter", "American Typewriter", "Courier New", monospace; font-size: clamp(1.5rem, 5vw, 2.25rem); line-height: 1.2; }
+    header h1 { margin: 0 0 .3rem; font-family: "JMH Typewriter", "American Typewriter", "Courier New", monospace; font-size: clamp(1.5rem, 5vw, 2.25rem); line-height: 1.2; }
     header h1 a { color: #111 !important; text-decoration: none; }
-    .header-badge { margin: -.25rem auto .75rem; text-align: center; }
-    .header-rule { max-width: 88ch; margin: .75rem auto 0; border-top: 1px dotted var(--text); }
-    .journal-ticker { max-width: 88ch; margin: .75rem auto; overflow: hidden; text-align: left; white-space: nowrap; }
+    .header-badge { margin: -.25rem auto .3rem; text-align: center; }
+    .header-rule { max-width: 88ch; margin: .35rem auto 0; border-top: 1px dotted var(--text); }
+    .journal-ticker { max-width: 88ch; margin: .35rem auto; overflow: hidden; text-align: left; white-space: nowrap; }
     .journal-ticker marquee { width: 100%; }
     nav a { font-size: 1rem; }
-    nav ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; padding: .5rem 0; margin: 0; list-style: none; }
+    nav ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; padding: .15rem 0; margin: 0; list-style: none; }
     nav li:not(:last-child)::after { content: ' · '; }
     nav a[aria-current="page"] { font-weight: bold; }
     hr { display: none; }
@@ -233,10 +234,13 @@ function latestJournalTicker() {
   files.sort((a, b) => journalDateKey(b).localeCompare(journalDateKey(a)));
   if (!files.length) return '';
   const source = parseProperties(fs.readFileSync(files[0], 'utf8')).body;
-  const line = source.split(/\r?\n/).map((value) => value.trim()).find(Boolean);
-  if (!line) return '';
-  const preview = line.replace(/^[-*+]\s+/, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[*_`>#]/g, '').replace(/\s+/g, ' ').trim();
-  return `<div class="journal-ticker" aria-label="Latest journal entry"><marquee direction="left" scrollamount="4">Latest journal: ${escapeHtml(preview)}</marquee></div>`;
+  const preview = source
+    .split(/\r?\n/)
+    .map((value) => value.replace(/^\s*[-*+]\s+/, '').replace(/^\s*#{1,6}\s+/, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[*_`>#]/g, '').replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .join(' / ');
+  if (!preview) return '';
+  return `<div class="journal-ticker" aria-label="Latest journal entry"><marquee direction="left" scrollamount="12">Latest journal: ${escapeHtml(preview)}</marquee></div>`;
 }
 
 function folderDisplayName(folderName) {
