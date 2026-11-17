@@ -13,10 +13,11 @@ const builtAt = `${new Intl.DateTimeFormat('en-IN', {
 // Add future header buttons here. Each item becomes one link in the header.
 const navigation = [
   { label: 'Home', href: '/', path: '/' },
-  { label: 'Journal', href: '/journal/', path: '/journal/' },
+  { label: 'Journal', href: '/journal/', path: '/journal/', source: 'journal' },
   { label: 'File Tree', href: '/file-tree/', path: '/file-tree/' },
   { label: 'Search', href: '/search/', path: '/search/' },
 ];
+const availableNavigation = navigation.filter((item) => !item.source || fs.existsSync(path.join(contentRoot, item.source)));
 
 function escapeHtml(value) {
   return value
@@ -52,17 +53,20 @@ function layout(title, body, currentPath = '/') {
   <meta property="og:type" content="website">
   <title>${escapeHtml(title)} · Amaan Shaik</title>
   <style>
-    :root { color-scheme: light; --page-bg: white; --text: black; --link: blue; --exec: green; --hover: yellow; --border: black; }
-    :root[data-theme="dark"] { color-scheme: dark; --page-bg: #111; --text: #f5f5f5; --link: #79b8ff; --exec: #75d66f; --hover: #62bd58; --border: #f5f5f5; }
-    body { max-width: 1100px; font-family: monospace, sans-serif; font-size: 16px; line-height: 1.55; color: var(--text); background: var(--page-bg); margin: 0 auto; padding: 1rem; }
-    header, footer { text-align: center; }
+    :root { color-scheme: light; --page-bg: #e7e7e7; --surface: white; --text: black; --link: blue; --exec: green; --hover: yellow; --border: black; --muted: #444; }
+    :root[data-theme="dark"] { color-scheme: dark; --page-bg: #080808; --surface: #111; --text: #f5f5f5; --link: #79b8ff; --exec: #75d66f; --hover: #62bd58; --border: #f5f5f5; --muted: #c7c7c7; }
+    body { font-family: monospace, sans-serif; font-size: 16px; line-height: 1.55; color: var(--text); background: var(--page-bg); margin: 0; padding: 1rem; }
+    .site-shell { max-width: 1100px; margin: 0 auto; background: var(--surface); border: 2px solid var(--border); box-shadow: 5px 5px 0 var(--border); }
+    header, footer { text-align: center; padding: 1.25rem 1.5rem; }
+    main { padding: 0 1.5rem 2rem; }
     header h1 { margin: 0 0 .75rem; font-size: clamp(1.5rem, 5vw, 2.25rem); line-height: 1.2; }
     header h1 a { color: inherit; text-decoration: none; }
     nav a { font-size: 1rem; }
-    nav ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; padding: 0; list-style: none; }
+    nav ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; padding: .5rem 0; margin: 0; list-style: none; border-top: 1px dotted var(--border); border-bottom: 1px dotted var(--border); }
     nav li:not(:last-child)::after { content: ' · '; }
     nav a[aria-current="page"] { font-weight: bold; }
     .theme-toggle { border: 0; padding: 0; color: var(--text); background: transparent; font: inherit; cursor: pointer; }
+    hr { border: 0; border-top: 3px double var(--border); margin: 0; }
     .breadcrumbs { margin: 1.25rem 0; text-align: center; font-size: .98rem; }
     a:link, a:visited { color: var(--link); text-decoration: none; }
     a:hover, .theme-toggle:hover { color: black !important; text-decoration: underline; background-color: var(--hover); }
@@ -73,7 +77,7 @@ function layout(title, body, currentPath = '/') {
     main > p { max-width: 88ch; margin: 1rem auto; text-align: left; }
     main ul, main ol { padding-left: 1.25rem; }
     pre { max-width: 100%; overflow-x: auto; margin: 1rem auto; text-align: left; width: max-content; }
-    .text-viewer { max-width: 88ch; margin: 1rem auto; font-family: inherit; font-size: clamp(1.05rem, 2.5vw, 1.22rem); line-height: 1.8; overflow-wrap: anywhere; text-align: left; }
+    .text-viewer { max-width: 88ch; margin: 1rem auto; padding: 1rem clamp(1rem, 4vw, 2rem); border-left: 4px solid var(--border); background: var(--surface); background: color-mix(in srgb, var(--surface) 88%, var(--border)); font-family: inherit; font-size: clamp(1.05rem, 2.5vw, 1.22rem); line-height: 1.8; overflow-wrap: anywhere; text-align: left; }
     .text-viewer p, .text-viewer ul, .text-viewer ol, .text-viewer blockquote { margin: 1rem 0; }
     .journal-list { max-width: 60ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
     .journal-entry { border-bottom: 1px solid var(--border); padding: .8rem 0; }
@@ -121,19 +125,25 @@ function layout(title, body, currentPath = '/') {
     .category-separator { margin: 0 .25rem; }
     .skip-link { position: absolute; left: -9999px; }
     .skip-link:focus { left: 1rem; top: 1rem; }
-    footer { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: .95rem; }
+    footer { font-size: .95rem; }
     .badges { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: min(100%, 328px); margin: .5rem auto 0; gap: .5rem; }
     .badge { min-height: 36px; display: flex; align-items: center; justify-content: center; }
     .badge img { display: block; max-width: 100%; height: auto; image-rendering: pixelated; }
+    .footer-meta { display: flex; justify-content: center; align-items: baseline; flex-wrap: wrap; gap: 1rem; }
+    .footer-meta p { margin: 0; }
+    .visit-counter { margin-top: .75rem; min-height: 20px; font-size: .85rem; color: var(--muted); }
+    .counter-label { margin-right: .35rem; }
+    @media (max-width: 560px) { body { padding: .5rem; } .site-shell { box-shadow: 3px 3px 0 var(--border); } header, footer { padding-left: .75rem; padding-right: .75rem; } main { padding-left: .75rem; padding-right: .75rem; } .search-form { flex-direction: column; } .search-submit { width: 100%; } }
   </style>
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
+  <div class="site-shell">
   <header>
     <h1><a href="/">Amaan Shaik's Personal Site</a></h1>
     <nav aria-label="Primary navigation">
       <ul>
-        ${navigation.map(navLink).join('\n        ')}
+        ${availableNavigation.map(navLink).join('\n        ')}
         <li><button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">dark mode</button></li>
       </ul>
     </nav>
@@ -142,15 +152,19 @@ function layout(title, body, currentPath = '/') {
   <main id="main-content">${breadcrumbs}${body}</main>
   <hr>
   <footer>
-    <p>Email: <a href="mailto:amaanshaik.work@gmail.com">amaanshaik.work@gmail.com</a></p>
-    <p>Last updated: ${builtAt}</p>
+    <div class="footer-meta">
+      <p>Email: <a href="mailto:amaanshaik.work@gmail.com">amaanshaik.work@gmail.com</a></p>
+      <p>Last updated: ${builtAt}</p>
+    </div>
     <div class="badges" aria-label="Web badges">
       <span class="badge"><img src="/badges/free-speech.png" width="80" height="15" alt="Free speech"></span>
       <span class="badge"><img src="/badges/cookie-free.png" width="88" height="31" alt="This site is certified 100% cookie free"></span>
       <span class="badge"><a href="https://en.wikipedia.org/wiki/Year_2000_problem" target="_blank" rel="noopener noreferrer"><img src="/badges/y2k-compliant.png" width="160" height="36" alt="Y2K compliant"></a></span>
       <span class="badge"><img src="/badges/no-ai-human-content.png" width="160" height="36" alt="No AI human content"></span>
     </div>
+    <div class="visit-counter" aria-label="Visitor counter"><span class="counter-label">Visitors:</span><script type="text/javascript" src="https://counter.websiteout.com/js/5/0/0/1"></script></div>
   </footer>
+  </div>
   <script>
     (() => {
       const root = document.documentElement;
@@ -196,7 +210,7 @@ function isJournalPath(relativePath) {
 }
 
 function isArticlesPath(relativePath) {
-  return relativePath === 'articles' || relativePath.startsWith(`articles${path.sep}`);
+  return ['articles', 'readings'].some((name) => relativePath === name || relativePath.startsWith(`${name}${path.sep}`));
 }
 
 function isBooksPath(relativePath) {
@@ -259,12 +273,13 @@ function renderJournalListing(sourceDir, relativeDir) {
 }
 
 function renderMusicPage(sourceText) {
-  const albums = [...sourceText.matchAll(/(?:^|\n)\s*[-*+]\s*\[([^\]]+)\]\(([^)]+)\)/g)]
+  const albumPattern = /^\s*[-*+]\s*\[([^\]]+)\]\(([^)]+)\)(?:\s+-\s+(.+))?\s*$/gm;
+  const albums = [...sourceText.matchAll(albumPattern)]
     .map((match) => {
       const separator = match[1].lastIndexOf(' - ');
       return {
         name: separator === -1 ? match[1].trim() : match[1].slice(0, separator).trim(),
-        artist: separator === -1 ? '' : match[1].slice(separator + 3).trim(),
+        artist: match[3]?.trim() || (separator === -1 ? '' : match[1].slice(separator + 3).trim()),
         href: match[2]
       };
     })
