@@ -91,8 +91,11 @@ function layout(title, body, currentPath = '/', tags = []) {
     .bad-about-links { max-width: 100%; margin: 1rem auto 2rem; text-align: center; font-family: "American Typewriter", "Courier New", monospace; font-size: clamp(1rem, 2.4vw, 1.15rem); font-style: italic; font-weight: bold; }
     .bad-about-label { color: var(--text); }
     .bad-about-separator { color: var(--text); }
-    table { max-width: 100%; margin: 1rem auto; border-collapse: collapse; text-align: left; }
-    th, td { padding: .35rem .75rem; vertical-align: top; }
+    table { max-width: 100%; overflow-x: auto; margin: 1rem auto; border-collapse: collapse; text-align: left; }
+    th, td { padding: .35rem .75rem; vertical-align: top; border-bottom: 1px dotted var(--text); }
+    th { border-bottom: 1px solid var(--text); white-space: nowrap; }
+    td { white-space: nowrap; }
+    td:last-child { white-space: normal; }
     .books-list { max-width: 60ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
     .books-list li { padding: .75rem 0; }
     .book-entry { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
@@ -643,13 +646,28 @@ function markdownToHtml(value, relativeDir = '') {
 }
 
 function inlineMarkdown(value, relativeDir = '') {
-  return escapeHtml(value)
+  const html = escapeHtml(value)
     .replace(/&lt;br\s*\/?&gt;/gi, '<br>')
     .replace(/\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]/g, (_, target, label) => `<a href="${escapeHtml(resolveContentLink(target.trim(), relativeDir))}">${label ? escapeHtml(label.trim()) : escapeHtml(target.trim())}</a>`)
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, href) => `<a href="${escapeHtml(resolveMarkdownLink(href, relativeDir))}">${label}</a>`)
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/\*([^*]+)\*/g, '<em>$1</em>')
     .replace(/`([^`]+)`/g, '<code>$1</code>');
+  return linkifyBareUrls(html);
+}
+
+// Turns plain http(s):// URLs into links. Runs last, on already-escaped HTML, so
+// URLs inside existing anchor text or href attributes are left untouched and
+// markdown links are never nested inside a second anchor.
+function linkifyBareUrls(html) {
+  return html
+    .split(/(<a\b[^>]*>.*?<\/a>)/g)
+    .map((part) => (part.startsWith('<a') ? part : part.replace(/https?:\/\/[^\s<]+/g, (url) => {
+      const trimmed = url.replace(/[.,;:!?)\]}]+$/, '');
+      const trailing = url.slice(trimmed.length);
+      return `<a href="${trimmed}" target="_blank" rel="noopener noreferrer">${trimmed}</a>${trailing}`;
+    })))
+    .join('');
 }
 
 function resolveMarkdownLink(href, relativeDir) {
