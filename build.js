@@ -46,7 +46,7 @@ function layout(title, body, currentPath = '/', tags = []) {
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=1100">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="${description}">
   <meta property="og:title" content="${escapeHtml(title)} · Amaan Shaik">
   <meta property="og:description" content="${description}">
@@ -55,6 +55,7 @@ function layout(title, body, currentPath = '/', tags = []) {
   <style>
     :root { color-scheme: light; --page-bg: #e7e7e7; --surface: white; --text: black; --link: blue; --exec: green; --hover: yellow; --border: black; --muted: #444; }
     :root[data-theme="dark"] { color-scheme: dark; --page-bg: #080808; --surface: #111; --text: #f5f5f5; --link: #79b8ff; --exec: #75d66f; --hover: #62bd58; --border: #f5f5f5; --muted: #c7c7c7; }
+    html { overflow-x: hidden; }
     body { min-width: 1100px; font-family: monospace, sans-serif; font-size: 16px; line-height: 1.55; color: var(--text); background: var(--page-bg); margin: 0; padding: 1rem; }
     .site-shell { width: 1100px; margin: 0 auto; background: var(--surface); border: 2px solid var(--border); box-shadow: 5px 5px 0 var(--border); }
     header, footer { text-align: center; padding: 1.25rem 1.5rem; }
@@ -164,6 +165,14 @@ function layout(title, body, currentPath = '/', tags = []) {
   </footer>
   </div>
   <script>
+    (() => {
+      const desktopWidth = 1100;
+      const fitDesktopCanvas = () => {
+        document.body.style.zoom = Math.min(1, window.innerWidth / desktopWidth);
+      };
+      fitDesktopCanvas();
+      window.addEventListener('resize', fitDesktopCanvas);
+    })();
     (() => {
       const root = document.documentElement;
       const button = document.getElementById('theme-toggle');
