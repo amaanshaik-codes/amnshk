@@ -46,6 +46,7 @@ function layout(title, body, currentPath = '/', tags = []) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <meta name="description" content="${description}">
   <meta property="og:title" content="${escapeHtml(title)} · AMNSHK">
   <meta property="og:description" content="${description}">
@@ -53,6 +54,7 @@ function layout(title, body, currentPath = '/', tags = []) {
   <title>${escapeHtml(title)} · AMNSHK</title>
   <style>
     :root { color-scheme: light; --page-bg: #f4f1e8; --surface: #f4f1e8; --text: #111; --link: blue; --exec: green; --hover: yellow; --border: transparent; --muted: #444; }
+    *, *::before, *::after { box-sizing: border-box; }
     body { font-family: monospace, sans-serif; font-size: 16px; line-height: 1.55; color: var(--text); background: var(--page-bg); margin: 0; padding: 1rem; }
     .site-shell { width: auto; max-width: 1100px; margin: 0 auto; background: var(--surface); }
     header, footer { text-align: center; padding: 1.25rem 1.5rem; }
@@ -62,8 +64,14 @@ function layout(title, body, currentPath = '/', tags = []) {
     header h1 a { color: #111 !important; text-decoration: none; }
     .header-badge { margin: -.25rem auto .3rem; text-align: center; }
     .header-rule { max-width: 88ch; margin: .35rem auto 0; border-top: 1px dotted var(--text); }
-    .journal-ticker { max-width: 88ch; margin: .35rem auto; overflow: hidden; text-align: left; white-space: nowrap; }
+    .journal-ticker { max-width: 88ch; margin: .35rem auto; overflow: hidden; text-align: left; }
     .journal-ticker marquee { width: 100%; }
+    .journal-ticker-static { display: none; }
+    @media (max-width: 45rem) {
+      .journal-ticker { overflow: visible; text-align: center; }
+      .journal-ticker marquee { display: none; }
+      .journal-ticker-static { display: block; padding: 0 1rem; white-space: normal; font-size: .95rem; }
+    }
     nav a { font-size: 1rem; }
     nav ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; padding: .15rem 0; margin: 0; list-style: none; }
     nav li:not(:last-child)::after { content: ' · '; }
@@ -91,18 +99,28 @@ function layout(title, body, currentPath = '/', tags = []) {
     .bad-about-links { max-width: 100%; margin: 1rem auto 2rem; text-align: center; font-family: "American Typewriter", "Courier New", monospace; font-size: clamp(1rem, 2.4vw, 1.15rem); font-style: italic; font-weight: bold; }
     .bad-about-label { color: var(--text); }
     .bad-about-separator { color: var(--text); }
-    table { max-width: 100%; overflow-x: auto; margin: 1rem auto; border-collapse: collapse; text-align: left; }
-    th, td { padding: .35rem .75rem; vertical-align: top; border-bottom: 1px dotted var(--text); }
-    th { border-bottom: 1px solid var(--text); white-space: nowrap; }
-    td { white-space: nowrap; }
-    td:last-child { white-space: normal; }
+    .table-scroll { max-width: 88ch; margin: 1rem auto; overflow-x: auto; }
+    table { width: 100%; max-width: 100%; margin: 1rem auto; border-collapse: collapse; text-align: left; table-layout: auto; }
+    th, td { padding: .35rem .75rem; vertical-align: top; border-bottom: 1px dotted var(--text); overflow-wrap: anywhere; }
+    th { border-bottom: 1px solid var(--text); white-space: normal; }
+    td { white-space: normal; }
+    @media (max-width: 40rem) {
+      table, thead, tbody, tr, td { display: block; width: 100%; }
+      thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+      tr { padding: .6rem 0; border-bottom: 1px dotted var(--text); }
+      td { padding: .15rem 0; border: 0; }
+      td::before { content: attr(data-label); display: block; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+      td:empty { display: none; }
+    }
     .books-list { max-width: 60ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
     .books-list li { padding: .75rem 0; }
     .book-entry { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
     .book-info { min-width: 0; }
     .books-list a { font-size: 1.05rem; }
     .read-button { flex: 0 0 auto; padding: .35rem .65rem; color: var(--text) !important; }
-    .read-button:hover { color: black !important; }
+    .read-button:hover { color: black !important; text-decoration-line: underline; text-decoration-style: dotted; background-color: var(--hover); }
+    .book-entry:hover .book-title { text-decoration-line: underline; text-decoration-style: dotted; }
+    .books-list .DIR:hover { background-color: var(--hover); }
     .book-title, .book-author { display: block; }
     .book-author { margin-top: .25rem; font-size: .9rem; }
     .article-categories { max-width: 60ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
@@ -168,10 +186,10 @@ function layout(title, body, currentPath = '/', tags = []) {
     <div class="badges" aria-label="Web badges">
       <span class="badge"><img src="/badges/bestvieweddesktop.gif" width="88" height="31" alt="Best viewed on desktop"></span>
       <span class="badge"><img src="/badges/cookie-free.png" width="88" height="31" alt="This site is certified 100% cookie free"></span>
-      <span class="badge"><a href="https://en.wikipedia.org/wiki/Year_2000_problem" target="_blank" rel="noopener noreferrer"><img src="/badges/y2k-compliant.png" width="160" height="36" alt="Y2K compliant"></a></span>
+    <div class="badge"><img src="/badges/y2k-compliant.png" width="160" height="36" alt="Y2K compliant"></div>
       <span class="badge"><img src="/badges/no-ai-human-content.png" width="160" height="36" alt="No AI human content"></span>
     </div>
-    <div class="visit-counter" aria-label="Visitor counter"><span class="counter-label">Visitors:</span><script type="text/javascript" src="https://counter.websiteout.com/js/5/0/0/1"></script></div>
+    <div class="visit-counter" aria-label="Visitor counter"><span class="counter-label">Visitors:</span><img src="https://visitor-badge.laobi.icu/badge?page_id=amnshk.diary&left_text=visitors" width="97" height="20" alt="Visitor count"></div>
   </footer>
   </div>
 </body>
@@ -243,7 +261,7 @@ function latestJournalTicker() {
     .filter(Boolean)
     .join(' / ');
   if (!preview) return '';
-  return `<div class="journal-ticker" aria-label="Latest journal entry"><marquee direction="left" scrollamount="12">Latest journal: ${escapeHtml(preview)}</marquee></div>`;
+  return `<div class="journal-ticker" aria-label="Latest journal entry"><marquee direction="left" scrollamount="12">Latest journal: ${escapeHtml(preview)}</marquee><span class="journal-ticker-static">Latest journal: ${escapeHtml(preview)}</span></div>`;
 }
 
 function folderDisplayName(folderName) {
@@ -560,6 +578,14 @@ function tableCells(line) {
   return line.trim().replace(/^\||\|$/g, '').split('|').map((cell) => cell.trim());
 }
 
+// Header text as it should appear in a data-label: no markdown syntax, no tags.
+function plainCell(cell) {
+  return cell
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/[*_`~]/g, '')
+    .trim();
+}
+
 function markdownToHtml(value, relativeDir = '') {
   const lines = value.split(/\r?\n/);
   const output = [];
@@ -583,7 +609,7 @@ function markdownToHtml(value, relativeDir = '') {
   const closeTable = () => {
     if (!tableRows) return;
     const [header, ...rows] = tableRows;
-    output.push(`<table><thead><tr>${header.map((cell) => `<th>${inlineMarkdown(cell, relativeDir)}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${inlineMarkdown(cell, relativeDir)}</td>`).join('')}</tr>`).join('')}</tbody></table>`);
+    output.push(`<table><thead><tr>${header.map((cell) => `<th>${inlineMarkdown(cell, relativeDir)}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((cell, index) => `<td data-label="${escapeHtml(plainCell(header[index] ?? ''))}">${inlineMarkdown(cell, relativeDir)}</td>`).join('')}</tr>`).join('')}</tbody></table>`);
     tableRows = null;
   };
 
@@ -845,6 +871,8 @@ fs.mkdirSync(badgesOutputDir, { recursive: true });
 for (const badge of fs.readdirSync(badgesSourceDir)) {
   fs.copyFileSync(path.join(badgesSourceDir, badge), path.join(badgesOutputDir, badge));
 }
+const faviconSource = path.join(root, 'assets', 'favicon.svg');
+if (fs.existsSync(faviconSource)) fs.copyFileSync(faviconSource, path.join(outputRoot, 'favicon.svg'));
 buildFolder(contentRoot);
 
 const welcomeSource = fs.existsSync(path.join(contentRoot, 'Welcome.md'))
