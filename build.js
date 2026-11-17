@@ -15,6 +15,7 @@ const navigation = [
   { label: 'Home', href: '/', path: '/' },
   { label: 'Journal', href: '/journal/', path: '/journal/' },
   { label: 'File Tree', href: '/file-tree/', path: '/file-tree/' },
+  { label: 'Search', href: '/search/', path: '/search/' },
 ];
 
 function escapeHtml(value) {
@@ -69,10 +70,10 @@ function layout(title, body, currentPath = '/') {
     .EXEC { color: var(--exec) !important; }
     main { min-height: 45vh; text-align: center; }
     main h2 { font-size: clamp(1.3rem, 3.5vw, 1.75rem); line-height: 1.25; }
-    main > p { max-width: 72ch; margin: 1rem auto; text-align: left; }
+    main > p { max-width: 88ch; margin: 1rem auto; text-align: left; }
     main ul, main ol { padding-left: 1.25rem; }
     pre { max-width: 100%; overflow-x: auto; margin: 1rem auto; text-align: left; width: max-content; }
-    .text-viewer { max-width: 72ch; margin: 1rem auto; font-family: inherit; font-size: clamp(1.05rem, 2.5vw, 1.22rem); line-height: 1.8; overflow-wrap: anywhere; text-align: left; }
+    .text-viewer { max-width: 88ch; margin: 1rem auto; font-family: inherit; font-size: clamp(1.05rem, 2.5vw, 1.22rem); line-height: 1.8; overflow-wrap: anywhere; text-align: left; }
     .text-viewer p, .text-viewer ul, .text-viewer ol, .text-viewer blockquote { margin: 1rem 0; }
     .journal-list { max-width: 60ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
     .journal-entry { border-bottom: 1px solid var(--border); padding: .8rem 0; }
@@ -95,6 +96,20 @@ function layout(title, body, currentPath = '/') {
     .article-category-link { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
     .article-category-title { font-size: 1.05rem; }
     .article-category-count { white-space: nowrap; font-size: .9rem; }
+    .folder-list { max-width: 68ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
+    .folder-entry { border-bottom: 1px solid var(--border); padding: .8rem 0; }
+    .folder-entry-link { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+    .folder-entry-title { font-size: 1.05rem; }
+    .folder-entry-kind { white-space: nowrap; font-size: .9rem; color: var(--text); }
+    .search-page { max-width: 72ch; margin: 1rem auto; text-align: left; }
+    .search-form { display: flex; gap: .5rem; margin: 1rem 0 1.5rem; }
+    .search-input { flex: 1; min-width: 0; box-sizing: border-box; border: 1px solid var(--border); padding: .65rem; color: var(--text); background: var(--page-bg); font: inherit; }
+    .search-submit { border: 1px solid var(--border); padding: .65rem .9rem; color: var(--text); background: var(--page-bg); font: inherit; cursor: pointer; }
+    .search-submit:hover { color: black; background: var(--hover); }
+    .search-results { margin: 0; padding: 0; list-style: none; }
+    .search-result { border-bottom: 1px solid var(--border); padding: .8rem 0; }
+    .search-result-title { display: block; font-size: 1.05rem; }
+    .search-result-preview { display: block; margin-top: .25rem; color: var(--text); }
     .music-page { max-width: 62ch; margin: 1rem auto; text-align: left; }
     .album-list { display: grid; gap: .75rem; margin: 1rem 0; padding: 0; list-style: none; }
     .album-card { border: 1px solid var(--border); }
@@ -168,7 +183,7 @@ function folderDisplayName(folderName) {
 }
 
 function publicLabel(value) {
-  const readable = value.replace(/[-_]+/g, ' ');
+  const readable = value.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
   return ['journal', 'journalish'].includes(readable.toLowerCase())
     ? 'Journal'
     : readable.toLowerCase() === 'books'
@@ -246,13 +261,21 @@ function renderJournalListing(sourceDir, relativeDir) {
 function renderMusicPage(sourceText) {
   const albums = [...sourceText.matchAll(/(?:^|\n)\s*[-*+]\s*\[([^\]]+)\]\(([^)]+)\)/g)]
     .map((match) => {
-      const parts = match[1].split(/\s+-\s+/);
-      return { name: parts[0].trim(), artist: parts.slice(1).join(' - ').trim(), href: match[2] };
+      const separator = match[1].lastIndexOf(' - ');
+      return {
+        name: separator === -1 ? match[1].trim() : match[1].slice(0, separator).trim(),
+        artist: separator === -1 ? '' : match[1].slice(separator + 3).trim(),
+        href: match[2]
+      };
     })
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
-  if (!albums.length) return '<section class="music-page"><p>No albums yet.</p></section>';
+  const description = sourceText.split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !/^[-*+]\s*$/.test(line) && !/^[-*+]\s*\[[^\]]+\]\([^)]+\)/.test(line))
+    .join(' ');
+  if (!albums.length) return `<section class="music-page">${description ? `<p>${inlineMarkdown(description)}</p>` : '<p>No albums yet.</p>'}</section>`;
   const items = albums.map((album) => `<li class="album-card"><a class="album-link" href="${escapeHtml(album.href)}" target="_blank" rel="noopener noreferrer"><span class="album-name">${escapeHtml(album.name)}</span>${album.artist ? `<span class="album-artist">${escapeHtml(album.artist)}</span>` : ''}<span class="album-action">Open album ↗</span></a></li>`).join('');
-  return `<section class="music-page"><p>Albums I return to, remember, or want to share.</p><ul class="album-list">${items}</ul></section>`;
+  return `<section class="music-page">${description ? `<p>${inlineMarkdown(description)}</p>` : ''}<ul class="album-list">${items}</ul></section>`;
 }
 
 function renderBooksListing(sourceDir, relativeDir) {
@@ -306,6 +329,96 @@ function renderArticlesListing(sourceDir, relativeDir) {
     return `<li class="article-category"><a class="article-category-link EXEC" href="${urlPath(path.join(relativeDir, destinationName))}"><span class="article-category-title">${escapeHtml(title)}</span><span class="article-category-count">${count} ${count === 1 ? 'article' : 'articles'}</span></a></li>`;
   });
   return `<ul class="article-categories">${items.join('')}</ul>`;
+}
+
+function renderFolderListing(sourceDir, relativeDir) {
+  const entries = sortEntries(fs.readdirSync(sourceDir, { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory() || (entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md' && !isHiddenContent(path.join(relativeDir, entry.name))));
+  if (!entries.length) return '<p>No entries yet.</p>';
+  const items = entries.map((entry) => {
+    const relativePath = path.join(relativeDir, entry.name);
+    if (entry.isDirectory()) {
+      return `<li class="folder-entry"><a class="folder-entry-link DIR" href="${urlPath(relativePath)}/"><span class="folder-entry-title">${escapeHtml(publicLabel(folderDisplayName(entry.name)))}</span><span class="folder-entry-kind">folder</span></a></li>`;
+    }
+    const sourceText = fs.readFileSync(path.join(sourceDir, entry.name), 'utf8');
+    const destinationName = outputName(entry.name, relativePath);
+    const destinationPath = path.join(relativeDir, destinationName);
+    const linkPath = isTextOutput(entry.name, relativePath) ? `${destinationPath}.html` : destinationPath;
+    const title = markdownTitle(sourceText, publicLabel(displayName(entry.name)));
+    const kind = isTextOutput(entry.name, relativePath) ? 'plain text' : 'page';
+    return `<li class="folder-entry"><a class="folder-entry-link EXEC" href="${urlPath(linkPath)}"><span class="folder-entry-title">${escapeHtml(title)}</span><span class="folder-entry-kind">${kind}</span></a></li>`;
+  });
+  return `<ul class="folder-list">${items.join('')}</ul>`;
+}
+
+function searchPreview(sourceText) {
+  const text = sourceText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .find((line) => !/^#{1,6}\s+/.test(line));
+  if (!text) return '';
+  const plain = text.replace(/^[-*+]\s+/, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[*_`>#]/g, '').replace(/\s+/g, ' ').trim();
+  return plain.length > 120 ? `${plain.slice(0, 117).trimEnd()}...` : plain;
+}
+
+function collectSearchEntries(directory = contentRoot, relativeDir = '') {
+  const entries = [];
+  for (const entry of sortEntries(fs.readdirSync(directory, { withFileTypes: true }))) {
+    const sourcePath = path.join(directory, entry.name);
+    const relativePath = path.join(relativeDir, entry.name);
+    if (entry.isDirectory()) {
+      entries.push(...collectSearchEntries(sourcePath, relativePath));
+      continue;
+    }
+    if (!entry.name.toLowerCase().endsWith('.md') || entry.name.toLowerCase() === 'index.md' || isHiddenContent(relativePath)) continue;
+    const sourceText = fs.readFileSync(sourcePath, 'utf8');
+    const destinationName = outputName(entry.name, relativePath);
+    const destinationPath = path.join(path.dirname(relativePath), destinationName);
+    const linkPath = isTextOutput(entry.name, relativePath) ? `${destinationPath}.html` : destinationPath;
+    entries.push({
+      title: isJournalPath(path.dirname(relativePath)) ? fixedJournalTitle(sourceText, publicLabel(displayName(entry.name))) : markdownTitle(sourceText, publicLabel(displayName(entry.name))),
+      preview: searchPreview(sourceText),
+      href: urlPath(linkPath),
+    });
+  }
+  return entries.sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }));
+}
+
+function renderSearchPage() {
+  const searchData = JSON.stringify(collectSearchEntries()).replace(/</g, '\\u003c');
+  return `<section class="search-page"><form class="search-form" id="search-form"><label class="skip-link" for="search-input">Search the site</label><input class="search-input" id="search-input" type="search" placeholder="Search pages and notes" autocomplete="off"><button class="search-submit" type="submit">Search</button></form><p id="search-status">Search your pages, notes, books, and articles.</p><ul class="search-results" id="search-results"></ul></section><script>
+(() => {
+  const data = ${searchData};
+  const form = document.getElementById('search-form');
+  const input = document.getElementById('search-input');
+  const status = document.getElementById('search-status');
+  const results = document.getElementById('search-results');
+  const render = () => {
+    const query = input.value.trim().toLowerCase();
+    const matches = query ? data.filter((item) => (item.title + ' ' + item.preview).toLowerCase().includes(query)) : [];
+    results.replaceChildren(...matches.map((item) => {
+      const li = document.createElement('li');
+      li.className = 'search-result';
+      const link = document.createElement('a');
+      link.className = 'search-result-title';
+      link.href = item.href;
+      link.textContent = item.title;
+      li.append(link);
+      if (item.preview) {
+        const preview = document.createElement('span');
+        preview.className = 'search-result-preview';
+        preview.textContent = item.preview;
+        li.append(preview);
+      }
+      return li;
+    }));
+    status.textContent = query ? matches.length + ' result' + (matches.length === 1 ? '' : 's') : 'Search your pages, notes, books, and articles.';
+  };
+  form.addEventListener('submit', (event) => { event.preventDefault(); render(); });
+  input.addEventListener('input', render);
+})();
+</script>`;
 }
 
 function renderHomeCategories() {
@@ -549,20 +662,17 @@ function buildFolder(sourceDir, relativeDir = '') {
   const folderDescription = fs.existsSync(folderIndexPath)
     ? markdownToHtml(fs.readFileSync(folderIndexPath, 'utf8'), relativeDir)
     : '';
-  const tree = renderTree(sourceDir, relativeDir);
   const listing = isJournalPath(relativeDir)
     ? renderJournalListing(sourceDir, relativeDir)
     : isArticlesPath(relativeDir)
       ? renderArticlesListing(sourceDir, relativeDir)
     : isBooksPath(relativeDir)
       ? renderBooksListing(sourceDir, relativeDir)
-    : (tree.length ? `<pre>${tree.join('\n')}</pre>` : '<p>No entries yet.</p>');
+    : renderFolderListing(sourceDir, relativeDir);
   const currentPath = relativeDir ? `${urlPath(relativeDir)}/` : '/';
   const report = isJournalPath(relativeDir)
     ? `<p>${countFiles(sourceDir)} journal entries</p>`
-    : isArticlesPath(relativeDir) || isBooksPath(relativeDir)
-      ? ''
-    : `<p>${countDirectories(sourceDir)} directories, ${countFiles(sourceDir)} files</p>`;
+    : '';
   fs.writeFileSync(path.join(outputDir, 'index.html'), layout(publicLabel(title), `${folderDescription}<h2>${escapeHtml(publicLabel(folderDisplayName(title)))}</h2>${listing}${report}`, currentPath));
 }
 
@@ -594,8 +704,13 @@ buildFolder(contentRoot);
 const welcomeSource = fs.existsSync(path.join(contentRoot, 'Welcome.md'))
   ? fs.readFileSync(path.join(contentRoot, 'Welcome.md'), 'utf8')
   : '';
-const homeBody = `<h2>Welcome</h2>${markdownToHtml(welcomeSource, '')}${renderHomeCategories()}`;
+const welcomeHeading = markdownTitle(welcomeSource, '');
+const homeBody = `${welcomeHeading ? '' : '<h2>Welcome</h2>'}${markdownToHtml(welcomeSource, '')}${renderHomeCategories()}`;
 fs.writeFileSync(path.join(outputRoot, 'index.html'), layout('Home', homeBody, '/'));
+
+const searchDir = path.join(outputRoot, 'search');
+fs.mkdirSync(searchDir, { recursive: true });
+fs.writeFileSync(path.join(searchDir, 'index.html'), layout('Search', `<h2>Search</h2>${renderSearchPage()}`, '/search/'));
 
 const fileTreeDir = path.join(outputRoot, 'file-tree');
 fs.mkdirSync(fileTreeDir, { recursive: true });
