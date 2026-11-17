@@ -1,4 +1,5 @@
-- [The Awakenings](https://www.imdb.com/title/tt0099077/) is a good movie 4/5, the title sounds like a horror film but its not. its a good slow paced, feel good film based on a true story, can watch it with family.
+- [The Awakenings](https://www.imdb.com/title/tt0099077/)
+its a good movie 4/5, the title sounds like a horror film but its not. its a good slow paced, feel good film based on a true story, can watch it with family.
 
 - [Due Date](https://www.imdb.com/title/tt1231583/) Absolutely enjoyed it. Its fast paced and Humorous. Worth a one time watch. 
 

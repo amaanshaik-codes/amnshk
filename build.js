@@ -15,7 +15,7 @@ const navigation = [
   { label: 'Home', href: '/', path: '/' },
   { label: 'Journal', href: '/journal/', path: '/journal/', source: 'journal' },
   { label: 'File Tree', href: '/file-tree/', path: '/file-tree/' },
-  { label: 'Search', href: '/search/', path: '/search/' },
+  { label: 'Tags', href: '/tags/', path: '/tags/' },
 ];
 const availableNavigation = navigation.filter((item) => !item.source || fs.existsSync(path.join(contentRoot, item.source)));
 
@@ -32,7 +32,7 @@ function urlPath(relativePath) {
   return '/' + relativePath.split(path.sep).map(encodeURIComponent).join('/');
 }
 
-function layout(title, body, currentPath = '/') {
+function layout(title, body, currentPath = '/', tags = []) {
   const description = 'Amaan Shaik\'s personal site, journals, lists, and books.';
   const navLink = ({ label, href, path }) => `<li><a href="${href}"${currentPath === path || (path !== '/' && currentPath.startsWith(path)) ? ' aria-current="page"' : ''}>${label}</a></li>`;
   const breadcrumbs = currentPath === '/' ? '' : `<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/">Home</a>${currentPath.split('/').filter(Boolean).map((part, index, parts) => {
@@ -77,7 +77,7 @@ function layout(title, body, currentPath = '/') {
     main > p { max-width: 88ch; margin: 1rem auto; text-align: left; }
     main ul, main ol { padding-left: 1.25rem; }
     pre { max-width: 100%; overflow-x: auto; margin: 1rem auto; text-align: left; width: max-content; }
-    .text-viewer { max-width: 88ch; margin: 1rem auto; padding: 1rem clamp(1rem, 4vw, 2rem); border-left: 4px solid var(--border); background: var(--surface); background: color-mix(in srgb, var(--surface) 88%, var(--border)); font-family: inherit; font-size: clamp(1.05rem, 2.5vw, 1.22rem); line-height: 1.8; overflow-wrap: anywhere; text-align: left; }
+    .text-viewer { max-width: 88ch; margin: 1rem auto; padding: 0; font-family: inherit; font-size: clamp(1.05rem, 2.5vw, 1.22rem); line-height: 1.8; overflow-wrap: anywhere; text-align: left; }
     .text-viewer p, .text-viewer ul, .text-viewer ol, .text-viewer blockquote { margin: 1rem 0; }
     .journal-list { max-width: 60ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
     .journal-entry { border-bottom: 1px solid var(--border); padding: .8rem 0; }
@@ -105,15 +105,13 @@ function layout(title, body, currentPath = '/') {
     .folder-entry-link { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
     .folder-entry-title { font-size: 1.05rem; }
     .folder-entry-kind { white-space: nowrap; font-size: .9rem; color: var(--text); }
-    .search-page { max-width: 72ch; margin: 1rem auto; text-align: left; }
-    .search-form { display: flex; gap: .5rem; margin: 1rem 0 1.5rem; }
-    .search-input { flex: 1; min-width: 0; box-sizing: border-box; border: 1px solid var(--border); padding: .65rem; color: var(--text); background: var(--page-bg); font: inherit; }
-    .search-submit { border: 1px solid var(--border); padding: .65rem .9rem; color: var(--text); background: var(--page-bg); font: inherit; cursor: pointer; }
-    .search-submit:hover { color: black; background: var(--hover); }
-    .search-results { margin: 0; padding: 0; list-style: none; }
-    .search-result { border-bottom: 1px solid var(--border); padding: .8rem 0; }
-    .search-result-title { display: block; font-size: 1.05rem; }
-    .search-result-preview { display: block; margin-top: .25rem; color: var(--text); }
+    .tags-page { max-width: 68ch; margin: 1rem auto; text-align: left; }
+    .tag-list, .tagged-notes { margin: 1rem 0; padding: 0; list-style: none; }
+    .tag-entry, .tagged-note { border-bottom: 1px solid var(--border); padding: .8rem 0; }
+    .tag-link, .tagged-note-link { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+    .tag-name, .tagged-note-title { font-size: 1.05rem; }
+    .tag-count, .tagged-note-path { white-space: nowrap; font-size: .9rem; }
+    .note-tags { max-width: 88ch; margin: 1rem auto; text-align: left; font-size: .95rem; }
     .music-page { max-width: 62ch; margin: 1rem auto; text-align: left; }
     .album-list { display: grid; gap: .75rem; margin: 1rem 0; padding: 0; list-style: none; }
     .album-card { border: 1px solid var(--border); }
@@ -131,9 +129,8 @@ function layout(title, body, currentPath = '/') {
     .badge img { display: block; max-width: 100%; height: auto; image-rendering: pixelated; }
     .footer-meta { display: flex; justify-content: center; align-items: baseline; flex-wrap: wrap; gap: 1rem; }
     .footer-meta p { margin: 0; }
-    .visit-counter { margin-top: .75rem; min-height: 20px; font-size: .85rem; color: var(--muted); }
-    .counter-label { margin-right: .35rem; }
-    @media (max-width: 560px) { body { padding: .5rem; } .site-shell { box-shadow: 3px 3px 0 var(--border); } header, footer { padding-left: .75rem; padding-right: .75rem; } main { padding-left: .75rem; padding-right: .75rem; } .search-form { flex-direction: column; } .search-submit { width: 100%; } }
+    .visit-counter { display: flex; align-items: center; justify-content: center; gap: .35rem; min-height: 31px; margin-top: .75rem; font-size: .85rem; line-height: 1; color: var(--muted); }
+    .counter-label { margin: 0; }
   </style>
 </head>
 <body>
@@ -149,7 +146,7 @@ function layout(title, body, currentPath = '/') {
     </nav>
     <hr>
   </header>
-  <main id="main-content">${breadcrumbs}${body}</main>
+  <main id="main-content">${breadcrumbs}${renderTagLinks(tags)}${body}</main>
   <hr>
   <footer>
     <div class="footer-meta">
@@ -161,6 +158,7 @@ function layout(title, body, currentPath = '/') {
       <span class="badge"><img src="/badges/cookie-free.png" width="88" height="31" alt="This site is certified 100% cookie free"></span>
       <span class="badge"><a href="https://en.wikipedia.org/wiki/Year_2000_problem" target="_blank" rel="noopener noreferrer"><img src="/badges/y2k-compliant.png" width="160" height="36" alt="Y2K compliant"></a></span>
       <span class="badge"><img src="/badges/no-ai-human-content.png" width="160" height="36" alt="No AI human content"></span>
+      <span class="badge"><img src="/badges/bestvieweddesktop.gif" width="88" height="31" alt="Best viewed on desktop"></span>
     </div>
     <div class="visit-counter" aria-label="Visitor counter"><span class="counter-label">Visitors:</span><script type="text/javascript" src="https://counter.websiteout.com/js/5/0/0/1"></script></div>
   </footer>
@@ -190,6 +188,41 @@ function layout(title, body, currentPath = '/') {
 
 function displayName(fileName) {
   return fileName.replace(/\.(md|txt|html)$/i, '').replace(/\.html$/i, '');
+}
+
+function parseProperties(sourceText) {
+  const match = sourceText.match(/^---\s*\r?\n([\s\S]*?)\r?\n---\s*(?:\r?\n|$)/);
+  if (!match) return { body: sourceText, tags: [] };
+  const properties = match[1].split(/\r?\n/);
+  const tags = [];
+  let readingTags = false;
+  for (const line of properties) {
+    const tagsLine = line.match(/^tags\s*:\s*(.*)$/i);
+    if (tagsLine) {
+      readingTags = true;
+      const value = tagsLine[1].trim();
+      if (value) tags.push(...value.replace(/^\[|\]$/g, '').split(',').map((tag) => tag.trim()));
+      continue;
+    }
+    if (readingTags) {
+      const listItem = line.match(/^\s*-\s+(.+)$/);
+      if (listItem) tags.push(listItem[1].trim());
+      else if (line.trim()) readingTags = false;
+    }
+  }
+  const normalizedTags = [...new Set(tags.map((tag) => tag.replace(/^['"]|['"]$/g, '').replace(/^#/, '').trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  return { body: sourceText.slice(match[0].length), tags: normalizedTags };
+}
+
+function tagSlug(tag) {
+  return slugify(tag);
+}
+
+function renderTagLinks(tags) {
+  if (!tags.length) return '';
+  const links = tags.map((tag) => `<a href="${urlPath(path.join('tags', tagSlug(tag)) + path.sep)}">#${escapeHtml(tag)}</a>`).join(' ');
+  return `<p class="note-tags" aria-label="Tags">Tags: ${links}</p>`;
 }
 
 function folderDisplayName(folderName) {
@@ -244,7 +277,7 @@ function journalFileLabel(fileName) {
 }
 
 function fixedJournalTitle(sourceText, fallback) {
-  const line = sourceText.split(/\r?\n/)
+  const line = parseProperties(sourceText).body.split(/\r?\n/)
     .map((value) => value.trim())
     .find((value) => value && !/^#{1,6}\s+/.test(value));
   if (!line) return fallback;
@@ -273,6 +306,7 @@ function renderJournalListing(sourceDir, relativeDir) {
 }
 
 function renderMusicPage(sourceText) {
+  sourceText = parseProperties(sourceText).body;
   const albumPattern = /^\s*[-*+]\s*\[([^\]]+)\]\(([^)]+)\)(?:\s+-\s+(.+))?\s*$/gm;
   const albums = [...sourceText.matchAll(albumPattern)]
     .map((match) => {
@@ -303,8 +337,9 @@ function renderBooksListing(sourceDir, relativeDir) {
     const destinationName = outputName(entry.name, relativePath);
     const linkPath = isTextOutput(entry.name, relativePath) ? `${path.join(relativeDir, `${destinationName}.html`)}` : path.join(relativeDir, destinationName);
     const sourceText = fs.readFileSync(path.join(sourceDir, entry.name), 'utf8');
-    const sourceLines = sourceText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-    const title = markdownTitle(sourceText, publicLabel(displayName(entry.name)));
+    const note = parseProperties(sourceText);
+    const sourceLines = note.body.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    const title = markdownTitle(note.body, publicLabel(displayName(entry.name)));
     const authorLine = sourceLines.find((line) => /^by\s+/i.test(line));
     const author = authorLine ? authorLine.replace(/^by\s+/i, '') : '';
     return `<li class="book-entry"><div class="book-info"><span class="book-title">${escapeHtml(title)}</span>${author ? `<span class="book-author">${escapeHtml(author)}</span>` : ''}</div><a class="read-button" href="${urlPath(linkPath)}">Read</a></li>`;
@@ -359,81 +394,60 @@ function renderFolderListing(sourceDir, relativeDir) {
     const destinationName = outputName(entry.name, relativePath);
     const destinationPath = path.join(relativeDir, destinationName);
     const linkPath = isTextOutput(entry.name, relativePath) ? `${destinationPath}.html` : destinationPath;
-    const title = markdownTitle(sourceText, publicLabel(displayName(entry.name)));
+    const title = markdownTitle(parseProperties(sourceText).body, publicLabel(displayName(entry.name)));
     const kind = isTextOutput(entry.name, relativePath) ? 'plain text' : 'page';
     return `<li class="folder-entry"><a class="folder-entry-link EXEC" href="${urlPath(linkPath)}"><span class="folder-entry-title">${escapeHtml(title)}</span><span class="folder-entry-kind">${kind}</span></a></li>`;
   });
   return `<ul class="folder-list">${items.join('')}</ul>`;
 }
 
-function searchPreview(sourceText) {
-  const text = sourceText
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .find((line) => !/^#{1,6}\s+/.test(line));
-  if (!text) return '';
-  const plain = text.replace(/^[-*+]\s+/, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[*_`>#]/g, '').replace(/\s+/g, ' ').trim();
-  return plain.length > 120 ? `${plain.slice(0, 117).trimEnd()}...` : plain;
-}
-
-function collectSearchEntries(directory = contentRoot, relativeDir = '') {
+function collectTaggedEntries(directory = contentRoot, relativeDir = '') {
   const entries = [];
   for (const entry of sortEntries(fs.readdirSync(directory, { withFileTypes: true }))) {
     const sourcePath = path.join(directory, entry.name);
     const relativePath = path.join(relativeDir, entry.name);
     if (entry.isDirectory()) {
-      entries.push(...collectSearchEntries(sourcePath, relativePath));
+      entries.push(...collectTaggedEntries(sourcePath, relativePath));
       continue;
     }
     if (!entry.name.toLowerCase().endsWith('.md') || entry.name.toLowerCase() === 'index.md' || isHiddenContent(relativePath)) continue;
     const sourceText = fs.readFileSync(sourcePath, 'utf8');
+    const note = parseProperties(sourceText);
+    if (!note.tags.length) continue;
     const destinationName = outputName(entry.name, relativePath);
     const destinationPath = path.join(path.dirname(relativePath), destinationName);
     const linkPath = isTextOutput(entry.name, relativePath) ? `${destinationPath}.html` : destinationPath;
     entries.push({
-      title: isJournalPath(path.dirname(relativePath)) ? fixedJournalTitle(sourceText, publicLabel(displayName(entry.name))) : markdownTitle(sourceText, publicLabel(displayName(entry.name))),
-      preview: searchPreview(sourceText),
+      title: isJournalPath(path.dirname(relativePath)) ? fixedJournalTitle(sourceText, publicLabel(displayName(entry.name))) : markdownTitle(note.body, publicLabel(displayName(entry.name))),
+      path: relativePath,
       href: urlPath(linkPath),
+      tags: note.tags,
     });
   }
-  return entries.sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }));
+  return entries;
 }
 
-function renderSearchPage() {
-  const searchData = JSON.stringify(collectSearchEntries()).replace(/</g, '\\u003c');
-  return `<section class="search-page"><form class="search-form" id="search-form"><label class="skip-link" for="search-input">Search the site</label><input class="search-input" id="search-input" type="search" placeholder="Search pages and notes" autocomplete="off"><button class="search-submit" type="submit">Search</button></form><p id="search-status">Search your pages, notes, books, and articles.</p><ul class="search-results" id="search-results"></ul></section><script>
-(() => {
-  const data = ${searchData};
-  const form = document.getElementById('search-form');
-  const input = document.getElementById('search-input');
-  const status = document.getElementById('search-status');
-  const results = document.getElementById('search-results');
-  const render = () => {
-    const query = input.value.trim().toLowerCase();
-    const matches = query ? data.filter((item) => (item.title + ' ' + item.preview).toLowerCase().includes(query)) : [];
-    results.replaceChildren(...matches.map((item) => {
-      const li = document.createElement('li');
-      li.className = 'search-result';
-      const link = document.createElement('a');
-      link.className = 'search-result-title';
-      link.href = item.href;
-      link.textContent = item.title;
-      li.append(link);
-      if (item.preview) {
-        const preview = document.createElement('span');
-        preview.className = 'search-result-preview';
-        preview.textContent = item.preview;
-        li.append(preview);
-      }
-      return li;
-    }));
-    status.textContent = query ? matches.length + ' result' + (matches.length === 1 ? '' : 's') : 'Search your pages, notes, books, and articles.';
-  };
-  form.addEventListener('submit', (event) => { event.preventDefault(); render(); });
-  input.addEventListener('input', render);
-})();
-</script>`;
+function renderTagIndex(entries) {
+  const tags = new Map();
+  for (const entry of entries) {
+    for (const tag of entry.tags) {
+      if (!tags.has(tag)) tags.set(tag, []);
+      tags.get(tag).push(entry);
+    }
+  }
+  const sortedTags = [...tags.keys()].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  if (!sortedTags.length) return '<section class="tags-page"><p>No tags yet. Add a <code>tags</code> property to an Obsidian note.</p></section>';
+  const items = sortedTags.map((tag) => `<li class="tag-entry"><a class="tag-link" href="${urlPath(path.join('tags', tagSlug(tag)))}/"><span class="tag-name">#${escapeHtml(tag)}</span><span class="tag-count">${tags.get(tag).length} ${tags.get(tag).length === 1 ? 'note' : 'notes'}</span></a></li>`).join('');
+  return `<section class="tags-page"><p>Browse notes by tag.</p><ul class="tag-list">${items}</ul></section>`;
+}
+
+function renderTaggedNotes(entries, tag) {
+  const matching = entries
+    .filter((entry) => entry.tags.some((entryTag) => entryTag.toLowerCase() === tag.toLowerCase()))
+    .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }));
+  if (!matching.length) return '<p>No notes with this tag.</p>';
+  const items = matching.map((entry) => `<li class="tagged-note"><a class="tagged-note-link EXEC" href="${entry.href}"><span class="tagged-note-title">${escapeHtml(entry.title)}</span><span class="tagged-note-path">${escapeHtml(entry.path.replace(/\\/g, '/'))}</span></a></li>`).join('');
+  return `<section class="tags-page"><p>Notes tagged <strong>#${escapeHtml(tag)}</strong>.</p><ul class="tagged-notes">${items}</ul></section>`;
 }
 
 function renderHomeCategories() {
@@ -656,26 +670,27 @@ function buildFolder(sourceDir, relativeDir = '') {
     const destinationName = outputName(entry.name, relativePath);
     const destinationPath = path.join(outputDir, destinationName);
     const sourceText = fs.readFileSync(sourcePath, 'utf8');
+    const note = parseProperties(sourceText);
     if (isTextOutput(entry.name, relativePath)) {
-      const text = toUsAscii(sourceText);
+      const text = toUsAscii(note.body);
       fs.writeFileSync(destinationPath, text, 'ascii');
       const readerPath = `${destinationPath}.html`;
-      const readerTitle = markdownTitle(sourceText, publicLabel(displayName(entry.name)));
+      const readerTitle = markdownTitle(note.body, publicLabel(displayName(entry.name)));
       const readerBody = `<article class="text-viewer">${markdownToHtml(text, relativeDir)}</article>`;
-      fs.writeFileSync(readerPath, layout(readerTitle, readerBody, urlPath(path.join(relativeDir, destinationName))));
+      fs.writeFileSync(readerPath, layout(readerTitle, readerBody, urlPath(path.join(relativeDir, destinationName)), note.tags));
     } else {
-      const title = markdownTitle(sourceText, publicLabel(displayName(entry.name)));
+      const title = markdownTitle(note.body, publicLabel(displayName(entry.name)));
       const body = isMusicFile(entry.name, relativePath)
         ? renderMusicPage(sourceText)
-        : markdownToHtml(isArticlesPath(relativeDir) ? sortArticleLinks(sourceText) : sourceText, relativeDir);
-      fs.writeFileSync(destinationPath, layout(title, body, urlPath(path.join(relativeDir, destinationName))));
+        : markdownToHtml(isArticlesPath(relativeDir) ? sortArticleLinks(note.body) : note.body, relativeDir);
+      fs.writeFileSync(destinationPath, layout(title, body, urlPath(path.join(relativeDir, destinationName)), note.tags));
     }
   }
 
   const title = relativeDir ? path.basename(relativeDir) : 'Home';
   const folderIndexPath = path.join(sourceDir, 'index.md');
   const folderDescription = fs.existsSync(folderIndexPath)
-    ? markdownToHtml(fs.readFileSync(folderIndexPath, 'utf8'), relativeDir)
+    ? markdownToHtml(parseProperties(fs.readFileSync(folderIndexPath, 'utf8')).body, relativeDir)
     : '';
   const listing = isJournalPath(relativeDir)
     ? renderJournalListing(sourceDir, relativeDir)
@@ -719,13 +734,23 @@ buildFolder(contentRoot);
 const welcomeSource = fs.existsSync(path.join(contentRoot, 'Welcome.md'))
   ? fs.readFileSync(path.join(contentRoot, 'Welcome.md'), 'utf8')
   : '';
-const welcomeHeading = markdownTitle(welcomeSource, '');
-const homeBody = `${welcomeHeading ? '' : '<h2>Welcome</h2>'}${markdownToHtml(welcomeSource, '')}${renderHomeCategories()}`;
-fs.writeFileSync(path.join(outputRoot, 'index.html'), layout('Home', homeBody, '/'));
+const welcomeNote = parseProperties(welcomeSource);
+const welcomeHeading = markdownTitle(welcomeNote.body, '');
+const homeBody = `${welcomeHeading ? '' : '<h2>Welcome</h2>'}${markdownToHtml(welcomeNote.body, '')}${renderHomeCategories()}`;
+fs.writeFileSync(path.join(outputRoot, 'index.html'), layout('Home', homeBody, '/', welcomeNote.tags));
 
-const searchDir = path.join(outputRoot, 'search');
-fs.mkdirSync(searchDir, { recursive: true });
-fs.writeFileSync(path.join(searchDir, 'index.html'), layout('Search', `<h2>Search</h2>${renderSearchPage()}`, '/search/'));
+const taggedEntries = collectTaggedEntries();
+const tagsDir = path.join(outputRoot, 'tags');
+fs.mkdirSync(tagsDir, { recursive: true });
+fs.writeFileSync(path.join(tagsDir, 'index.html'), layout('Tags', `<h2>Tags</h2>${renderTagIndex(taggedEntries)}`, '/tags/'));
+const tagNames = [...new Set(taggedEntries.flatMap((entry) => entry.tags))]
+  .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+for (const tag of tagNames) {
+  const tagPath = path.join('tags', tagSlug(tag));
+  const tagDir = path.join(outputRoot, tagPath);
+  fs.mkdirSync(tagDir, { recursive: true });
+  fs.writeFileSync(path.join(tagDir, 'index.html'), layout(`#${tag}`, `<h2>#${escapeHtml(tag)}</h2>${renderTaggedNotes(taggedEntries, tag)}`, `${urlPath(tagPath)}/`));
+}
 
 const fileTreeDir = path.join(outputRoot, 'file-tree');
 fs.mkdirSync(fileTreeDir, { recursive: true });

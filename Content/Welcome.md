@@ -1,4 +1,4 @@
-My name is "Amaan" and this website is the dirt hole i hide in. I was a bug in my past life. i hate social media. i don't use a smartphone.
+My name is "Amaan" and this website is the dirt hole i hide in. I was a bug in my past life. i hate social media. i don't use a smartphone, still using buttons in 2026
 
 this site is primarily a collection of plain text files that i have either written or collected or converted.
 
