@@ -18,3 +18,4 @@
 
 [Francois Bertrand](https://en.wikipedia.org/wiki/Fran%C3%A7ois_Bertrand)
 
+[Aaron Swartz](https://en.wikipedia.org/wiki/Aaron_Swartz)
