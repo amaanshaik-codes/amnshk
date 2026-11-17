@@ -60,9 +60,21 @@ function layout(title, body, currentPath = '/', tags = []) {
     header, footer { text-align: center; padding: 1.25rem 1.5rem; }
     header { padding-top: .5rem; padding-bottom: .35rem; }
     main { padding: 0 1.5rem 2rem; }
-    header h1 { margin: 0 0 .3rem; font-family: "JMH Typewriter", "American Typewriter", "Courier New", monospace; font-size: clamp(1.5rem, 5vw, 2.25rem); line-height: 1.2; }
-    header h1 a { color: #111 !important; text-decoration: none; }
-    .header-badge { margin: -.25rem auto .3rem; text-align: center; }
+    header h1 { margin: 0; font-family: "JMH Typewriter", "American Typewriter", "Courier New", monospace; font-size: clamp(1.5rem, 5vw, 2.25rem); line-height: 1.1; }
+    header h1 a { color: #111 !important; text-decoration: none !important; background: none !important; }
+    .masthead { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: "brand brand brand" ". est badge"; align-items: center; justify-items: center; width: min(100%, 30rem); margin: 0 auto .15rem; row-gap: .22rem; }
+    .masthead-brand { grid-area: brand; }
+    .est-mark { grid-area: est; justify-self: end; padding-right: .6rem; font-size: .72rem; line-height: 1; letter-spacing: .26em; text-transform: uppercase; white-space: nowrap; color: var(--text); }
+    .header-badge { grid-area: badge; justify-self: start; margin: 0; padding-left: .6rem; line-height: 0; }
+    .header-badge img { display: block; width: 80px; height: 15px; }
+    @media (max-width: 30rem) {
+      .masthead { width: 100%; }
+      .est-mark { font-size: .64rem; letter-spacing: .16em; padding-right: .4rem; }
+      .header-badge { padding-left: .4rem; }
+    }
+    @media (max-width: 22rem) {
+      .est-mark { font-size: .6rem; letter-spacing: .1em; }
+    }
     .header-rule { max-width: 88ch; margin: .35rem auto 0; border-top: 1px dotted var(--text); }
     .journal-ticker { max-width: 88ch; margin: .35rem auto; overflow: hidden; text-align: left; }
     .journal-ticker marquee { width: 100%; }
@@ -158,16 +170,32 @@ function layout(title, body, currentPath = '/', tags = []) {
     .badge img { display: block; max-width: 100%; height: auto; image-rendering: pixelated; }
     .footer-meta { display: flex; justify-content: center; align-items: baseline; flex-wrap: wrap; gap: 1rem; }
     .footer-meta p { margin: 0; }
-    .visit-counter { display: flex; align-items: center; justify-content: center; gap: .35rem; min-height: 31px; margin-top: .75rem; font-size: .85rem; line-height: 1; color: var(--muted); }
-    .counter-label { margin: 0; }
+    .visit-counter { display: flex; align-items: center; justify-content: center; gap: .35rem; min-height: 22px; margin-top: .75rem; font-size: .85rem; line-height: 1; color: var(--muted); }
+    .visit-counter img { display: block; height: 22px; width: auto; image-rendering: pixelated; }
+    .masthead { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: "brand brand brand" ". est badge"; align-items: center; justify-items: center; width: min(100%, 30rem); margin: 0 auto .15rem; row-gap: .22rem; }
+    .masthead-brand { grid-area: brand; }
+    .est-mark { grid-area: est; justify-self: end; padding-right: .6rem; font-size: .72rem; line-height: 1; letter-spacing: .26em; text-transform: uppercase; white-space: nowrap; color: var(--text); }
+    .header-badge { grid-area: badge; justify-self: start; margin: 0; padding-left: .6rem; line-height: 0; }
+    .header-badge img { display: block; width: 80px; height: 15px; }
+    @media (max-width: 30rem) {
+      .masthead { width: 100%; }
+      .est-mark { font-size: .64rem; letter-spacing: .16em; padding-right: .4rem; }
+      .header-badge { padding-left: .4rem; }
+    }
+    @media (max-width: 22rem) {
+      .est-mark { font-size: .6rem; letter-spacing: .1em; }
+    }
   </style>
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
   <div class="site-shell">
   <header>
-    <h1><a href="/">AMNSHK</a></h1>
-    <div class="header-badge"><img src="/badges/free-speech.png" width="80" height="15" alt="Free speech"></div>
+    <div class="masthead">
+      <h1 class="masthead-brand"><a href="/">AMNSHK</a></h1>
+      <span class="est-mark">Est. 2005</span>
+      <div class="header-badge"><img src="/badges/free-speech.png" width="80" height="15" alt="Free speech"></div>
+    </div>
     ${latestJournalTicker()}
     <nav aria-label="Primary navigation">
       <ul>
@@ -189,7 +217,7 @@ function layout(title, body, currentPath = '/', tags = []) {
     <div class="badge"><img src="/badges/y2k-compliant.png" width="160" height="36" alt="Y2K compliant"></div>
       <span class="badge"><img src="/badges/no-ai-human-content.png" width="160" height="36" alt="No AI human content"></span>
     </div>
-    <div class="visit-counter" aria-label="Visitor counter"><span class="counter-label">Visitors:</span><img src="https://visitor-badge.laobi.icu/badge?page_id=amnshk.diary&left_text=visitors" width="97" height="20" alt="Visitor count"></div>
+    <div class="visit-counter"><img src="/api/visitors" alt="You are visitor number" width="114" height="22"></div>
   </footer>
   </div>
 </body>

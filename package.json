@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "build": "node build.js",
+    "serve": "node dev-server.js",
     "validate": "npm run build && node validate.js"
   }
 }
