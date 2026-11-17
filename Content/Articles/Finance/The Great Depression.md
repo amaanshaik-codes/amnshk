@@ -1,4 +1,5 @@
 ---
 tags:
-  - psychology
+  - finance
+  - economy
 ---

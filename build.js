@@ -13,7 +13,6 @@ const builtAt = `${new Intl.DateTimeFormat('en-IN', {
 // Add future header buttons here. Each item becomes one link in the header.
 const navigation = [
   { label: 'Home', href: '/', path: '/' },
-  { label: 'Journal', href: '/journal/', path: '/journal/', source: 'journal' },
   { label: 'File Tree', href: '/file-tree/', path: '/file-tree/' },
   { label: 'Tags', href: '/tags/', path: '/tags/' },
 ];
@@ -33,7 +32,7 @@ function urlPath(relativePath) {
 }
 
 function layout(title, body, currentPath = '/', tags = []) {
-  const description = 'Amaan Shaik\'s personal site, journals, lists, and books.';
+  const description = 'AMNSHK, Amaan Shaik\'s personal site, journals, lists, and books.';
   const navLink = ({ label, href, path }) => `<li><a href="${href}"${currentPath === path || (path !== '/' && currentPath.startsWith(path)) ? ' aria-current="page"' : ''}>${label}</a></li>`;
   const breadcrumbs = currentPath === '/' ? '' : `<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/">Home</a>${currentPath.split('/').filter(Boolean).map((part, index, parts) => {
     const isLast = index === parts.length - 1;
@@ -48,28 +47,26 @@ function layout(title, body, currentPath = '/', tags = []) {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="${description}">
-  <meta property="og:title" content="${escapeHtml(title)} · Amaan Shaik">
+  <meta property="og:title" content="${escapeHtml(title)} · AMNSHK">
   <meta property="og:description" content="${description}">
   <meta property="og:type" content="website">
-  <title>${escapeHtml(title)} · Amaan Shaik</title>
+  <title>${escapeHtml(title)} · AMNSHK</title>
   <style>
-    :root { color-scheme: light; --page-bg: #e7e7e7; --surface: white; --text: black; --link: blue; --exec: green; --hover: yellow; --border: black; --muted: #444; }
-    :root[data-theme="dark"] { color-scheme: dark; --page-bg: #080808; --surface: #111; --text: #f5f5f5; --link: #79b8ff; --exec: #75d66f; --hover: #62bd58; --border: #f5f5f5; --muted: #c7c7c7; }
+    :root { color-scheme: light; --page-bg: #f4f1e8; --surface: #f4f1e8; --text: #111; --link: blue; --exec: green; --hover: yellow; --border: transparent; --muted: #444; }
     body { font-family: monospace, sans-serif; font-size: 16px; line-height: 1.55; color: var(--text); background: var(--page-bg); margin: 0; padding: 1rem; }
-    .site-shell { width: auto; max-width: 1100px; margin: 0 auto; background: var(--surface); border: 2px solid var(--border); box-shadow: 5px 5px 0 var(--border); }
+    .site-shell { width: auto; max-width: 1100px; margin: 0 auto; background: var(--surface); }
     header, footer { text-align: center; padding: 1.25rem 1.5rem; }
     main { padding: 0 1.5rem 2rem; }
-    header h1 { margin: 0 0 .75rem; font-size: clamp(1.5rem, 5vw, 2.25rem); line-height: 1.2; }
+    header h1 { margin: 0 0 .75rem; font-family: "JMH Typewriter", "American Typewriter", "Courier New", monospace; font-size: clamp(1.5rem, 5vw, 2.25rem); line-height: 1.2; }
     header h1 a { color: inherit; text-decoration: none; }
     nav a { font-size: 1rem; }
-    nav ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; padding: .5rem 0; margin: 0; list-style: none; border-top: 1px dotted var(--border); border-bottom: 1px dotted var(--border); }
+    nav ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; padding: .5rem 0; margin: 0; list-style: none; }
     nav li:not(:last-child)::after { content: ' · '; }
     nav a[aria-current="page"] { font-weight: bold; }
-    .theme-toggle { border: 0; padding: 0; color: var(--text); background: transparent; font: inherit; cursor: pointer; }
-    hr { border: 0; border-top: 3px double var(--border); margin: 0; }
+    hr { display: none; }
     .breadcrumbs { margin: 1.25rem 0; text-align: center; font-size: .98rem; }
     a:link, a:visited { color: var(--link); text-decoration: none; }
-    a:hover, .theme-toggle:hover { color: black !important; text-decoration: underline; background-color: var(--hover); }
+    a:hover { color: black !important; text-decoration: underline; background-color: var(--hover); }
     .DIR { color: var(--link) !important; }
     .EXEC { color: var(--exec) !important; }
     main { min-height: 45vh; text-align: center; }
@@ -80,41 +77,45 @@ function layout(title, body, currentPath = '/', tags = []) {
     .text-viewer { max-width: 88ch; margin: 1rem auto; padding: 0; font-family: inherit; font-size: clamp(1.05rem, 2.5vw, 1.22rem); line-height: 1.8; overflow-wrap: anywhere; text-align: left; }
     .text-viewer p, .text-viewer ul, .text-viewer ol, .text-viewer blockquote { margin: 1rem 0; }
     .journal-list { max-width: 60ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
-    .journal-entry { border-bottom: 1px solid var(--border); padding: .8rem 0; }
+    .journal-entry { padding: .8rem 0; }
     .journal-entry-link { display: block; }
     .journal-entry-title { display: block; min-height: 3.1em; font-size: 1.05rem; }
     .journal-entry-date { display: block; margin-top: .25rem; font-size: .9rem; color: var(--text); }
-    .category-links { display: inline-flex; max-width: 100%; box-sizing: border-box; flex-wrap: wrap; align-items: center; justify-content: center; gap: .5rem; border: 1px solid var(--border); padding: .75rem 1rem; }
+    .category-links { display: inline-flex; max-width: 100%; box-sizing: border-box; flex-wrap: wrap; align-items: center; justify-content: center; gap: .5rem; padding: .75rem 1rem; }
     .category-link { color: black; font-size: clamp(1rem, 2.5vw, 1.1rem); }
+    .bad-about-links { max-width: 100%; margin: 1rem auto 2rem; text-align: center; font-family: "American Typewriter", "Courier New", monospace; font-size: clamp(1rem, 2.4vw, 1.15rem); font-style: italic; font-weight: bold; }
+    .bad-about-label { color: var(--text); }
+    .bad-about-separator { color: var(--text); }
     .books-list { max-width: 60ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
-    .books-list li { border-bottom: 1px solid var(--border); padding: .75rem 0; }
+    .books-list li { padding: .75rem 0; }
     .book-entry { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
     .book-info { min-width: 0; }
     .books-list a { font-size: 1.05rem; }
-    .read-button { flex: 0 0 auto; border: 1px solid var(--border); padding: .35rem .65rem; color: var(--text) !important; }
+    .read-button { flex: 0 0 auto; padding: .35rem .65rem; color: var(--text) !important; }
     .read-button:hover { color: black !important; }
     .book-title, .book-author { display: block; }
     .book-author { margin-top: .25rem; font-size: .9rem; }
     .article-categories { max-width: 60ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
-    .article-category { border-bottom: 1px solid var(--border); padding: .8rem 0; }
+    .article-category { padding: .8rem 0; }
     .article-category-link { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
     .article-category-title { font-size: 1.05rem; }
     .article-category-count { white-space: nowrap; font-size: .9rem; }
     .folder-list { max-width: 68ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
-    .folder-entry { border-bottom: 1px solid var(--border); padding: .8rem 0; }
+    .folder-entry { padding: .8rem 0; }
     .folder-entry-link { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
     .folder-entry-title { font-size: 1.05rem; }
     .folder-entry-kind { white-space: nowrap; font-size: .9rem; color: var(--text); }
     .tags-page { max-width: 68ch; margin: 1rem auto; text-align: left; }
-    .tag-list, .tagged-notes { margin: 1rem 0; padding: 0; list-style: none; }
-    .tag-entry, .tagged-note { border-bottom: 1px solid var(--border); padding: .8rem 0; }
+    .tag-list { margin: 1rem auto; padding-left: 1.25rem; list-style: disc; text-align: left; }
+    .tagged-notes { margin: 1rem 0; padding: 0; list-style: none; }
+    .tag-entry, .tagged-note { padding: .8rem 0; }
     .tag-link, .tagged-note-link { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
     .tag-name, .tagged-note-title { font-size: 1.05rem; }
-    .tag-count, .tagged-note-path { white-space: nowrap; font-size: .9rem; }
+    .tagged-note-path { white-space: nowrap; font-size: .9rem; }
     .note-tags { max-width: 88ch; margin: 1rem auto; text-align: left; font-size: .95rem; }
     .music-page { max-width: 62ch; margin: 1rem auto; text-align: left; }
     .album-list { display: grid; gap: .75rem; margin: 1rem 0; padding: 0; list-style: none; }
-    .album-card { border: 1px solid var(--border); }
+    .album-card { padding: .25rem 0; }
     .album-link { display: grid; grid-template-columns: 1fr auto; gap: .25rem 1rem; align-items: center; padding: .85rem 1rem; }
     .album-name { font-size: 1.1rem; }
     .album-artist { grid-column: 1; font-size: .9rem; color: var(--text); }
@@ -137,11 +138,10 @@ function layout(title, body, currentPath = '/', tags = []) {
   <a class="skip-link" href="#main-content">Skip to content</a>
   <div class="site-shell">
   <header>
-    <h1><a href="/">Amaan Shaik's Personal Site</a></h1>
+    <h1><a href="/">AMNSHK</a></h1>
     <nav aria-label="Primary navigation">
       <ul>
         ${availableNavigation.map(navLink).join('\n        ')}
-        <li><button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">dark mode</button></li>
       </ul>
     </nav>
     <hr>
@@ -154,33 +154,15 @@ function layout(title, body, currentPath = '/', tags = []) {
       <p>Last updated: ${builtAt}</p>
     </div>
     <div class="badges" aria-label="Web badges">
+      <span class="badge"><img src="/badges/bestvieweddesktop.gif" width="88" height="31" alt="Best viewed on desktop"></span>
       <span class="badge"><img src="/badges/free-speech.png" width="80" height="15" alt="Free speech"></span>
       <span class="badge"><img src="/badges/cookie-free.png" width="88" height="31" alt="This site is certified 100% cookie free"></span>
       <span class="badge"><a href="https://en.wikipedia.org/wiki/Year_2000_problem" target="_blank" rel="noopener noreferrer"><img src="/badges/y2k-compliant.png" width="160" height="36" alt="Y2K compliant"></a></span>
       <span class="badge"><img src="/badges/no-ai-human-content.png" width="160" height="36" alt="No AI human content"></span>
-      <span class="badge"><img src="/badges/bestvieweddesktop.gif" width="88" height="31" alt="Best viewed on desktop"></span>
     </div>
     <div class="visit-counter" aria-label="Visitor counter"><span class="counter-label">Visitors:</span><script type="text/javascript" src="https://counter.websiteout.com/js/5/0/0/1"></script></div>
   </footer>
   </div>
-  <script>
-    (() => {
-      const root = document.documentElement;
-      const button = document.getElementById('theme-toggle');
-      const savedTheme = localStorage.getItem('theme');
-      const applyTheme = (theme) => {
-        root.dataset.theme = theme;
-        button.textContent = theme === 'dark' ? 'light mode' : 'dark mode';
-        button.setAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
-      };
-      applyTheme(savedTheme === 'dark' ? 'dark' : 'light');
-      button.addEventListener('click', () => {
-        const nextTheme = root.dataset.theme === 'dark' ? 'light' : 'dark';
-        localStorage.setItem('theme', nextTheme);
-        applyTheme(nextTheme);
-      });
-    })();
-  </script>
 </body>
 </html>
 `;
@@ -246,6 +228,11 @@ function isArticlesPath(relativePath) {
   return ['articles', 'readings'].some((name) => relativePath === name || relativePath.startsWith(`${name}${path.sep}`));
 }
 
+function isBadAboutPath(relativePath) {
+  const name = relativePath.replace(/\\/g, '/').toLowerCase();
+  return name === "what's bad about" || name === 'whats bad about';
+}
+
 function isBooksPath(relativePath) {
   return relativePath === 'books' || relativePath.startsWith(`books${path.sep}`);
 }
@@ -259,13 +246,13 @@ function journalEntrySort(a, b) {
   const aDate = a.name.match(/^(\d{2})-(\d{2})-(\d{4})\.md$/i);
   const bDate = b.name.match(/^(\d{2})-(\d{2})-(\d{4})\.md$/i);
   if (aDate && bDate) {
-    return `${bDate[3]}-${bDate[2]}-${bDate[1]}`.localeCompare(`${aDate[3]}-${aDate[2]}-${aDate[1]}`);
+    return `${aDate[3]}-${aDate[2]}-${aDate[1]}`.localeCompare(`${bDate[3]}-${bDate[2]}-${bDate[1]}`);
   }
-  if (/^\d{4}$/.test(a.name) && /^\d{4}$/.test(b.name)) return b.name.localeCompare(a.name);
+  if (/^\d{4}$/.test(a.name) && /^\d{4}$/.test(b.name)) return a.name.localeCompare(b.name);
   const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
   const aMonth = months.indexOf(a.name.toLowerCase());
   const bMonth = months.indexOf(b.name.toLowerCase());
-  if (aMonth !== -1 && bMonth !== -1) return bMonth - aMonth;
+  if (aMonth !== -1 && bMonth !== -1) return aMonth - bMonth;
   return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
 }
 
@@ -401,6 +388,19 @@ function renderFolderListing(sourceDir, relativeDir) {
   return `<ul class="folder-list">${items.join('')}</ul>`;
 }
 
+function renderBadAboutLinks(sourceDir, relativeDir) {
+  const entries = sortEntries(fs.readdirSync(sourceDir, { withFileTypes: true }))
+    .filter((entry) => entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md' && !isHiddenContent(path.join(relativeDir, entry.name)));
+  if (!entries.length) return '<p>No entries yet.</p>';
+  const links = entries.map((entry, index) => {
+    const relativePath = path.join(relativeDir, entry.name);
+    const destinationName = outputName(entry.name, relativePath);
+    const separator = index ? '<span class="bad-about-separator" aria-hidden="true"> | </span>' : '';
+    return `${separator}<a href="${urlPath(path.join(relativeDir, destinationName))}">${escapeHtml(publicLabel(displayName(entry.name)))}</a>`;
+  }).join('');
+  return `<div class="bad-about-links"><span class="bad-about-label">What's bad about:</span> ${links}</div>`;
+}
+
 function collectTaggedEntries(directory = contentRoot, relativeDir = '') {
   const entries = [];
   for (const entry of sortEntries(fs.readdirSync(directory, { withFileTypes: true }))) {
@@ -437,7 +437,7 @@ function renderTagIndex(entries) {
   }
   const sortedTags = [...tags.keys()].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
   if (!sortedTags.length) return '<section class="tags-page"><p>No tags yet. Add a <code>tags</code> property to an Obsidian note.</p></section>';
-  const items = sortedTags.map((tag) => `<li class="tag-entry"><a class="tag-link" href="${urlPath(path.join('tags', tagSlug(tag)))}/"><span class="tag-name">#${escapeHtml(tag)}</span><span class="tag-count">${tags.get(tag).length} ${tags.get(tag).length === 1 ? 'note' : 'notes'}</span></a></li>`).join('');
+  const items = sortedTags.map((tag) => `<li class="tag-entry"><a class="tag-link" href="${urlPath(path.join('tags', tagSlug(tag)))}/"><span class="tag-name">#${escapeHtml(tag)}</span></a></li>`).join('');
   return `<section class="tags-page"><p>Browse notes by tag.</p><ul class="tag-list">${items}</ul></section>`;
 }
 
@@ -454,17 +454,17 @@ function renderHomeCategories() {
   const entries = sortEntries(fs.readdirSync(contentRoot, { withFileTypes: true }))
     .filter((entry) => entry.isDirectory() || (entry.name.toLowerCase().endsWith('.md') && !['index.md', 'welcome.md'].includes(entry.name.toLowerCase()) && !isHiddenContent(entry.name)));
   if (!entries.length) return '';
-  const links = entries.flatMap((entry, index) => {
+  const badAboutEntry = entries.find((entry) => entry.isDirectory() && isBadAboutPath(entry.name));
+  const normalEntries = entries.filter((entry) => entry !== badAboutEntry);
+  const links = normalEntries.map((entry) => {
     const relativePath = entry.name;
-    const separator = index ? '<span class="category-separator" aria-hidden="true">|</span>' : '';
-    if (entry.isDirectory()) {
-      return [separator, `<a class="category-link DIR" href="${urlPath(relativePath)}/">${escapeHtml(publicLabel(folderDisplayName(entry.name)))}</a>`];
-    }
+    if (entry.isDirectory()) return `<a class="category-link DIR" href="${urlPath(relativePath)}/">${escapeHtml(publicLabel(folderDisplayName(entry.name)))}</a>`;
     const destinationName = outputName(entry.name, relativePath);
     const linkPath = isTextOutput(entry.name, relativePath) ? `${destinationName}.html` : destinationName;
-    return [separator, `<a class="category-link" href="${urlPath(linkPath)}">${escapeHtml(publicLabel(displayName(destinationName)))}</a>`];
+    return `<a class="category-link" href="${urlPath(linkPath)}">${escapeHtml(publicLabel(displayName(destinationName)))}</a>`;
   }).join('');
-  return `<h2>Browse</h2><div class="category-links">${links}</div>`;
+  const badAbout = badAboutEntry ? renderBadAboutLinks(path.join(contentRoot, badAboutEntry.name), badAboutEntry.name) : '';
+  return `${badAbout}${links ? `<h2>Browse</h2><div class="category-links">${links}</div>` : ''}`;
 }
 
 function outputName(fileName, relativePath) {
@@ -491,11 +491,29 @@ function markdownTitle(value, fallback) {
   return heading ? heading[1].trim() : fallback;
 }
 
+function listSortText(value) {
+  return value.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[*_`>#]/g, '').replace(/\s+/g, ' ').trim().toLocaleLowerCase();
+}
+
+function listDateValue(value) {
+  const match = value.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b|^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b/);
+  if (!match) return null;
+  return match[1] ? `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}` : `${match[6]}-${match[5].padStart(2, '0')}-${match[4].padStart(2, '0')}`;
+}
+
+function sortListItems(items, listType) {
+  if (listType === 'ol') return items.sort((a, b) => a.number - b.number);
+  const dates = items.map((item) => listDateValue(item.text));
+  if (dates.every(Boolean)) return items.sort((a, b) => listDateValue(a.text).localeCompare(listDateValue(b.text)));
+  return items.sort((a, b) => listSortText(a.text).localeCompare(listSortText(b.text), undefined, { sensitivity: 'base' }));
+}
+
 function markdownToHtml(value, relativeDir = '') {
   const lines = value.split(/\r?\n/);
   const output = [];
   let paragraph = [];
   let listType = null;
+  let listItems = [];
 
   const flushParagraph = () => {
     if (!paragraph.length) return;
@@ -504,12 +522,17 @@ function markdownToHtml(value, relativeDir = '') {
   };
   const closeList = () => {
     if (!listType) return;
+    for (const item of sortListItems(listItems, listType)) output.push(`<li>${inlineMarkdown(item.text, relativeDir)}</li>`);
     output.push(`</${listType}>`);
     listType = null;
+    listItems = [];
   };
 
-  for (const line of lines) {
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+    const line = lines[lineIndex];
     if (!line.trim()) {
+      const nextLine = lines[lineIndex + 1] || '';
+      if (listType && /^\s*(?:[-*+]\s+|\d+[.)]\s+)/.test(nextLine)) continue;
       flushParagraph();
       closeList();
       continue;
@@ -532,7 +555,10 @@ function markdownToHtml(value, relativeDir = '') {
         output.push(`<${nextListType}>`);
         listType = nextListType;
       }
-      output.push(`<li>${inlineMarkdown((listItem || orderedItem)[1], relativeDir)}</li>`);
+      listItems.push({
+        text: (listItem || orderedItem)[1],
+        number: orderedItem ? Number(orderedItem[0].match(/^\d+/)[0]) : 0,
+      });
     } else if (quote) {
       flushParagraph();
       closeList();
@@ -698,6 +724,8 @@ function buildFolder(sourceDir, relativeDir = '') {
       ? renderArticlesListing(sourceDir, relativeDir)
     : isBooksPath(relativeDir)
       ? renderBooksListing(sourceDir, relativeDir)
+    : isBadAboutPath(relativeDir)
+      ? renderBadAboutLinks(sourceDir, relativeDir)
     : renderFolderListing(sourceDir, relativeDir);
   const currentPath = relativeDir ? `${urlPath(relativeDir)}/` : '/';
   const report = isJournalPath(relativeDir)
