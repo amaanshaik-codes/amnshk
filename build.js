@@ -225,11 +225,15 @@ function layout(title, body, currentPath = '/', tags = []) {
       .est-mark { font-size: .6rem; letter-spacing: .2em; }
       .header-rule { margin-top: .4rem; }
 
-      /* Ticker: one tidy line, trimmed edges, slightly smaller type. */
+      /* Ticker: on a narrow screen a scrolling marquee cuts mid-word and is hard to
+         read. Show one line, end-ellipsised, with the same "Latest journal" text. */
       .journal-ticker { margin: .4rem 0 .1rem; min-height: 1.3em; font-size: .8rem;
-        -webkit-mask-image: linear-gradient(to right, transparent 0, #000 1rem, #000 calc(100% - 1rem), transparent 100%);
-        mask-image: linear-gradient(to right, transparent 0, #000 1rem, #000 calc(100% - 1rem), transparent 100%); }
-      .journal-ticker-track { animation-duration: 26s; }
+        -webkit-mask-image: none; mask-image: none; }
+      .journal-ticker-track { animation: none; display: block; width: 100%; }
+      .journal-ticker-track > span { display: block; overflow: hidden; text-overflow: ellipsis;
+        white-space: nowrap; }
+      /* Only the first copy is shown; the duplicate exists for the desktop loop. */
+      .journal-ticker-track > span + span { display: none; }
 
       /* Nav: big enough to tap, spread across the width. */
       nav ul { justify-content: center; gap: .15rem .1rem; padding: .35rem 0 .15rem; }
@@ -334,6 +338,8 @@ function layout(title, body, currentPath = '/', tags = []) {
       var MOBILE_DURATION = 26;
       var KEY = 'ticker-anchor';
       var isNarrow = window.matchMedia('(max-width: 40rem)').matches;
+      // Narrow screens show a static, ellipsised line instead of a marquee.
+      if (isNarrow) return;
       var duration = isNarrow ? MOBILE_DURATION : DURATION;
       var anchor = 0;
       try { anchor = Number(sessionStorage.getItem(KEY)) || 0; } catch (e) { anchor = 0; }
