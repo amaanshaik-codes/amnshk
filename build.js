@@ -95,12 +95,18 @@ function layout(title, body, currentPath = '/', tags = []) {
     :root { color-scheme: light; --page-bg: #f4f1e8; --surface: #f4f1e8; --text: #111; --link: blue; --exec: green; --hover: yellow; --border: transparent; --muted: #444; }
     /* One column width shared by the masthead, the rule and the ticker, so nothing
        can drift outside the site's content edge. */
-    :root { --content-w: 88ch; }
+    /* One column width shared by masthead, rules and ticker. A fixed rem length,
+       not ch: ch resolves against each element's own font-size, so the header and
+       footer rules came out at different widths. */
+    :root { --content-w: 52rem; }
     *, *::before, *::after { box-sizing: border-box; }
     body { font-family: monospace, sans-serif; font-size: 16px; line-height: 1.55; color: var(--text); background: var(--page-bg); margin: 0; padding: 1rem; }
     .site-shell { width: auto; max-width: 1100px; margin: 0 auto; background: var(--surface); }
     header, footer { text-align: center; padding: 1.25rem 1.5rem; }
-    header { padding-top: .5rem; padding-bottom: .35rem; padding-left: 1rem; padding-right: 1rem; }
+    /* Header and footer share the same horizontal padding, so a full-width rule
+       inside either ends at the same x on both sides. */
+    header, footer { padding-left: 1rem; padding-right: 1rem; }
+    header { padding-top: .5rem; padding-bottom: .35rem; }
     main { padding: 0 1.5rem 2rem; }
     header h1 { margin: 0; font-family: "JMH Typewriter", "American Typewriter", "Courier New", monospace; font-size: clamp(1.5rem, 5vw, 2.25rem); line-height: 1.1; }
     header h1 a { color: #111 !important; text-decoration: none !important; background: none !important; }
@@ -112,7 +118,7 @@ function layout(title, body, currentPath = '/', tags = []) {
     .est-mark { grid-area: est; justify-self: center; text-align: center; font-size: .7rem; line-height: 1; letter-spacing: .26em; text-transform: uppercase; white-space: nowrap; color: var(--text); }
     .header-badge { grid-area: badge; justify-self: end; margin: 0; line-height: 0; }
     .header-badge img { display: block; width: 80px; height: 15px; }
-    .header-rule { max-width: var(--content-w); margin: .35rem auto 0; border-top: 1px dotted var(--text); }
+    .header-rule { width: 100%; max-width: var(--content-w); margin: .35rem auto 0; border-top: 1px dotted var(--text); }
     /* Edge fade so text dissolves at the boundaries instead of being hard-cut mid-glyph. */
     .journal-ticker { max-width: var(--content-w); margin: .5rem auto .35rem; overflow: hidden; text-align: left;
       position: relative;
@@ -140,13 +146,14 @@ function layout(title, body, currentPath = '/', tags = []) {
     }
     .journal-ticker-static { display: none; }
     nav a { font-size: 1rem; }
-    nav ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; padding: .15rem 0; margin: 0; list-style: none; }
+    nav ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; padding: .15rem 0; margin: 0 auto; list-style: none; max-width: var(--content-w); }
     nav li:not(:last-child)::after { content: ' · '; }
     nav a[aria-current="page"] { font-weight: bold; }
     hr { display: none; }
-    .breadcrumbs { margin: 1.25rem auto; max-width: var(--content-w); text-align: left; font-size: .85rem;
-      display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .5rem; letter-spacing: .04em; }
-    .back-link { flex: 0 0 auto; margin-right: .35rem; white-space: nowrap; color: var(--exec) !important; }
+    /* Trail centred, Back pinned to the left edge of the content column. */
+    .breadcrumbs { position: relative; margin: 1.25rem auto; max-width: var(--content-w); text-align: center; font-size: .85rem;
+      letter-spacing: .04em; }
+    .back-link { position: absolute; left: 0; top: 0; white-space: nowrap; color: var(--exec) !important; }
     .back-link:hover { color: black !important; }
     a:link, a:visited { color: var(--link); text-decoration: none; }
     a:hover { color: black !important; text-decoration-line: underline; text-decoration-style: dotted; background-color: var(--hover); }
@@ -157,8 +164,8 @@ function layout(title, body, currentPath = '/', tags = []) {
     main > p { max-width: 88ch; margin: 1rem auto; text-align: left; }
     /* On archive pages the folder's own prose aligns to the section column, so the
        page has one left edge instead of two competing ones. */
-    /* Same width *and* same centring as .section, so both share one left edge. */
-    main > .folder-intro { max-width: 74ch; margin: 0 auto; text-align: left; }
+    /* Same column as the section below it, so the page has one left edge. */
+    main > .folder-intro { max-width: var(--content-w); margin: 0 auto 1rem; text-align: left; }
     main > .folder-intro p { margin: 0 0 .7rem; text-align: left; }
     /* Lists live inside the centred text column, so they must not add a second
        indent on top of it - that pushed markers outside the measure. */
@@ -232,13 +239,17 @@ function layout(title, body, currentPath = '/', tags = []) {
     .skip-link { position: absolute; left: -9999px; }
     .skip-link:focus { left: 1rem; top: 1rem; }
     footer { padding: .75rem 1rem 1.1rem; font-size: .9rem; }
-    /* Same dotted rule as the header, so the page closes the way it opens. */
-    .footer-rule { max-width: var(--content-w); margin: 0 auto .9rem; border-top: 1px dotted var(--text); }
+    /* Same dotted rule as the header, at the same width, so the page closes the
+       way it opens. */
+    .footer-rule { width: 100%; max-width: var(--content-w); margin: 0 auto .9rem; border-top: 1px dotted var(--text); }
     /* Two equal columns sized to the widest badge (160px), so every row lines up. */
     /* Each badge sits in its own equal cell and keeps its natural size, so the two
        rows share the same outer edges instead of one row looking narrower. */
-    .badges { display: grid; grid-template-columns: repeat(2, minmax(10rem, max-content)); justify-content: center; justify-items: center; align-items: center; gap: .5rem .75rem; width: max-content; max-width: 100%; margin: .6rem auto 0; }
-    .badge { display: flex; align-items: center; justify-content: center; min-width: 0; }
+    /* One centred row per pair: 88px badges on top, 160px below, so both rows
+       share the same axis instead of each being left-packed. */
+    .badges { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .5rem 1.1rem; max-width: 22rem; margin: .6rem auto 0; }
+    .badges .badge { flex: 0 0 auto; }
+    .badge { display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
     /* Badges are fixed-size pixel art: never scale or stretch them. */
     .badge img { display: block; width: auto; height: auto; max-width: none; image-rendering: pixelated; }
     .footer-meta { display: flex; justify-content: center; align-items: baseline; flex-wrap: wrap; gap: 1rem; }
@@ -411,8 +422,8 @@ function layout(title, body, currentPath = '/', tags = []) {
       /* Content: comfortable measure and gutters. */
       main { padding: 0 .9rem 1.5rem; }
       main h2 { font-size: 1.25rem; }
-      .breadcrumbs { margin: .8rem 0; font-size: .8rem; gap: 0 .35rem; }
-      .back-link { margin-right: .15rem; }
+      .breadcrumbs { margin: .8rem 0; font-size: .8rem; text-align: left; }
+      .back-link { position: static; display: block; margin-bottom: .25rem; }
       .text-viewer { font-size: 1rem; line-height: 1.7; }
       .books-list, .journal-list, .article-categories, .folder-list, .tag-list { max-width: none; }
 
@@ -622,9 +633,7 @@ function isArticlesPath(relativePath) {
   return firstSegment(relativePath) === 'articles';
 }
 
-function isReadingsPath(relativePath) {
-  return firstSegment(relativePath) === 'readings';
-}
+
 
 function isBadAboutPath(relativePath) {
   const name = relativePath.replace(/\\/g, '/').toLowerCase();
@@ -675,168 +684,19 @@ function fixedJournalTitle(sourceText, fallback) {
   return plain.length > 72 ? `${plain.slice(0, 69).trimEnd()}...` : plain;
 }
 
-const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
-// Journal entries are named DD-MM-YYYY.md and filed under year/month folders.
-// These helpers read that structure without changing it.
-function journalEntryFiles(directory) {
-  const found = [];
-  const walk = (dir) => {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const filePath = path.join(dir, entry.name);
-      if (entry.isDirectory()) walk(filePath);
-      else if (/^\d{2}-\d{2}-\d{4}\.md$/i.test(entry.name)) found.push(filePath);
-    }
-  };
-  walk(directory);
-  return found;
-}
-
-function journalDayKey(filePath) {
-  const match = path.basename(filePath).match(/^(\d{2})-(\d{2})-(\d{4})\.md$/i);
-  return match ? `${match[3]}-${match[2]}-${match[1]}` : '';
-}
-
-// Entries listed directly in a month folder, newest first.
-function renderJournalMonth(sourceDir, relativeDir) {
-  const files = fs.readdirSync(sourceDir, { withFileTypes: true })
-    .filter((entry) => /^\d{2}-\d{2}-\d{4}\.md$/i.test(entry.name))
-    .map((entry) => path.join(sourceDir, entry.name))
-    .sort((a, b) => journalDayKey(b).localeCompare(journalDayKey(a)));
-  const folders = fs.readdirSync(sourceDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .sort(journalEntrySort);
-
-  const monthLabel = publicLabel(path.basename(relativeDir));
-  const yearLabel = path.basename(path.dirname(relativeDir));
-  const intro = `<header class="section-intro">
-    <span class="section-label">Journal &middot; ${escapeHtml(/\./.test(yearLabel) ? '' : yearLabel)}</span>
-    <h2 class="section-title">${escapeHtml(monthLabel)}</h2>
-    <span class="section-count">${files.length} ${files.length === 1 ? 'entry' : 'entries'}</span>
-  </header>`;
-
-  if (!files.length && !folders.length) {
-    return `<section class="section">${intro}<p>No entries this month yet.</p></section>`;
-  }
-
-  const rows = files.map((filePath) => {
-    const fileName = path.basename(filePath);
-    const sourceText = fs.readFileSync(filePath, 'utf8');
-    const note = parseProperties(sourceText);
-    const destinationName = outputName(fileName, path.join(relativeDir, fileName));
-    const [day, month, year] = fileName.match(/^(\d{2})-(\d{2})-(\d{4})\.md$/i).slice(1);
-    const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
-    const weekday = new Intl.DateTimeFormat('en-GB', { weekday: 'long', timeZone: 'UTC' }).format(date);
-    // Only notes with an explicit `# heading` get a printed title. Most journal
-    // entries are plain prose, and titling them with their own first line then
-    // printing that line again below read as a duplicate.
-    const explicitTitle = markdownTitle(note.body, '');
-    const bodySource = explicitTitle
-      ? note.body.replace(/^\s*#\s+.+$/m, '')
-      : note.body;
-    const href = urlPath(path.join(relativeDir, `${destinationName}.html`));
-    const heading = explicitTitle ? `<p class="entry-heading"><a href="${href}">${escapeHtml(explicitTitle)}</a></p>` : '';
-    const body = markdownToHtml(bodySource, relativeDir);
-    const empty = !body.trim() && !explicitTitle;
-    // The entry text gets prominence; the date is an understated gutter.
-    return `<li class="entry">
-      <div><span class="entry-date">${String(Number(day)).padStart(2, '0')} ${escapeHtml((MONTH_NAMES[Number(month) - 1] || '').slice(0, 3))}</span><span class="entry-weekday">${escapeHtml(weekday)}</span></div>
-      <div class="entry-body">${heading}${body}${empty ? `<p class="entry-empty"><a href="${href}">Open entry</a></p>` : ''}</div>
-    </li>`;
-  }).join('');
-
-  const folderRows = folders.map((entry) => `<li><a href="${urlPath(path.join(relativeDir, entry.name))}/">${escapeHtml(publicLabel(folderDisplayName(entry.name)))}</a></li>`).join('');
-  return `<section class="section">${intro}${folderRows ? `<ul class="subject-list">${folderRows}</ul>` : ''}${rows ? `<ol class="entry-list">${rows}</ol>` : ''}</section>`;
-}
-
-// A year page: months with entry counts, plus a monochrome writing calendar.
-function renderJournalYear(sourceDir, relativeDir) {
-  const entryFiles = journalEntryFiles(sourceDir);
-  const year = Number(path.basename(relativeDir));
-  const byMonth = new Map();
-  for (const filePath of entryFiles) {
-    const key = journalDayKey(filePath);
-    if (!key) continue;
-    const month = Number(key.slice(5, 7));
-    if (!byMonth.has(month)) byMonth.set(month, []);
-    byMonth.get(month).push(key);
-  }
-  const months = [...byMonth.keys()].sort((a, b) => a - b);
-  const maxCount = Math.max(1, ...[...byMonth.values()].map((days) => days.length));
-
-  // Month folders are named like "November" (or "11"); match by name or number.
-  const monthFolders = fs.readdirSync(sourceDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory());
-  const folderForMonth = (month) => monthFolders.find((entry) => {
-    const name = entry.name.toLowerCase();
-    return Number(entry.name) === month || MONTH_NAMES[month - 1].toLowerCase().startsWith(name.slice(0, 3));
-  });
-
-  const monthItems = months.map((month) => {
-    const folder = folderForMonth(month);
-    if (!folder) return '';
-    const days = byMonth.get(month);
-    const label = MONTH_NAMES[month - 1];
-    const fill = Math.round((days.length / maxCount) * 100);
-    return `<li><a class="month-name" href="${urlPath(path.join(relativeDir, folder.name))}/">${escapeHtml(label)}</a><span class="month-bar" style="width:${fill}%" aria-hidden="true"></span><span class="month-count">${days.length} ${days.length === 1 ? 'entry' : 'entries'}</span></li>`;
-  }).join('');
-
-  // Calendar: 12 columns of small squares, filled where a day has an entry.
-  const written = new Set(entryFiles.map(journalDayKey));
-  const calendarMonths = MONTH_NAMES.map((name, index) => {
-    const month = index + 1;
-    const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
-    const cells = Array.from({ length: daysInMonth }, (_, dayIndex) => {
-      const day = String(dayIndex + 1).padStart(2, '0');
-      const key = `${year}-${String(month).padStart(2, '0')}-${day}`;
-      return `<span class="activity-day ${written.has(key) ? 'is-written' : 'is-empty'}" title="${key}"></span>`;
-    }).join('');
-    return `<div class="activity-month"><span class="activity-month-label">${name.slice(0, 3)}</span><span class="activity-days">${cells}</span></div>`;
-  }).join('');
-
-  const intro = `<div class="year-head"><span class="year-num">${year}</span><span class="year-meta">${entryFiles.length} ${entryFiles.length === 1 ? 'entry' : 'entries'} &middot; ${months.length} ${months.length === 1 ? 'month' : 'months'}</span></div>`;
-  return `<section class="section">${intro}
-    <div class="activity">
-      <div class="activity-head"><span>Writing activity</span><span>${written.size} ${written.size === 1 ? 'day' : 'days'}</span></div>
-      <div class="activity-grid">${calendarMonths}</div>
-      <p class="activity-legend">Filled square = an entry was written that day</p>
-    </div>
-    ${monthItems ? `<ol class="month-index">${monthItems}</ol>` : '<p>No entries this year yet.</p>'}
-  </section>`;
-}
-
-// The journal root: years (or months, depending on how the vault nests).
 function renderJournalListing(sourceDir, relativeDir) {
   const entries = fs.readdirSync(sourceDir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory() || (entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md' && !isHiddenContent(path.join(relativeDir, entry.name))))
     .sort(journalEntrySort);
   if (!entries.length) return '<p>No journal entries yet.</p>';
-
-  // A year folder (named like 2026) gets the calendar treatment.
-  const base = path.basename(relativeDir);
-  const isYear = /^\d{4}$/.test(base) || entries.some((entry) => entry.isDirectory() && /^\d{4}$/.test(entry.name));
-  if (isYear && /^\d{4}$/.test(base)) return renderJournalYear(sourceDir, relativeDir);
-
-  // A month folder (named like November, or 11) gets the dated entry list.
-  const isMonth = MONTH_NAMES.some((name) => name.toLowerCase() === base.toLowerCase()) || entries.some((entry) => /^\d{2}-\d{2}-\d{4}\.md$/i.test(entry.name));
-  if (isMonth) return renderJournalMonth(sourceDir, relativeDir);
-
-  const intro = `<header class="section-intro">
-    <span class="section-label">Chronological archive</span>
-    <h2 class="section-title">Journal</h2>
-    <p class="section-dek">Day-to-day notes, kept in order. Pick a year to see its months, or read straight down the list.</p>
-  </header>`;
   const items = entries.map((entry) => {
     const relativePath = path.join(relativeDir, entry.name);
-    if (entry.isDirectory()) {
-      const count = journalEntryFiles(path.join(sourceDir, entry.name)).length;
-      return `<li><a class="index-title" href="${urlPath(relativePath)}/">${escapeHtml(publicLabel(folderDisplayName(entry.name)))}</a><span class="index-meta">${count} ${count === 1 ? 'entry' : 'entries'}</span></li>`;
-    }
+    if (entry.isDirectory()) return `<li><a class="DIR" href="${urlPath(relativePath)}/">${escapeHtml(publicLabel(folderDisplayName(entry.name)))}</a></li>`;
     const destinationName = outputName(entry.name, relativePath);
     const sourceText = fs.readFileSync(path.join(sourceDir, entry.name), 'utf8');
-    return `<li><a class="index-title" href="${urlPath(path.join(relativeDir, `${destinationName}.html`))}">${escapeHtml(fixedJournalTitle(sourceText, journalFileLabel(entry.name)))}</a><span class="index-meta">${escapeHtml(journalFileLabel(entry.name))}</span></li>`;
-  }).join('');
-  return `<section class="section">${intro}<ol class="index">${items}</ol></section>`;
+    return `<li class="journal-entry"><a class="journal-entry-link EXEC" href="${urlPath(path.join(relativeDir, `${destinationName}.html`))}"><span class="journal-entry-title">${escapeHtml(fixedJournalTitle(sourceText, journalFileLabel(entry.name)))}</span><span class="journal-entry-date">${escapeHtml(journalFileLabel(entry.name))}</span></a></li>`;
+  });
+  return `<ul class="journal-list">${items.join('')}</ul>`;
 }
 
 function renderMusicPage(sourceText) {
@@ -937,11 +797,7 @@ function collectArticles(sourceDir, relativeDir) {
 
 function renderArticlesListing(sourceDir, relativeDir) {
   const articles = collectArticles(sourceDir, relativeDir);
-  const intro = `<header class="section-intro">
-    <span class="section-label">Editorial archive</span>
-    <h2 class="section-title">Articles</h2>
-    <p class="section-dek">Longer pieces and curated reading lists, kept in the order they were written.</p>
-  </header>`;
+  const intro = '<h2>Articles</h2>';
   if (!articles.length) {
     return `<section class="section">${intro}<p>No articles yet.</p></section>`;
   }
@@ -952,7 +808,7 @@ function renderArticlesListing(sourceDir, relativeDir) {
     const only = articles[0];
     return `<section class="section">${intro}
       <article class="feature" style="border-bottom:0;padding-bottom:0">
-        <span class="feature-label">${escapeHtml(only.category)}</span>
+        <span class="feature-label">&nbsp;</span>
         <h3 class="feature-title"><a href="${only.href}">${escapeHtml(only.title)}</a></h3>
         <p class="feature-desc">${escapeHtml(only.description)}</p>
       </article></section>`;
@@ -968,119 +824,12 @@ function renderArticlesListing(sourceDir, relativeDir) {
     </li>`).join('');
   return `<section class="section">${intro}
     <article class="feature">
-      <span class="feature-label">Featured &middot; ${escapeHtml(featured.category)}</span>
+      <span class="feature-label">&nbsp;</span>
       <h3 class="feature-title"><a href="${featured.href}">${escapeHtml(featured.title)}</a></h3>
       <p class="feature-desc">${escapeHtml(featured.description)}</p>
       <span class="feature-meta">Read &rarr;</span>
     </article>
-    ${rest.length ? `<div class="archive-head"><span>Archive</span><span>${rest.length} ${rest.length === 1 ? 'entry' : 'entries'}</span></div><ol class="index">${rows}</ol>` : ''}
-  </section>`;
-}
-
-// Readings is a research catalogue: what was added most recently, then the
-// subject shelves. Individual subject pages fall through to the numbered index.
-// Readings is a research catalogue. A subject is either a folder of notes or,
-// as in this vault, a single note holding a list of links - both count the same.
-function readingsSubjects(sourceDir, relativeDir, entries) {
-  return entries
-    .filter((entry) => entry.isDirectory() || (entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md'))
-    .map((entry) => {
-      const relativePath = path.join(relativeDir, entry.name);
-      if (entry.isDirectory()) {
-        const subjectDir = path.join(sourceDir, entry.name);
-        const children = sortEntries(fs.readdirSync(subjectDir, { withFileTypes: true }))
-          .filter((child) => child.name.toLowerCase().endsWith('.md') && child.name.toLowerCase() !== 'index.md');
-        return {
-          title: publicLabel(entry.name),
-          href: `${urlPath(relativePath)}/`,
-          count: children.length,
-          latest: Math.max(0, ...children.map((child) => fs.statSync(path.join(subjectDir, child.name)).mtimeMs)),
-          readings: [],
-        };
-      }
-      const sourceText = fs.readFileSync(path.join(sourceDir, entry.name), 'utf8');
-      const note = parseProperties(sourceText);
-      const destinationName = outputName(entry.name, relativePath);
-      // Readings are written as bare `[Label](url)` lines (no bullet), so accept
-      // both a bulleted link and a line that is nothing but a link.
-      const linkMatches = [...note.body.matchAll(/^\s*(?:[-*+]\s*)?\[([^\]]+)\]\(([^)\s]+)[^)]*\)\s*$/gm)];
-      return {
-        title: markdownTitle(note.body, publicLabel(displayName(entry.name))),
-        href: urlPath(path.join(relativeDir, destinationName)),
-        count: linkMatches.length,
-        latest: fs.statSync(path.join(sourceDir, entry.name)).mtimeMs,
-        readings: linkMatches.map((m) => ({ title: m[1], href: m[2] })),
-      };
-    });
-}
-
-// A single reading subject: its links as a numbered index, keeping any group
-// headings the note uses as subheads. Prose is preserved, not rewritten.
-function renderReadingIndex(body, relativeDir, title) {
-  const lines = parseProperties(body).body.split(/\r?\n/);
-  const blocks = [];
-  let current = { heading: '', items: [], prose: [] };
-  for (const line of lines) {
-    const heading = line.match(/^#{1,6}\s+(.+)$/);
-    const link = line.match(/^\s*(?:[-*+]\s*)?\[([^\]]+)\]\(([^)\s]+)[^)]*\)\s*$/);
-    if (heading) {
-      if (current.items.length || current.prose.length) blocks.push(current);
-      current = { heading: heading[1].trim(), items: [], prose: [] };
-    } else if (link) {
-      current.items.push({ title: link[1], href: link[2] });
-    } else if (line.trim()) {
-      current.prose.push(line);
-    }
-  }
-  if (current.items.length || current.prose.length || current.heading) blocks.push(current);
-
-  const total = blocks.reduce((sum, block) => sum + block.items.length, 0);
-  const intro = `<header class="section-intro">
-    <span class="section-label">Readings &middot; subject</span>
-    <h2 class="section-title">${escapeHtml(title)}</h2>
-    <span class="section-count">${total} ${total === 1 ? 'reading' : 'readings'}</span>
-  </header>`;
-
-  let counter = 0;
-  const rendered = blocks.map((block) => {
-    const prose = block.prose.length ? `<p class="section-dek">${inlineMarkdown(block.prose.join(' '), relativeDir)}</p>` : '';
-    const head = block.heading ? `<div class="archive-head" style="margin-top:1.6rem"><span>${escapeHtml(block.heading)}</span><span>${block.items.length} ${block.items.length === 1 ? 'item' : 'items'}</span></div>` : '';
-    const rows = block.items.map((item) => {
-      counter += 1;
-      return `<li><span class="index-num">${String(counter).padStart(2, '0')}</span><span class="index-title"><a href="${escapeAttr(item.href)}">${escapeHtml(item.title)}</a></span><span class="index-meta"></span></li>`;
-    }).join('');
-    return `${prose}${head}${rows ? `<ol class="index">${rows}</ol>` : ''}`;
-  }).join('');
-
-  return `<section class="section">${intro}${rendered}</section>`;
-}
-
-function renderReadingsCatalogue(sourceDir, relativeDir, entries) {
-  const subjects = readingsSubjects(sourceDir, relativeDir, entries);
-
-  // "Recently added" is a flat list of individual readings, newest subject first.
-  const recent = [...subjects]
-    .sort((a, b) => b.latest - a.latest)
-    .flatMap((subject) => subject.readings.slice(0, 3).map((reading) => ({ ...reading, subject: subject.title })));
-
-  const intro = `<header class="section-intro">
-    <span class="section-label">Research catalogue</span>
-    <h2 class="section-title">Readings</h2>
-    <p class="section-dek">Notes and collected readings, filed by subject. Most recent additions first.</p>
-  </header>`;
-
-  const recentBlock = recent.length
-    ? `<div class="catalogue">
-        <div class="archive-head"><span>Recently added</span><span>${recent.length} ${recent.length === 1 ? 'reading' : 'readings'}</span></div>
-        <ul class="recent-list">${recent.slice(0, 8).map((item) => `<li><a href="${escapeAttr(item.href)}">${escapeHtml(item.title)}</a><span class="index-meta">${escapeHtml(item.subject)}</span></li>`).join('')}</ul>
-      </div>`
-    : '';
-
-  const totalReadings = subjects.reduce((sum, subject) => sum + subject.count, 0);
-  const subjectRows = subjects.map((subject) => `<li><a class="subject-title" href="${subject.href}">${escapeHtml(subject.title)}</a><span class="subject-count">${subject.count} ${subject.count === 1 ? 'reading' : 'readings'}</span></li>`).join('');
-
-  return `<section class="section">${intro}${recentBlock}
-    ${subjectRows ? `<div class="archive-head"><span>Subjects</span><span>${subjects.length} ${subjects.length === 1 ? 'shelf' : 'shelves'} &middot; ${totalReadings} readings</span></div><ul class="subject-list">${subjectRows}</ul>` : '<p>No readings yet.</p>'}
+    ${rest.length ? `<ol class="index">${rows}</ol>` : ''}
   </section>`;
 }
 
@@ -1088,7 +837,6 @@ function renderFolderListing(sourceDir, relativeDir) {
   const entries = sortEntries(fs.readdirSync(sourceDir, { withFileTypes: true }))
     .filter((entry) => entry.isDirectory() || (entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md' && !isHiddenContent(path.join(relativeDir, entry.name))));
   if (!entries.length) return '<p>No entries yet.</p>';
-  if (isReadingsPath(relativeDir)) return renderReadingsCatalogue(sourceDir, relativeDir, entries);
   const items = entries.map((entry) => {
     const relativePath = path.join(relativeDir, entry.name);
     if (entry.isDirectory()) {
@@ -1126,9 +874,7 @@ function renderBadAboutLinks(sourceDir, relativeDir) {
 function renderBadAboutCollection(sourceDir, relativeDir) {
   const entries = badAboutEntries(sourceDir, relativeDir);
   const mast = `<header class="collection-mast">
-    <span class="collection-kicker">An ongoing collection</span>
     <h2 class="collection-title">What&rsquo;s Bad About</h2>
-    <p class="collection-dek">A standing set of examinations. Each entry takes one thing and asks what it costs.</p>
   </header>`;
   if (!entries.length) {
     return `<section class="collection">${mast}<p>No entries yet.</p></section>`;
@@ -1200,11 +946,7 @@ function renderTagIndex(entries) {
     }
   }
   const sortedTags = [...tags.keys()].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
-  const intro = `<header class="section-intro">
-    <span class="section-label">Subject index</span>
-    <h2 class="section-title">Tags</h2>
-    <p class="section-dek">Every subject used across the archive. Each tag opens a chronological index of the notes filed under it.</p>
-  </header>`;
+  const intro = '<h2>Tags</h2>';
   if (!sortedTags.length) {
     return `<section class="section">${intro}<p>No tags yet. Add a <code>tags</code> property to an Obsidian note.</p></section>`;
   }
@@ -1212,7 +954,7 @@ function renderTagIndex(entries) {
     const count = tags.get(tag).length;
     return `<li><a class="tag-name" href="${urlPath(path.join('tags', tagSlug(tag)))}/">#${escapeHtml(tag)}</a><span class="tag-count">${count} ${count === 1 ? 'note' : 'notes'}</span></li>`;
   }).join('');
-  return `<section class="section">${intro}<ul class="tag-index">${items}</ul><p class="index-foot">${sortedTags.length} ${sortedTags.length === 1 ? 'subject' : 'subjects'}</p></section>`;
+  return `<section class="section">${intro}<ul class="tag-index">${items}</ul></section>`;
 }
 
 function renderTaggedNotes(entries, tag) {
@@ -1220,11 +962,7 @@ function renderTaggedNotes(entries, tag) {
     .filter((entry) => entry.tags.some((entryTag) => entryTag.toLowerCase() === tag.toLowerCase()))
     // Chronological: newest first, undated notes last.
     .sort((a, b) => (b.date || '').localeCompare(a.date || '') || a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }));
-  const intro = `<header class="section-intro">
-    <span class="section-label">Subject</span>
-    <h2 class="section-title">#${escapeHtml(tag)}</h2>
-    <span class="section-count">${matching.length} ${matching.length === 1 ? 'note' : 'notes'}</span>
-  </header>`;
+  const intro = `<h2>#${escapeHtml(tag)}</h2>`;
   if (!matching.length) {
     return `<section class="section">${intro}<p>No notes with this tag.</p></section>`;
   }
@@ -1554,9 +1292,7 @@ function buildFolder(sourceDir, relativeDir = '') {
       const title = markdownTitle(note.body, publicLabel(displayName(entry.name)));
       const body = isMusicFile(entry.name, relativePath)
         ? renderMusicPage(sourceText)
-        : isReadingsPath(relativeDir)
-          ? renderReadingIndex(note.body, relativeDir, title)
-          : markdownToHtml(isArticlesPath(relativeDir) ? sortArticleLinks(note.body) : note.body, relativeDir);
+        : markdownToHtml(isArticlesPath(relativeDir) ? sortArticleLinks(note.body) : note.body, relativeDir);
       fs.writeFileSync(destinationPath, layout(title, body, urlPath(path.join(relativeDir, destinationName)), note.tags));
     }
   }
@@ -1570,9 +1306,6 @@ function buildFolder(sourceDir, relativeDir = '') {
     ? renderJournalListing(sourceDir, relativeDir)
     : isArticlesPath(relativeDir)
       ? renderArticlesListing(sourceDir, relativeDir)
-    : isReadingsPath(relativeDir)
-      ? renderReadingsCatalogue(sourceDir, relativeDir, sortEntries(fs.readdirSync(sourceDir, { withFileTypes: true }))
-          .filter((entry) => entry.isDirectory() || (entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md' && !isHiddenContent(path.join(relativeDir, entry.name)))))
     : isBooksPath(relativeDir)
       ? renderBooksListing(sourceDir, relativeDir)
     : isBadAboutPath(relativeDir)
@@ -1581,7 +1314,7 @@ function buildFolder(sourceDir, relativeDir = '') {
   const currentPath = relativeDir ? `${urlPath(relativeDir)}/` : '/';
   // Section renderers supply their own header and intro, so no outer heading is
   // added for them. Generic folders still get the plain title.
-  const sectionOwnsHeader = isJournalPath(relativeDir) || isArticlesPath(relativeDir) || isReadingsPath(relativeDir) || isBadAboutPath(relativeDir);
+  const sectionOwnsHeader = isArticlesPath(relativeDir) || isBadAboutPath(relativeDir);
   const pageBody = sectionOwnsHeader
     ? `${folderDescription}${listing}`
     : `${folderDescription}<h2>${escapeHtml(publicLabel(folderDisplayName(title)))}</h2>${listing}`;
