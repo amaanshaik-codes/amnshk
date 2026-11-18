@@ -58,9 +58,15 @@ async function fetchCount(env = process.env) {
   const site = siteCode(env);
   const url = `https://${encodeURIComponent(site)}.goatcounter.com/counter/${encodeURIComponent(TOTAL_PATH)}.json`;
   const response = await fetch(url, { headers: { Accept: 'application/json' } });
-  // A 404 means the site has no hits yet, or counts are not enabled in settings:
-  // both are legitimately "zero", not an error worth failing the image over.
+  // 404: no hits recorded yet. Legitimately zero, not a failure.
   if (response.status === 404) return null;
+  // 403: the account exists but "allow using the visitor counter" is still off in
+  // GoatCounter settings. That is a setup step, not an outage - say so plainly
+  // instead of throwing, so the pill stays intact and the log points at the fix.
+  if (response.status === 403) {
+    console.warn('visitor counter: GoatCounter returned 403 - enable "Allow adding visitor counts on your website" in Settings');
+    return null;
+  }
   if (!response.ok) throw new Error(`GoatCounter responded ${response.status}`);
   return parseCount(await response.json());
 }
