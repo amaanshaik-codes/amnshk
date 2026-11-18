@@ -26,7 +26,10 @@
 
 const DEFAULT_SITE = 'amnshk';
 const TOTAL_PATH = 'TOTAL'; // GoatCounter's site-wide total, case-sensitive, no slash
-const CACHE_SECONDS = 300;
+// The count changes slowly, so cache it hard: this keeps the footer image off the
+// critical path and stops every page view from waiting on a third-party round trip.
+const CACHE_SECONDS = 900;
+const UPSTREAM_TIMEOUT_MS = 2500;
 
 const PILL_HEIGHT = 22;
 const PILL_PAD_X = 9;
@@ -57,7 +60,11 @@ function parseCount(payload) {
 async function fetchCount(env = process.env) {
   const site = siteCode(env);
   const url = `https://${encodeURIComponent(site)}.goatcounter.com/counter/${encodeURIComponent(TOTAL_PATH)}.json`;
-  const response = await fetch(url, { headers: { Accept: 'application/json' } });
+  // Never let a slow or hanging upstream hold the page: abort and fall back to 0.
+  const response = await fetch(url, {
+    headers: { Accept: 'application/json' },
+    signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)
+  });
   // 404: no hits recorded yet. Legitimately zero, not a failure.
   if (response.status === 404) return null;
   // 403: the account exists but "allow using the visitor counter" is still off in
@@ -103,8 +110,7 @@ function counterSvg(count) {
 async function handler(req, res) {
   res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
   // No Set-Cookie anywhere in this handler: the counter must not identify anyone.
-  // Short shared cache keeps the upstream service from being hit on every view.
-  res.setHeader('Cache-Control', `public, max-age=${CACHE_SECONDS}, s-maxage=${CACHE_SECONDS}`);
+  res.setHeader('Cache-Control', `public, max-age=${CACHE_SECONDS}, s-maxage=${CACHE_SECONDS}, stale-while-revalidate=86400`);
   res.setHeader('X-Counter-Source', `goatcounter:${siteCode()}`);
   let count = 0;
   try {

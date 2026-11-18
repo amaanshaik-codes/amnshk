@@ -100,14 +100,20 @@ function layout(title, body, currentPath = '/', tags = []) {
        copy sits, so the line always enters from the right edge, never mid-word.
        Negative delay starts it already in motion; JS adds a shared offset so the
        scroll continues across page loads instead of restarting. */
-    .journal-ticker-track { display: flex; width: max-content; animation: ticker-scroll var(--ticker-duration, 48s) linear infinite;
-      animation-delay: var(--ticker-delay, -12s); will-change: transform; }
-    .journal-ticker-track > span { white-space: nowrap; }
-    .journal-ticker-track > span + span { margin-left: 3rem; }
+    /* <marquee> no longer animates in Chromium, so scroll in CSS. Two identical
+       copies side by side; sliding the track by exactly one copy (-50% of the track)
+       loops seamlessly. The keyframes are in track-width units, not viewport units,
+       so the entry starts one copy away - not thousands of px off-screen - which is
+       why it was taking seconds to appear. */
+    .journal-ticker-track { display: flex; width: max-content;
+      animation: ticker-scroll var(--ticker-duration, 60s) linear infinite;
+      animation-delay: var(--ticker-delay, 0s); will-change: transform; }
+    .journal-ticker-track > span { white-space: nowrap; padding-right: 3rem; }
     .journal-ticker:hover .journal-ticker-track { animation-play-state: paused; }
+    /* Start just past the right edge of the *container*, then travel one copy. */
     @keyframes ticker-scroll {
-      from { transform: translate3d(100%, 0, 0); }
-      to { transform: translate3d(-100%, 0, 0); }
+      from { transform: translate3d(0, 0, 0); }
+      to { transform: translate3d(-50%, 0, 0); }
     }
     @media (prefers-reduced-motion: reduce) {
       .journal-ticker-track { animation: none; }
@@ -300,7 +306,7 @@ function layout(title, body, currentPath = '/', tags = []) {
       <span class="badge"><img src="/badges/y2k-compliant.png" width="160" height="36" alt="Y2K compliant"></span>
       <span class="badge"><img src="/badges/no-ai-human-content.png" width="160" height="36" alt="No AI human content"></span>
     </div>
-    <div class="visit-counter"><img src="/api/visitors" alt="You are visitor number" width="114" height="22"></div>
+    <div class="visit-counter"><img src="/api/visitors" alt="You are visitor number" width="114" height="22" loading="lazy" decoding="async" fetchpriority="low"></div>
   </footer>
   </div>
   <script>
@@ -327,37 +333,28 @@ function layout(title, body, currentPath = '/', tags = []) {
       setInterval(tick, 20000);
     })();
 
-    // Keep the journal ticker running across page loads. The CSS animation restarts
-    // at 0 on every navigation, so remember when the current loop began and resume
-    // mid-cycle instead of snapping back to the start.
+    // Keep the journal ticker running across page loads: the CSS animation restarts
+    // at 0 on every navigation, so resume from where the last page left off.
+    // This must not wait on anything else - it runs inline right after the markup.
     (function () {
-      var ticker = document.querySelector('.journal-ticker');
-      var track = ticker && ticker.querySelector('.journal-ticker-track');
+      var track = document.querySelector('.journal-ticker-track');
       if (!track) return;
-      var DURATION = 48;      // seconds, must match --ticker-duration (desktop)
-      var MOBILE_DURATION = 26;
+      if (window.matchMedia('(max-width: 40rem)').matches) return; // static line on phones
+      var DURATION = 60; // seconds; keep in step with --ticker-duration
       var KEY = 'ticker-anchor';
-      var isNarrow = window.matchMedia('(max-width: 40rem)').matches;
-      // Narrow screens show a static, ellipsised line instead of a marquee.
-      if (isNarrow) return;
-      var duration = isNarrow ? MOBILE_DURATION : DURATION;
       var anchor = 0;
       try { anchor = Number(sessionStorage.getItem(KEY)) || 0; } catch (e) { anchor = 0; }
-
-      // The track starts one full copy off-stage to the right (see @keyframes), so the
-      // line enters cleanly rather than appearing mid-word. Seek into the loop so text
-      // is already on screen at first paint; on a phone seek less so the sentence's
-      // opening words are what the reader actually lands on.
       var elapsed;
       if (anchor) {
-        elapsed = ((Date.now() - anchor) / 1000) % duration;
+        elapsed = ((Date.now() - anchor) / 1000) % DURATION;
       } else {
-        elapsed = isNarrow ? duration * 0.46 : 22;
-        anchor = Date.now() - elapsed * 1000;
-        try { sessionStorage.setItem(KEY, String(anchor)); } catch (e) { /* private mode */ }
+        // First visit: jump a little way in so the line is already travelling.
+        elapsed = DURATION * 0.15;
+        try { sessionStorage.setItem(KEY, String(Date.now() - elapsed * 1000)); } catch (e) { /* private mode */ }
       }
-      // Negative delay seeks forward into the loop, so the line is already moving.
-      track.style.setProperty('--ticker-delay', '-' + elapsed.toFixed(2) + 's');
+      // A negative delay seeks forward into the loop, so it is moving immediately
+      // instead of sitting still for the first fraction of a cycle.
+      track.style.animationDelay = '-' + elapsed.toFixed(2) + 's';
     })();
   </script>
   ${goatcounterScript()}
