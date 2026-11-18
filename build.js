@@ -100,15 +100,16 @@ function layout(title, body, currentPath = '/', tags = []) {
        footer rules came out at different widths. */
     :root { --content-w: 52rem; }
     *, *::before, *::after { box-sizing: border-box; }
-    body { font-family: monospace, sans-serif; font-size: 16px; line-height: 1.55; color: var(--text); background: var(--page-bg); margin: 0; padding: 1rem; }
-    .site-shell { width: auto; max-width: 1100px; margin: 0 auto; background: var(--surface); }
+    body { font-family: "Times New Roman", Times, Georgia, serif; font-size: 17px; line-height: 1.45; color: var(--text); background: var(--surface); margin: 0; padding: 0; }
+    .site-shell { width: auto; max-width: 1100px; min-height: 100dvh; margin: 0 auto; background: var(--surface); }
+    @media (min-width: 1101px) { .site-shell { border-left: 1px solid #d9d3c4; border-right: 1px solid #d9d3c4; } }
     header, footer { text-align: center; padding: 1.25rem 1.5rem; }
     /* Header and footer share the same horizontal padding, so a full-width rule
        inside either ends at the same x on both sides. */
     header, footer { padding-left: 1rem; padding-right: 1rem; }
     header { padding-top: .5rem; padding-bottom: .35rem; }
-    main { padding: 0 1.5rem 2rem; }
-    header h1 { margin: 0; font-family: "JMH Typewriter", "American Typewriter", "Courier New", monospace; font-size: clamp(1.5rem, 5vw, 2.25rem); line-height: 1.1; }
+    main { padding: 0 1.5rem 1rem; }
+    header h1 { margin: 0; font-family: "Times New Roman", Times, Georgia, serif; font-size: clamp(1.7rem, 5vw, 2.5rem); font-weight: bold; line-height: 1.1; }
     header h1 a { color: #111 !important; text-decoration: none !important; background: none !important; }
     .masthead { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: "clock clock badge" "brand brand brand" "est est est"; align-items: center; row-gap: .45rem; width: 100%; max-width: var(--content-w); margin: 0 auto .15rem; }
     .masthead-brand { grid-area: brand; justify-self: center; }
@@ -146,8 +147,8 @@ function layout(title, body, currentPath = '/', tags = []) {
     }
     .journal-ticker-static { display: none; }
     nav a { font-size: 1rem; }
-    nav ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; padding: .15rem 0; margin: 0 auto; list-style: none; max-width: var(--content-w); }
-    nav li:not(:last-child)::after { content: ' · '; }
+    nav ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 1.1rem; padding: .15rem 0; margin: 0 auto; list-style: none; max-width: var(--content-w); }
+    nav li::after { content: none; }
     nav a[aria-current="page"] { font-weight: bold; }
     hr { display: none; }
     /* Trail centred, Back pinned to the left edge of the content column. */
@@ -160,7 +161,7 @@ function layout(title, body, currentPath = '/', tags = []) {
     .DIR { color: var(--link) !important; }
     .EXEC { color: var(--exec) !important; }
     main { min-height: 0; text-align: center; }
-    main h2 { font-size: clamp(1.3rem, 3.5vw, 1.75rem); line-height: 1.25; }
+    main h2 { font-size: clamp(1.3rem, 3.5vw, 1.75rem); line-height: 1.2; margin: 0 0 .6rem; }
     main > p { max-width: 88ch; margin: 1rem auto; text-align: left; }
     /* On archive pages the folder's own prose aligns to the section column, so the
        page has one left edge instead of two competing ones. */
@@ -175,14 +176,20 @@ function layout(title, body, currentPath = '/', tags = []) {
     pre { max-width: 100%; overflow-x: auto; margin: 1rem auto; text-align: left; width: max-content; }
     .text-viewer { max-width: 88ch; margin: 1rem auto; padding: 0; font-family: inherit; font-size: clamp(1.05rem, 2.5vw, 1.22rem); line-height: 1.8; overflow-wrap: anywhere; text-align: left; }
     .text-viewer p, .text-viewer ul, .text-viewer ol, .text-viewer blockquote { margin: 1rem 0; }
-    .journal-list { max-width: 60ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
-    .journal-entry { padding: .8rem 0; }
+    /* Plain old-school lists: no numbers, no rules, no described rows. */
+    .plain-list { width: 100%; max-width: var(--content-w); margin: .4rem auto 1rem; padding: 0 0 0 1.4rem; list-style: disc; text-align: left; }
+    .plain-list li { margin: 0; line-height: 1.5; }
+    .tag-list { width: 100%; max-width: var(--content-w); margin: .4rem auto 1rem; padding: 0 0 0 1.4rem; list-style: disc; text-align: left; columns: 2 16rem; column-gap: 2.5rem; }
+    .tag-list li { margin: 0; line-height: 1.5; break-inside: avoid; }
+    .journal-list { width: 100%; max-width: var(--content-w); margin: .4rem auto 1rem; padding: 0; list-style: none; text-align: left; }
+    .journal-entry { padding: .3rem 0; }
     .journal-entry-link { display: block; }
-    .journal-entry-title { display: block; min-height: 3.1em; font-size: 1.05rem; }
-    .journal-entry-date { display: block; margin-top: .25rem; font-size: .9rem; color: var(--text); }
+    .journal-entry-title { display: block; font-size: 1rem; }
+    /* Date centred under each entry title, as on a hand-kept diary page. */
+    .journal-entry-date { display: block; margin-top: 0; font-size: .88rem; color: var(--text); text-align: center; }
     .category-links { display: inline-flex; max-width: 100%; box-sizing: border-box; flex-wrap: wrap; align-items: center; justify-content: center; gap: .35rem; padding: .75rem 1rem; border: 1px solid var(--text); }
     .category-link { color: black; font-size: clamp(1rem, 2.5vw, 1.1rem); }
-    .bad-about-links { max-width: 100%; margin: 1rem auto 2rem; text-align: center; font-family: "American Typewriter", "Courier New", monospace; font-size: clamp(1rem, 2.4vw, 1.15rem); font-style: italic; font-weight: bold; }
+    .bad-about-links { max-width: 100%; margin: 1rem auto 2rem; text-align: center; font-size: clamp(1rem, 2.4vw, 1.15rem); font-style: italic; font-weight: bold; }
     .bad-about-label { color: var(--text); }
     .bad-about-separator { color: var(--text); }
     .table-scroll { max-width: 88ch; margin: 1rem auto; overflow-x: auto; }
@@ -264,7 +271,7 @@ function layout(title, body, currentPath = '/', tags = []) {
        numbered rows and a muted meta line. Each section then composes those
        pieces in its own arrangement so no two pages read the same.
        ====================================================================== */
-    .section { max-width: 74ch; margin: 0 auto 3rem; text-align: left; }
+    .section { max-width: var(--content-w); margin: 0 auto 1rem; text-align: left; }
     /* main is centred by default; archive content is always flush left. */
     .section *, .collection * { text-align: left; }
     .section-intro { max-width: 62ch; margin: 0 0 2rem; }
@@ -420,7 +427,7 @@ function layout(title, body, currentPath = '/', tags = []) {
       nav a { font-size: .92rem; padding: .3rem .25rem; display: inline-block; }
 
       /* Content: comfortable measure and gutters. */
-      main { padding: 0 .9rem 1.5rem; }
+      main { padding: 0 .9rem 1rem; }
       main h2 { font-size: 1.25rem; }
       .breadcrumbs { margin: .8rem 0; font-size: .8rem; text-align: left; }
       .back-link { position: static; display: block; margin-bottom: .25rem; }
@@ -797,40 +804,9 @@ function collectArticles(sourceDir, relativeDir) {
 
 function renderArticlesListing(sourceDir, relativeDir) {
   const articles = collectArticles(sourceDir, relativeDir);
-  const intro = '<h2>Articles</h2>';
-  if (!articles.length) {
-    return `<section class="section">${intro}<p>No articles yet.</p></section>`;
-  }
-
-  // One article gets a plain lead paragraph instead of a featured slot with an
-  // archive beneath it - a "featured" block above a list of one reads oddly.
-  if (articles.length === 1) {
-    const only = articles[0];
-    return `<section class="section">${intro}
-      <article class="feature" style="border-bottom:0;padding-bottom:0">
-        <span class="feature-label">&nbsp;</span>
-        <h3 class="feature-title"><a href="${only.href}">${escapeHtml(only.title)}</a></h3>
-        <p class="feature-desc">${escapeHtml(only.description)}</p>
-      </article></section>`;
-  }
-
-  // Feature the longest piece: the most substantial thing on the shelf.
-  const featured = [...articles].sort((a, b) => b.words - a.words)[0];
-  const rest = articles.filter((article) => article !== featured);
-  const rows = rest.map((article, index) => `<li>
-      <span class="index-num">${String(index + 1).padStart(2, '0')}</span>
-      <span class="index-title"><a href="${article.href}">${escapeHtml(article.title)}</a><span class="index-desc">${escapeHtml(article.description)}</span></span>
-      <span class="index-meta">${escapeHtml(article.category)}</span>
-    </li>`).join('');
-  return `<section class="section">${intro}
-    <article class="feature">
-      <span class="feature-label">&nbsp;</span>
-      <h3 class="feature-title"><a href="${featured.href}">${escapeHtml(featured.title)}</a></h3>
-      <p class="feature-desc">${escapeHtml(featured.description)}</p>
-      <span class="feature-meta">Read &rarr;</span>
-    </article>
-    ${rest.length ? `<ol class="index">${rows}</ol>` : ''}
-  </section>`;
+  if (!articles.length) return '<h2>Articles</h2><p>No articles yet.</p>';
+  const items = articles.map((article) => `<li><a href="${article.href}">${escapeHtml(article.title)}</a></li>`).join('');
+  return `<h2>Articles</h2><ul class="plain-list">${items}</ul>`;
 }
 
 function renderFolderListing(sourceDir, relativeDir) {
@@ -873,17 +849,9 @@ function renderBadAboutLinks(sourceDir, relativeDir) {
 // Collection page: its own masthead, numbered archive, still part of the site.
 function renderBadAboutCollection(sourceDir, relativeDir) {
   const entries = badAboutEntries(sourceDir, relativeDir);
-  const mast = `<header class="collection-mast">
-    <h2 class="collection-title">What&rsquo;s Bad About</h2>
-  </header>`;
-  if (!entries.length) {
-    return `<section class="collection">${mast}<p>No entries yet.</p></section>`;
-  }
-  const rows = entries.map((entry) => `<li><a class="collection-entry-title" href="${entry.href}">${escapeHtml(entry.label)}</a></li>`).join('');
-  return `<section class="collection">${mast}
-    <div class="archive-head"><span>Archive</span><span>${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}</span></div>
-    <ol class="collection-list">${rows}</ol>
-  </section>`;
+  if (!entries.length) return `<h2>What&rsquo;s Bad About</h2><p>No entries yet.</p>`;
+  const rows = entries.map((entry) => `<li><a href="${entry.href}">${escapeHtml(entry.label)}</a></li>`).join('');
+  return `<h2>What&rsquo;s Bad About</h2><ul class="plain-list">${rows}</ul>`;
 }
 
 function collectTaggedEntries(directory = contentRoot, relativeDir = '') {
@@ -930,12 +898,7 @@ function topSection(relativePath) {
   return publicLabel(parts[0]);
 }
 
-function formatEntryDate(value) {
-  if (!value) return '';
-  const [year, month, day] = value.split('-').map(Number);
-  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
-    .format(new Date(Date.UTC(year, month - 1, day)));
-}
+
 
 function renderTagIndex(entries) {
   const tags = new Map();
@@ -946,33 +909,22 @@ function renderTagIndex(entries) {
     }
   }
   const sortedTags = [...tags.keys()].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
-  const intro = '<h2>Tags</h2>';
-  if (!sortedTags.length) {
-    return `<section class="section">${intro}<p>No tags yet. Add a <code>tags</code> property to an Obsidian note.</p></section>`;
-  }
-  const items = sortedTags.map((tag) => {
-    const count = tags.get(tag).length;
-    return `<li><a class="tag-name" href="${urlPath(path.join('tags', tagSlug(tag)))}/">#${escapeHtml(tag)}</a><span class="tag-count">${count} ${count === 1 ? 'note' : 'notes'}</span></li>`;
-  }).join('');
-  return `<section class="section">${intro}<ul class="tag-index">${items}</ul></section>`;
+  if (!sortedTags.length) return '<h2>Tags</h2><p>No tags yet.</p>';
+  const items = sortedTags
+    .map((tag) => `<li><a href="${urlPath(path.join('tags', tagSlug(tag)))}/">${escapeHtml(tag)}</a>(${tags.get(tag).length})</li>`)
+    .join('');
+  return `<h2>Tags</h2><ul class="tag-list">${items}</ul>`;
 }
 
 function renderTaggedNotes(entries, tag) {
   const matching = entries
     .filter((entry) => entry.tags.some((entryTag) => entryTag.toLowerCase() === tag.toLowerCase()))
-    // Chronological: newest first, undated notes last.
     .sort((a, b) => (b.date || '').localeCompare(a.date || '') || a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }));
-  const intro = `<h2>#${escapeHtml(tag)}</h2>`;
-  if (!matching.length) {
-    return `<section class="section">${intro}<p>No notes with this tag.</p></section>`;
-  }
-  const rows = matching.map((entry, index) => `<li>
-      <span class="index-num">${String(index + 1).padStart(2, '0')}</span>
-      <span class="index-title"><a href="${entry.href}">${escapeHtml(entry.title)}</a><span class="index-desc">${escapeHtml(entry.section)}</span></span>
-      <span class="index-meta">${escapeHtml(formatEntryDate(entry.date)) || '&mdash;'}</span>
-    </li>`).join('');
-  return `<section class="section">${intro}<ol class="index">${rows}</ol></section>`;
+  const items = matching.map((entry) => `<li><a href="${entry.href}">${escapeHtml(entry.title)}</a></li>`).join('');
+  const empty = matching.length ? '' : '<p>No notes with this tag.</p>';
+  return `<h2>#${escapeHtml(tag)}</h2><ul class="plain-list">${items}</ul>${empty}`;
 }
+
 
 function renderHomeCategories() {
   const entries = sortEntries(fs.readdirSync(contentRoot, { withFileTypes: true }))
