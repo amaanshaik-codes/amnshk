@@ -95,16 +95,9 @@ function layout(title, body, currentPath = '/', tags = []) {
       mask-image: linear-gradient(to right, transparent 0, #000 2.5rem, #000 calc(100% - 2.5rem), transparent 100%);
       /* Reserve the line height so the header never jumps while the ticker runs. */
       min-height: 1.6em; display: flex; align-items: center; }
-    /* <marquee> no longer animates in Chromium, so scroll in CSS. The keyframe starts
-       the track one full copy to the right (text off-stage) and ends where the second
-       copy sits, so the line always enters from the right edge, never mid-word.
-       Negative delay starts it already in motion; JS adds a shared offset so the
-       scroll continues across page loads instead of restarting. */
-    /* <marquee> no longer animates in Chromium, so scroll in CSS. Two identical
-       copies side by side; sliding the track by exactly one copy (-50% of the track)
-       loops seamlessly. The keyframes are in track-width units, not viewport units,
-       so the entry starts one copy away - not thousands of px off-screen - which is
-       why it was taking seconds to appear. */
+    /* Two identical copies side by side; sliding the track by exactly one copy
+       (-50% of the track) loops seamlessly, in track-width units rather than
+       viewport units, so it is already moving on the first frame. */
     .journal-ticker-track { display: flex; width: max-content;
       animation: ticker-scroll var(--ticker-duration, 60s) linear infinite;
       animation-delay: var(--ticker-delay, 0s); will-change: transform; }
@@ -231,15 +224,13 @@ function layout(title, body, currentPath = '/', tags = []) {
       .est-mark { font-size: .6rem; letter-spacing: .2em; }
       .header-rule { margin-top: .4rem; }
 
-      /* Ticker: on a narrow screen a scrolling marquee cuts mid-word and is hard to
-         read. Show one line, end-ellipsised, with the same "Latest journal" text. */
-      .journal-ticker { margin: .4rem 0 .1rem; min-height: 1.3em; font-size: .8rem;
-        -webkit-mask-image: none; mask-image: none; }
-      .journal-ticker-track { animation: none; display: block; width: 100%; }
-      .journal-ticker-track > span { display: block; overflow: hidden; text-overflow: ellipsis;
-        white-space: nowrap; }
-      /* Only the first copy is shown; the duplicate exists for the desktop loop. */
-      .journal-ticker-track > span + span { display: none; }
+      /* Ticker: scroll it on mobile too, just smaller and faster so a short line
+         reads comfortably in a narrow window. */
+      .journal-ticker { margin: .4rem 0 .1rem; min-height: 1.3em; font-size: .78rem;
+        -webkit-mask-image: linear-gradient(to right, transparent 0, #000 1.2rem, #000 calc(100% - 1.2rem), transparent 100%);
+        mask-image: linear-gradient(to right, transparent 0, #000 1.2rem, #000 calc(100% - 1.2rem), transparent 100%); }
+      .journal-ticker-track { animation-duration: 40s; }
+      .journal-ticker-track > span { padding-right: 2rem; }
 
       /* Nav: big enough to tap, spread across the width. */
       nav ul { justify-content: center; gap: .15rem .1rem; padding: .35rem 0 .15rem; }
@@ -339,7 +330,7 @@ function layout(title, body, currentPath = '/', tags = []) {
     (function () {
       var track = document.querySelector('.journal-ticker-track');
       if (!track) return;
-      if (window.matchMedia('(max-width: 40rem)').matches) return; // static line on phones
+      var KEY = 'ticker-anchor';
       var DURATION = 60; // seconds; keep in step with --ticker-duration
       var KEY = 'ticker-anchor';
       var anchor = 0;
@@ -425,7 +416,7 @@ function latestJournalTicker() {
     .split(/\r?\n/)
     .map((value) => value.replace(/^\s*[-*+]\s+/, '').replace(/^\s*#{1,6}\s+/, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[*_`>#]/g, '').replace(/\s+/g, ' ').trim())
     .filter(Boolean)
-    .join(' / ');
+    .join(' ');
   if (!preview) return '';
   return `<div class="journal-ticker" aria-label="Latest journal entry"><div class="journal-ticker-track"><span>Latest journal: ${escapeHtml(preview)}</span><span aria-hidden="true">Latest journal: ${escapeHtml(preview)}</span></div></div>`;
 }

@@ -26,9 +26,10 @@
 
 const DEFAULT_SITE = 'amnshk';
 const TOTAL_PATH = 'TOTAL'; // GoatCounter's site-wide total, case-sensitive, no slash
-// The count changes slowly, so cache it hard: this keeps the footer image off the
-// critical path and stops every page view from waiting on a third-party round trip.
-const CACHE_SECONDS = 900;
+// The count changes slowly, but a long cache made new visits invisible for up to
+// 15 minutes, which reads as "the counter is broken". Keep it short and let the
+// CDN revalidate in the background.
+const CACHE_SECONDS = 120;
 const UPSTREAM_TIMEOUT_MS = 2500;
 
 const PILL_HEIGHT = 22;
@@ -48,10 +49,14 @@ function siteCode(env = process.env) {
 }
 
 // GoatCounter reports a formatted string ("1,234"), so strip separators and any
-// non-digit before using it as a number.
+// non-digit before using it as a number. The pill is a *unique visitor* counter,
+// so prefer count_unique; `count` is total pageviews and would double-count
+// anyone who reloads or browses several pages.
 function parseCount(payload) {
   if (payload === null || payload === undefined) return null;
-  const raw = typeof payload === 'object' ? payload.count : payload;
+  let raw;
+  if (typeof payload === 'object') raw = payload.count_unique ?? payload.count;
+  else raw = payload;
   if (raw === null || raw === undefined) return null;
   const digitsOnly = String(raw).replace(/[^\d]/g, '');
   return digitsOnly ? Number(digitsOnly) : null;
@@ -110,7 +115,7 @@ function counterSvg(count) {
 async function handler(req, res) {
   res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
   // No Set-Cookie anywhere in this handler: the counter must not identify anyone.
-  res.setHeader('Cache-Control', `public, max-age=${CACHE_SECONDS}, s-maxage=${CACHE_SECONDS}, stale-while-revalidate=86400`);
+  res.setHeader('Cache-Control', `public, max-age=60, s-maxage=${CACHE_SECONDS}, stale-while-revalidate=600`);
   res.setHeader('X-Counter-Source', `goatcounter:${siteCode()}`);
   let count = 0;
   try {
