@@ -88,8 +88,11 @@ function layout(title, body, currentPath = '/', tags = []) {
       min-height: 1.6em; display: flex; align-items: center; }
     /* <marquee> no longer animates in Chromium, so scroll in CSS. The keyframe starts
        the track one full copy to the right (text off-stage) and ends where the second
-       copy sits, so the line always enters from the right edge, never mid-word. */
-    .journal-ticker-track { display: flex; width: max-content; animation: ticker-scroll 48s linear infinite; will-change: transform; }
+       copy sits, so the line always enters from the right edge, never mid-word.
+       Negative delay starts it already in motion; JS adds a shared offset so the
+       scroll continues across page loads instead of restarting. */
+    .journal-ticker-track { display: flex; width: max-content; animation: ticker-scroll var(--ticker-duration, 48s) linear infinite;
+      animation-delay: var(--ticker-delay, -12s); will-change: transform; }
     .journal-ticker-track > span { white-space: nowrap; }
     .journal-ticker-track > span + span { margin-left: 3rem; }
     .journal-ticker:hover .journal-ticker-track { animation-play-state: paused; }
@@ -97,7 +100,11 @@ function layout(title, body, currentPath = '/', tags = []) {
       from { transform: translate3d(100%, 0, 0); }
       to { transform: translate3d(-100%, 0, 0); }
     }
-    @media (prefers-reduced-motion: reduce) { .journal-ticker-track { animation: none; } }
+    @media (prefers-reduced-motion: reduce) {
+      .journal-ticker-track { animation: none; }
+      /* Without motion, show the line statically but keep it readable. */
+      .journal-ticker { -webkit-mask-image: none; mask-image: none; }
+    }
     .journal-ticker-static { display: none; }
     nav a { font-size: 1rem; }
     nav ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; padding: .15rem 0; margin: 0; list-style: none; }
@@ -249,6 +256,32 @@ function layout(title, body, currentPath = '/', tags = []) {
       }
       tick();
       setInterval(tick, 20000);
+    })();
+
+    // Keep the journal ticker running across page loads. The CSS animation restarts
+    // at 0 on every navigation, so remember when the current loop began and resume
+    // mid-cycle instead of snapping back to the start.
+    (function () {
+      var track = document.querySelector('.journal-ticker-track');
+      if (!track) return;
+      var DURATION = 48;      // seconds, must match --ticker-duration
+      var LEAD_IN = 22;       // first visit: seek here so text is already on screen
+      var KEY = 'ticker-anchor';
+      var anchor = 0;
+      try { anchor = Number(sessionStorage.getItem(KEY)) || 0; } catch (e) { anchor = 0; }
+
+      var elapsed;
+      if (anchor) {
+        elapsed = ((Date.now() - anchor) / 1000) % DURATION;
+      } else {
+        // Fresh session: pretend the loop started LEAD_IN seconds ago, so the line
+        // is already mid-scroll rather than waiting off-stage at the right edge.
+        anchor = Date.now() - LEAD_IN * 1000;
+        elapsed = LEAD_IN;
+        try { sessionStorage.setItem(KEY, String(anchor)); } catch (e) { /* private mode */ }
+      }
+      // Negative delay seeks forward into the loop, so the line is already moving.
+      track.style.setProperty('--ticker-delay', '-' + elapsed.toFixed(2) + 's');
     })();
   </script>
 </body>
