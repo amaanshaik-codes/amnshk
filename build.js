@@ -24,6 +24,15 @@ const navigation = [
 ];
 const availableNavigation = navigation.filter((item) => !item.source || fs.existsSync(path.join(contentRoot, item.source)));
 
+// GoatCounter's pageview script. It is what makes the visitor count real: the
+// footer pill only reads the total, this records the visit. GoatCounter identifies
+// unique visits with a salted hash of IP + User-Agent and sets no cookies.
+const GOATCOUNTER_SITE = (process.env.GOATCOUNTER_SITE || 'amnshk').trim().replace(/\.goatcounter\.com\/?$/i, '');
+
+function goatcounterScript() {
+  return `<script data-goatcounter="https://${GOATCOUNTER_SITE}.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>`;
+}
+
 function escapeHtml(value) {
   return value
     .replaceAll('&', '&amp;')
@@ -51,7 +60,7 @@ function layout(title, body, currentPath = '/', tags = []) {
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=1024">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <meta name="description" content="${description}">
   <meta property="og:title" content="${escapeHtml(title)} · AMNSHK">
@@ -196,6 +205,62 @@ function layout(title, body, currentPath = '/', tags = []) {
     .footer-meta p { margin: 0; }
     .visit-counter { display: flex; align-items: center; justify-content: center; gap: .35rem; min-height: 22px; margin-top: .75rem; font-size: .85rem; line-height: 1; color: var(--muted); }
     .visit-counter img { display: block; height: 22px; width: auto; image-rendering: pixelated; }
+
+    /* -----------------------------------------------------------------------
+       Mobile: same paper, monospace and dotted rules, laid out for a phone.
+       Grouped at the end so every rule here is easy to see and adjust.
+       ---------------------------------------------------------------------- */
+    @media (max-width: 40rem) {
+      body { padding: 0; font-size: 16px; }
+      .site-shell { max-width: none; min-height: 100dvh; }
+
+      /* Header: clock and badge share the top line, wordmark fills the next. */
+      header { padding: .6rem .9rem .1rem; }
+      .masthead { grid-template-columns: 1fr auto; grid-template-areas: "clock badge" "brand brand" "est est";
+        column-gap: .5rem; row-gap: .2rem; }
+      .mast-time { font-size: .6rem; letter-spacing: .04em; gap: 0 .3rem; }
+      .mast-time .mast-sep { opacity: .4; }
+      .header-badge img { width: 66px; height: 12px; }
+      header h1 { font-size: 1.85rem; letter-spacing: .02em; }
+      .est-mark { font-size: .6rem; letter-spacing: .2em; }
+      .header-rule { margin-top: .4rem; }
+
+      /* Ticker: one tidy line, trimmed edges, slightly smaller type. */
+      .journal-ticker { margin: .4rem 0 .1rem; min-height: 1.3em; font-size: .8rem;
+        -webkit-mask-image: linear-gradient(to right, transparent 0, #000 1rem, #000 calc(100% - 1rem), transparent 100%);
+        mask-image: linear-gradient(to right, transparent 0, #000 1rem, #000 calc(100% - 1rem), transparent 100%); }
+      .journal-ticker-track { animation-duration: 26s; }
+
+      /* Nav: big enough to tap, spread across the width. */
+      nav ul { justify-content: center; gap: .15rem .1rem; padding: .35rem 0 .15rem; }
+      nav a { font-size: .92rem; padding: .3rem .25rem; display: inline-block; }
+
+      /* Content: comfortable measure and gutters. */
+      main { padding: 0 .9rem 1.5rem; }
+      main h2 { font-size: 1.25rem; }
+      .breadcrumbs { margin: .8rem 0; font-size: .85rem; }
+      .text-viewer { font-size: 1rem; line-height: 1.7; }
+      .books-list, .journal-list, .article-categories, .folder-list, .tag-list { max-width: none; }
+
+      /* List rows: keep title and action on one line with room to breathe. */
+      .book-entry, .article-category-link, .folder-entry-link, .tag-link, .tagged-note-link { gap: .6rem; }
+      .read-button { padding: .45rem .8rem; }
+
+      /* Footer: two badges per row still fit, meta stacks neatly. */
+      footer { padding: .9rem .9rem 1.2rem; font-size: .85rem; }
+      .footer-meta { flex-direction: column; gap: .25rem; }
+      .badges { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .45rem .3rem; max-width: 21rem; }
+      .badge img { max-width: 100%; height: auto; }
+      .visit-counter { margin-top: .6rem; }
+    }
+
+    /* Very narrow phones: drop the badge beside the clock, let the wordmark lead. */
+    @media (max-width: 22rem) {
+      .masthead { grid-template-columns: 1fr; grid-template-areas: "brand" "clock" "est" "badge"; justify-items: center; }
+      .mast-time { justify-self: center; text-align: center; }
+      .header-badge { justify-self: center; }
+      .badges { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
   </style>
 </head>
 <body>
@@ -262,28 +327,34 @@ function layout(title, body, currentPath = '/', tags = []) {
     // at 0 on every navigation, so remember when the current loop began and resume
     // mid-cycle instead of snapping back to the start.
     (function () {
-      var track = document.querySelector('.journal-ticker-track');
+      var ticker = document.querySelector('.journal-ticker');
+      var track = ticker && ticker.querySelector('.journal-ticker-track');
       if (!track) return;
-      var DURATION = 48;      // seconds, must match --ticker-duration
-      var LEAD_IN = 22;       // first visit: seek here so text is already on screen
+      var DURATION = 48;      // seconds, must match --ticker-duration (desktop)
+      var MOBILE_DURATION = 26;
       var KEY = 'ticker-anchor';
+      var isNarrow = window.matchMedia('(max-width: 40rem)').matches;
+      var duration = isNarrow ? MOBILE_DURATION : DURATION;
       var anchor = 0;
       try { anchor = Number(sessionStorage.getItem(KEY)) || 0; } catch (e) { anchor = 0; }
 
+      // The track starts one full copy off-stage to the right (see @keyframes), so the
+      // line enters cleanly rather than appearing mid-word. Seek into the loop so text
+      // is already on screen at first paint; on a phone seek less so the sentence's
+      // opening words are what the reader actually lands on.
       var elapsed;
       if (anchor) {
-        elapsed = ((Date.now() - anchor) / 1000) % DURATION;
+        elapsed = ((Date.now() - anchor) / 1000) % duration;
       } else {
-        // Fresh session: pretend the loop started LEAD_IN seconds ago, so the line
-        // is already mid-scroll rather than waiting off-stage at the right edge.
-        anchor = Date.now() - LEAD_IN * 1000;
-        elapsed = LEAD_IN;
+        elapsed = isNarrow ? duration * 0.46 : 22;
+        anchor = Date.now() - elapsed * 1000;
         try { sessionStorage.setItem(KEY, String(anchor)); } catch (e) { /* private mode */ }
       }
       // Negative delay seeks forward into the loop, so the line is already moving.
       track.style.setProperty('--ticker-delay', '-' + elapsed.toFixed(2) + 's');
     })();
   </script>
+  ${goatcounterScript()}
 </body>
 </html>
 `;

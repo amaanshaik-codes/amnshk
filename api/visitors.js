@@ -1,85 +1,38 @@
-// Unique-visitor counter. Serves an SVG readout ("YOU ARE VISITOR NUMBER 000142")
-// that the footer loads as an image.
+// Visitor counter. Serves a small SVG pill that the footer loads as an image.
 //
-// A visitor is counted once per IP when the browser carries no visitor cookie, so
-// reloads, navigation between pages and multiple tabs do not inflate the number.
+// COUNTING is delegated to GoatCounter (https://www.goatcounter.com), which
+// identifies unique visits without cookies and without storing personal data:
+// it hashes IP + User-Agent + a daily salt, which cannot be reversed and changes
+// every 24h. Nothing is set on the visitor's device, so this site stays cookie
+// free and needs no consent banner.
 //
-// STORAGE: serverless instances are recycled at any time and requests are spread
-// across several of them, so an in-process Map cannot keep a total — every cold
-// start would answer "1" again. A shared store is therefore required in production.
-// Set either pair of env vars and Redis is used automatically:
-//   KV_REST_API_URL + KV_REST_API_TOKEN            (Vercel KV)
-//   UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN  (Upstash directly)
-// Without them the counter falls back to memory, which only behaves on a single
-// long-lived process (`npm run serve`), and stamps X-Counter-Store: memory so the
-// misconfiguration is visible instead of looking like a frozen count.
+// This function only reads the number and renders it; it writes no state of its
+// own. That is deliberate — serverless instances are recycled constantly, so any
+// in-process total would reset on cold start.
+//
+// SETUP (one time):
+//   1. Create a free GoatCounter account: https://www.goatcounter.com/signup
+//      The subdomain you pick is GC_SITE below.
+//   2. In GoatCounter settings enable "Allow adding visitor counts on your website"
+//      (off by default; the counter 404s without it).
+//   3. Point the site at it with either:
+//        - env var GOATCOUNTER_SITE=yourcode  (no .goatcounter.com suffix), or
+//        - GC_SITE below directly.
+//   4. For views to be recorded at all, the site must send pageviews: add the
+//      GoatCounter script tag (see renderFooter in build.js).
+//
+// Without a configured site the endpoint still answers with a valid SVG showing
+// zeros, so the footer never shows a broken image.
 
-const COUNT_KEY = 'unique-visitors';
-const SEEN_PREFIX = 'unique-visitor:';
-const SEEN_TTL_SECONDS = 60 * 60 * 24 * 30;
-const COOKIE_NAME = 'visitor';
+const DEFAULT_SITE = 'amnshk';
+const TOTAL_PATH = 'TOTAL'; // GoatCounter's site-wide total, case-sensitive, no slash
+const CACHE_SECONDS = 300;
 
-const memory = new Map();
-
-function memoryIncrement(ip) {
-  const now = Date.now();
-  const last = memory.get(SEEN_PREFIX + ip);
-  if (last !== undefined && now - last < SEEN_TTL_SECONDS * 1000) {
-    return memory.get(COUNT_KEY) || 0;
-  }
-  const count = (memory.get(COUNT_KEY) || 0) + 1;
-  memory.set(COUNT_KEY, count);
-  memory.set(SEEN_PREFIX + ip, now);
-  if (memory.size > 50000) {
-    for (const [key, seenAt] of memory) {
-      if (key.startsWith(SEEN_PREFIX) && now - seenAt >= SEEN_TTL_SECONDS * 1000) memory.delete(key);
-    }
-  }
-  return count;
-}
-
-function redisConfig(env) {
-  const url = env.KV_REST_API_URL || env.UPSTASH_REDIS_REST_URL;
-  const token = env.KV_REST_API_TOKEN || env.UPSTASH_REDIS_REST_TOKEN;
-  return url && token ? { url: url.replace(/\/$/, ''), token } : null;
-}
-
-async function redisCommand(config, command) {
-  const response = await fetch(config.url, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${config.token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(command)
-  });
-  if (!response.ok) throw new Error(`Redis responded ${response.status}`);
-  const payload = await response.json();
-  return payload.result;
-}
-
-async function redisIncrement(config, ip) {
-  const seen = await redisCommand(config, ['SET', SEEN_PREFIX + ip, '1', 'NX', 'EX', String(SEEN_TTL_SECONDS)]);
-  if (seen === 'OK') return Number(await redisCommand(config, ['INCR', COUNT_KEY])) || 1;
-  return Number(await redisCommand(config, ['GET', COUNT_KEY])) || 0;
-}
-
-function clientIp(req) {
-  const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-  return forwarded || String(req.headers['x-real-ip'] || '').trim() || req.socket?.remoteAddress || 'unknown';
-}
-
-function hasVisitorCookie(req) {
-  return new RegExp(`(?:^|;\\s*)${COOKIE_NAME}=1(?:;|$)`).test(String(req.headers.cookie || ''));
-}
-
-function digits(value) {
-  return String(Math.max(0, Math.floor(value))).padStart(6, '0');
-}
-
-// Pill geometry. Width is computed from glyph counts so the capsule always hugs
-// its content instead of guessing a fixed size.
 const PILL_HEIGHT = 22;
 const PILL_PAD_X = 9;
 const PILL_GAP = 8;
 const PILL_DIVIDER = 1;
+const LABEL = 'VISITORS';
 const LABEL_SIZE = 10;
 const NUMBER_SIZE = 13;
 const LABEL_CHAR_WIDTH = LABEL_SIZE * 0.62; // Courier advance width, uppercase
@@ -87,12 +40,40 @@ const NUMBER_CHAR_WIDTH = NUMBER_SIZE * 0.6;
 const BLUE = '#1d3fbf';
 const BLUE_DARK = '#16329c';
 
+function siteCode(env = process.env) {
+  return String(env.GOATCOUNTER_SITE || DEFAULT_SITE).trim().replace(/\.goatcounter\.com\/?$/i, '');
+}
+
+// GoatCounter reports a formatted string ("1,234"), so strip separators and any
+// non-digit before using it as a number.
+function parseCount(payload) {
+  if (payload === null || payload === undefined) return null;
+  const raw = typeof payload === 'object' ? payload.count : payload;
+  if (raw === null || raw === undefined) return null;
+  const digitsOnly = String(raw).replace(/[^\d]/g, '');
+  return digitsOnly ? Number(digitsOnly) : null;
+}
+
+async function fetchCount(env = process.env) {
+  const site = siteCode(env);
+  const url = `https://${encodeURIComponent(site)}.goatcounter.com/counter/${encodeURIComponent(TOTAL_PATH)}.json`;
+  const response = await fetch(url, { headers: { Accept: 'application/json' } });
+  // A 404 means the site has no hits yet, or counts are not enabled in settings:
+  // both are legitimately "zero", not an error worth failing the image over.
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`GoatCounter responded ${response.status}`);
+  return parseCount(await response.json());
+}
+
+function digits(value) {
+  return String(Math.max(0, Math.floor(value))).padStart(6, '0');
+}
+
 // White label on a blue capsule, then the number on cream: one self-contained
 // image the footer can drop in regardless of page styles.
 function counterSvg(count) {
-  const label = 'VISITORS';
   const number = digits(count);
-  const labelWidth = label.length * LABEL_CHAR_WIDTH;
+  const labelWidth = LABEL.length * LABEL_CHAR_WIDTH;
   const numberWidth = number.length * NUMBER_CHAR_WIDTH;
   const labelBlock = PILL_PAD_X + labelWidth + PILL_GAP;
   const width = Math.ceil(labelBlock + PILL_DIVIDER + PILL_GAP + numberWidth + PILL_PAD_X);
@@ -108,59 +89,28 @@ function counterSvg(count) {
     <rect x="${Math.round(labelBlock)}" y="0" width="${PILL_DIVIDER}" height="${PILL_HEIGHT}" fill="${BLUE_DARK}"/>
   </g>
   <rect x="0.5" y="0.5" width="${width - 1}" height="${PILL_HEIGHT - 1}" rx="${radius - 0.5}" ry="${radius - 0.5}" fill="none" stroke="${BLUE}"/>
-  <text x="${PILL_PAD_X}" y="${midY + 3.5}" font-family="'Courier New', Courier, monospace" font-size="${LABEL_SIZE}" font-weight="bold" letter-spacing="1.1" fill="#ffffff">${label}</text>
+  <text x="${PILL_PAD_X}" y="${midY + 3.5}" font-family="'Courier New', Courier, monospace" font-size="${LABEL_SIZE}" font-weight="bold" letter-spacing="1.1" fill="#ffffff">${LABEL}</text>
   <text x="${Math.round(labelBlock + PILL_DIVIDER + PILL_GAP)}" y="${midY + 4.5}" font-family="'Courier New', Courier, monospace" font-size="${NUMBER_SIZE}" font-weight="bold" letter-spacing=".5" fill="#111">${number}</text>
 </svg>`;
 }
 
-async function countVisitor(req, env = process.env) {
-  if (hasVisitorCookie(req)) return null;
-  const ip = clientIp(req);
-  const config = redisConfig(env);
-  if (config) {
-    try {
-      return await redisIncrement(config, ip);
-    } catch (error) {
-      console.error('visitor counter: redis unavailable, falling back to memory', error.message);
-    }
-  }
-  return memoryIncrement(ip);
-}
-
-async function currentCount(req, env = process.env) {
-  const config = redisConfig(env);
-  if (config) {
-    try {
-      return Number(await redisCommand(config, ['GET', COUNT_KEY])) || 0;
-    } catch (error) {
-      console.error('visitor counter: redis unavailable, reading memory', error.message);
-    }
-  }
-  return memory.get(COUNT_KEY) || 0;
-}
-
 async function handler(req, res) {
   res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-store, must-revalidate');
-  const persistent = Boolean(redisConfig(process.env));
-  res.setHeader('X-Counter-Store', persistent ? 'redis' : 'memory');
+  // No Set-Cookie anywhere in this handler: the counter must not identify anyone.
+  // Short shared cache keeps the upstream service from being hit on every view.
+  res.setHeader('Cache-Control', `public, max-age=${CACHE_SECONDS}, s-maxage=${CACHE_SECONDS}`);
+  res.setHeader('X-Counter-Source', `goatcounter:${siteCode()}`);
   let count = 0;
   try {
-    // A repeat visit still gets the number back, it just is not counted again.
-    count = (await countVisitor(req)) ?? (await currentCount(req));
+    count = (await fetchCount()) ?? 0;
   } catch (error) {
-    console.error('visitor counter failed', error);
-  }
-  if (!hasVisitorCookie(req)) {
-    res.setHeader('Set-Cookie', `${COOKIE_NAME}=1; Max-Age=31536000; Path=/; SameSite=Lax; HttpOnly`);
+    console.error('visitor counter failed', error.message);
   }
   res.send(counterSvg(count));
 }
 
 module.exports = handler;
 module.exports.counterSvg = counterSvg;
-module.exports.countVisitor = countVisitor;
-module.exports.memoryIncrement = memoryIncrement;
-module.exports.memory = memory;
-module.exports.COUNT_KEY = COUNT_KEY;
-module.exports.SEEN_PREFIX = SEEN_PREFIX;
+module.exports.fetchCount = fetchCount;
+module.exports.parseCount = parseCount;
+module.exports.siteCode = siteCode;
