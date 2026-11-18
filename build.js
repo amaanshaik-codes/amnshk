@@ -4,11 +4,17 @@ const path = require('path');
 const root = __dirname;
 const contentRoot = path.join(root, 'Content');
 const outputRoot = path.join(root, 'public');
+const builtAtDate = new Date();
 const builtAt = `${new Intl.DateTimeFormat('en-IN', {
   dateStyle: 'long',
   timeStyle: 'short',
   timeZone: 'Asia/Kolkata'
-}).format(new Date())} IST`;
+}).format(builtAtDate)} IST`;
+
+// Masthead stamp: rendered at build time like everything else on this static site.
+const builtDay = new Intl.DateTimeFormat('en-GB', { weekday: 'long', timeZone: 'Asia/Kolkata' }).format(builtAtDate);
+const builtDate = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }).format(builtAtDate);
+const builtClock = `${new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' }).format(builtAtDate)} IST`;
 
 // Add future header buttons here. Each item becomes one link in the header.
 const navigation = [
@@ -58,31 +64,37 @@ function layout(title, body, currentPath = '/', tags = []) {
     body { font-family: monospace, sans-serif; font-size: 16px; line-height: 1.55; color: var(--text); background: var(--page-bg); margin: 0; padding: 1rem; }
     .site-shell { width: auto; max-width: 1100px; margin: 0 auto; background: var(--surface); }
     header, footer { text-align: center; padding: 1.25rem 1.5rem; }
-    header { padding-top: .5rem; padding-bottom: .35rem; }
+    header { padding-top: .5rem; padding-bottom: .35rem; padding-left: 1rem; padding-right: 1rem; }
     main { padding: 0 1.5rem 2rem; }
     header h1 { margin: 0; font-family: "JMH Typewriter", "American Typewriter", "Courier New", monospace; font-size: clamp(1.5rem, 5vw, 2.25rem); line-height: 1.1; }
     header h1 a { color: #111 !important; text-decoration: none !important; background: none !important; }
-    .masthead { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: "brand brand brand" ". est badge"; align-items: center; justify-items: center; width: min(100%, 30rem); margin: 0 auto .15rem; row-gap: .22rem; }
-    .masthead-brand { grid-area: brand; }
-    .est-mark { grid-area: est; justify-self: end; padding-right: .6rem; font-size: .72rem; line-height: 1; letter-spacing: .26em; text-transform: uppercase; white-space: nowrap; color: var(--text); }
-    .header-badge { grid-area: badge; justify-self: start; margin: 0; padding-left: .6rem; line-height: 0; }
+    .masthead { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "clock clock badge" "brand brand brand" ". est ."; align-items: center; column-gap: 1rem; row-gap: .45rem; width: 100%; max-width: 60rem; margin: 0 auto .15rem; }
+    .masthead-brand { grid-area: brand; justify-self: center; }
+    .mast-time { grid-area: clock; justify-self: start; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .5rem; margin: 0; font-size: .68rem; line-height: 1.35; letter-spacing: .1em; text-transform: uppercase; color: var(--text); }
+    .mast-time .mast-day { font-weight: bold; }
+    .mast-time .mast-sep { opacity: .5; }
+    .est-mark { grid-area: est; justify-self: center; font-size: .7rem; line-height: 1; letter-spacing: .26em; text-transform: uppercase; white-space: nowrap; color: var(--text); }
+    .header-badge { grid-area: badge; justify-self: end; margin: 0; line-height: 0; }
     .header-badge img { display: block; width: 80px; height: 15px; }
-    @media (max-width: 30rem) {
-      .masthead { width: 100%; }
-      .est-mark { font-size: .64rem; letter-spacing: .16em; padding-right: .4rem; }
-      .header-badge { padding-left: .4rem; }
-    }
-    @media (max-width: 22rem) {
-      .est-mark { font-size: .6rem; letter-spacing: .1em; }
+    @media (max-width: 34rem) {
+      .masthead { grid-template-columns: 1fr auto; grid-template-areas: "clock badge" "brand brand" "est est"; column-gap: .5rem; row-gap: .3rem; }
+      .mast-time { font-size: .6rem; letter-spacing: .05em; gap: 0 .3rem; }
+      .est-mark { font-size: .62rem; letter-spacing: .16em; }
+      .header-badge img { width: 66px; height: 12px; }
     }
     .header-rule { max-width: 88ch; margin: .35rem auto 0; border-top: 1px dotted var(--text); }
-    .journal-ticker { max-width: 88ch; margin: .35rem auto; overflow: hidden; text-align: left; }
-    .journal-ticker marquee { width: 100%; }
+    .journal-ticker { max-width: 88ch; margin: .5rem auto .35rem; overflow: hidden; text-align: left; }
+    /* Marquee is deprecated and no longer animates reliably, so scroll with CSS. */
+    .journal-ticker-track { display: inline-block; white-space: nowrap; padding-left: 100%; animation: ticker-scroll 36s linear infinite; }
+    .journal-ticker:hover .journal-ticker-track { animation-play-state: paused; }
+    @keyframes ticker-scroll { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+    @media (prefers-reduced-motion: reduce) { .journal-ticker-track { animation: none; padding-left: 0; } }
     .journal-ticker-static { display: none; }
     @media (max-width: 45rem) {
-      .journal-ticker { overflow: visible; text-align: center; }
-      .journal-ticker marquee { display: none; }
-      .journal-ticker-static { display: block; padding: 0 1rem; white-space: normal; font-size: .95rem; }
+      .journal-ticker { overflow: hidden; text-align: left; }
+      .journal-ticker-track { display: none; }
+      /* Clamp: a full journal entry is many lines and would bury the nav. */
+      .journal-ticker-static { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; padding: 0 .25rem; white-space: normal; font-size: .8rem; line-height: 1.4; text-align: left; }
     }
     nav a { font-size: 1rem; }
     nav ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; padding: .15rem 0; margin: 0; list-style: none; }
@@ -172,19 +184,6 @@ function layout(title, body, currentPath = '/', tags = []) {
     .footer-meta p { margin: 0; }
     .visit-counter { display: flex; align-items: center; justify-content: center; gap: .35rem; min-height: 22px; margin-top: .75rem; font-size: .85rem; line-height: 1; color: var(--muted); }
     .visit-counter img { display: block; height: 22px; width: auto; image-rendering: pixelated; }
-    .masthead { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: "brand brand brand" ". est badge"; align-items: center; justify-items: center; width: min(100%, 30rem); margin: 0 auto .15rem; row-gap: .22rem; }
-    .masthead-brand { grid-area: brand; }
-    .est-mark { grid-area: est; justify-self: end; padding-right: .6rem; font-size: .72rem; line-height: 1; letter-spacing: .26em; text-transform: uppercase; white-space: nowrap; color: var(--text); }
-    .header-badge { grid-area: badge; justify-self: start; margin: 0; padding-left: .6rem; line-height: 0; }
-    .header-badge img { display: block; width: 80px; height: 15px; }
-    @media (max-width: 30rem) {
-      .masthead { width: 100%; }
-      .est-mark { font-size: .64rem; letter-spacing: .16em; padding-right: .4rem; }
-      .header-badge { padding-left: .4rem; }
-    }
-    @media (max-width: 22rem) {
-      .est-mark { font-size: .6rem; letter-spacing: .1em; }
-    }
   </style>
 </head>
 <body>
@@ -192,6 +191,9 @@ function layout(title, body, currentPath = '/', tags = []) {
   <div class="site-shell">
   <header>
     <div class="masthead">
+      <p class="mast-time" aria-label="Local time">
+        <span class="mast-day" data-clock="day">${builtDay}</span><span class="mast-sep" aria-hidden="true">·</span><span data-clock="date">${builtDate}</span><span class="mast-sep" aria-hidden="true">·</span><span data-clock="time">${builtClock}</span>
+      </p>
       <h1 class="masthead-brand"><a href="/">AMNSHK</a></h1>
       <span class="est-mark">Est. 2005</span>
       <div class="header-badge"><img src="/badges/free-speech.png" width="80" height="15" alt="Free speech"></div>
@@ -220,6 +222,30 @@ function layout(title, body, currentPath = '/', tags = []) {
     <div class="visit-counter"><img src="/api/visitors" alt="You are visitor number" width="114" height="22"></div>
   </footer>
   </div>
+  <script>
+    // The masthead clock is printed at build time; keep it honest in the reader's
+    // own timezone. Without JS the build-time IST stamp above remains readable.
+    (function () {
+      var dayEl = document.querySelector('[data-clock="day"]');
+      var dateEl = document.querySelector('[data-clock="date"]');
+      var timeEl = document.querySelector('[data-clock="time"]');
+      if (!dayEl || !dateEl || !timeEl) return;
+      var pad = function (n) { return String(n).padStart(2, '0'); };
+      function tick() {
+        var now = new Date();
+        dayEl.textContent = new Intl.DateTimeFormat(undefined, { weekday: 'long' }).format(now);
+        dateEl.textContent = new Intl.DateTimeFormat(undefined, { day: '2-digit', month: 'short', year: 'numeric' }).format(now);
+        var offset = -now.getTimezoneOffset();
+        var sign = offset >= 0 ? '+' : '-';
+        var hours = Math.floor(Math.abs(offset) / 60);
+        var zone = 'UTC' + sign + pad(hours) + (Math.abs(offset) % 60 ? ':' + pad(Math.abs(offset) % 60) : '');
+        timeEl.textContent = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ' ' + zone;
+        dayEl.dateTime = now.toISOString();
+      }
+      tick();
+      setInterval(tick, 20000);
+    })();
+  </script>
 </body>
 </html>
 `;
@@ -289,7 +315,7 @@ function latestJournalTicker() {
     .filter(Boolean)
     .join(' / ');
   if (!preview) return '';
-  return `<div class="journal-ticker" aria-label="Latest journal entry"><marquee direction="left" scrollamount="12">Latest journal: ${escapeHtml(preview)}</marquee><span class="journal-ticker-static">Latest journal: ${escapeHtml(preview)}</span></div>`;
+  return `<div class="journal-ticker" aria-label="Latest journal entry"><div class="journal-ticker-track"><span>Latest journal: ${escapeHtml(preview)}</span></div><span class="journal-ticker-static">Latest journal: ${escapeHtml(preview)}</span></div>`;
 }
 
 function folderDisplayName(folderName) {
