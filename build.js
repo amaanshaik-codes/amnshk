@@ -51,7 +51,7 @@ function layout(title, body, currentPath = '/', tags = []) {
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=1024">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <meta name="description" content="${description}">
   <meta property="og:title" content="${escapeHtml(title)} · AMNSHK">
@@ -60,6 +60,9 @@ function layout(title, body, currentPath = '/', tags = []) {
   <title>${escapeHtml(title)} · AMNSHK</title>
   <style>
     :root { color-scheme: light; --page-bg: #f4f1e8; --surface: #f4f1e8; --text: #111; --link: blue; --exec: green; --hover: yellow; --border: transparent; --muted: #444; }
+    /* One column width shared by the masthead, the rule and the ticker, so nothing
+       can drift outside the site's content edge. */
+    :root { --content-w: 88ch; }
     *, *::before, *::after { box-sizing: border-box; }
     body { font-family: monospace, sans-serif; font-size: 16px; line-height: 1.55; color: var(--text); background: var(--page-bg); margin: 0; padding: 1rem; }
     .site-shell { width: auto; max-width: 1100px; margin: 0 auto; background: var(--surface); }
@@ -68,34 +71,34 @@ function layout(title, body, currentPath = '/', tags = []) {
     main { padding: 0 1.5rem 2rem; }
     header h1 { margin: 0; font-family: "JMH Typewriter", "American Typewriter", "Courier New", monospace; font-size: clamp(1.5rem, 5vw, 2.25rem); line-height: 1.1; }
     header h1 a { color: #111 !important; text-decoration: none !important; background: none !important; }
-    .masthead { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "clock clock badge" "brand brand brand" ". est ."; align-items: center; column-gap: 1rem; row-gap: .45rem; width: 100%; max-width: 60rem; margin: 0 auto .15rem; }
+    .masthead { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: "clock clock badge" "brand brand brand" "est est est"; align-items: center; row-gap: .45rem; width: 100%; max-width: var(--content-w); margin: 0 auto .15rem; }
     .masthead-brand { grid-area: brand; justify-self: center; }
-    .mast-time { grid-area: clock; justify-self: start; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .5rem; margin: 0; font-size: .68rem; line-height: 1.35; letter-spacing: .1em; text-transform: uppercase; color: var(--text); }
+    .mast-time { grid-area: clock; justify-self: start; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .5rem; margin: 0; font-size: .68rem; line-height: 1.35; letter-spacing: .1em; text-transform: uppercase; color: var(--text); }
     .mast-time .mast-day { font-weight: bold; }
     .mast-time .mast-sep { opacity: .5; }
-    .est-mark { grid-area: est; justify-self: center; font-size: .7rem; line-height: 1; letter-spacing: .26em; text-transform: uppercase; white-space: nowrap; color: var(--text); }
+    .est-mark { grid-area: est; justify-self: center; text-align: center; font-size: .7rem; line-height: 1; letter-spacing: .26em; text-transform: uppercase; white-space: nowrap; color: var(--text); }
     .header-badge { grid-area: badge; justify-self: end; margin: 0; line-height: 0; }
     .header-badge img { display: block; width: 80px; height: 15px; }
-    @media (max-width: 34rem) {
-      .masthead { grid-template-columns: 1fr auto; grid-template-areas: "clock badge" "brand brand" "est est"; column-gap: .5rem; row-gap: .3rem; }
-      .mast-time { font-size: .6rem; letter-spacing: .05em; gap: 0 .3rem; }
-      .est-mark { font-size: .62rem; letter-spacing: .16em; }
-      .header-badge img { width: 66px; height: 12px; }
-    }
-    .header-rule { max-width: 88ch; margin: .35rem auto 0; border-top: 1px dotted var(--text); }
-    .journal-ticker { max-width: 88ch; margin: .5rem auto .35rem; overflow: hidden; text-align: left; }
-    /* Marquee is deprecated and no longer animates reliably, so scroll with CSS. */
-    .journal-ticker-track { display: inline-block; white-space: nowrap; padding-left: 100%; animation: ticker-scroll 36s linear infinite; }
+    .header-rule { max-width: var(--content-w); margin: .35rem auto 0; border-top: 1px dotted var(--text); }
+    /* Edge fade so text dissolves at the boundaries instead of being hard-cut mid-glyph. */
+    .journal-ticker { max-width: var(--content-w); margin: .5rem auto .35rem; overflow: hidden; text-align: left;
+      -webkit-mask-image: linear-gradient(to right, transparent 0, #000 2.5rem, #000 calc(100% - 2.5rem), transparent 100%);
+      mask-image: linear-gradient(to right, transparent 0, #000 2.5rem, #000 calc(100% - 2.5rem), transparent 100%);
+      /* Reserve the line height so the header never jumps while the ticker runs. */
+      min-height: 1.6em; display: flex; align-items: center; }
+    /* <marquee> no longer animates in Chromium, so scroll in CSS. The keyframe starts
+       the track one full copy to the right (text off-stage) and ends where the second
+       copy sits, so the line always enters from the right edge, never mid-word. */
+    .journal-ticker-track { display: flex; width: max-content; animation: ticker-scroll 48s linear infinite; will-change: transform; }
+    .journal-ticker-track > span { white-space: nowrap; }
+    .journal-ticker-track > span + span { margin-left: 3rem; }
     .journal-ticker:hover .journal-ticker-track { animation-play-state: paused; }
-    @keyframes ticker-scroll { from { transform: translateX(0); } to { transform: translateX(-100%); } }
-    @media (prefers-reduced-motion: reduce) { .journal-ticker-track { animation: none; padding-left: 0; } }
-    .journal-ticker-static { display: none; }
-    @media (max-width: 45rem) {
-      .journal-ticker { overflow: hidden; text-align: left; }
-      .journal-ticker-track { display: none; }
-      /* Clamp: a full journal entry is many lines and would bury the nav. */
-      .journal-ticker-static { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; padding: 0 .25rem; white-space: normal; font-size: .8rem; line-height: 1.4; text-align: left; }
+    @keyframes ticker-scroll {
+      from { transform: translate3d(100%, 0, 0); }
+      to { transform: translate3d(-100%, 0, 0); }
     }
+    @media (prefers-reduced-motion: reduce) { .journal-ticker-track { animation: none; } }
+    .journal-ticker-static { display: none; }
     nav a { font-size: 1rem; }
     nav ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; padding: .15rem 0; margin: 0; list-style: none; }
     nav li:not(:last-child)::after { content: ' · '; }
@@ -106,7 +109,7 @@ function layout(title, body, currentPath = '/', tags = []) {
     a:hover { color: black !important; text-decoration-line: underline; text-decoration-style: dotted; background-color: var(--hover); }
     .DIR { color: var(--link) !important; }
     .EXEC { color: var(--exec) !important; }
-    main { min-height: 45vh; text-align: center; }
+    main { min-height: 0; text-align: center; }
     main h2 { font-size: clamp(1.3rem, 3.5vw, 1.75rem); line-height: 1.25; }
     main > p { max-width: 88ch; margin: 1rem auto; text-align: left; }
     main ul, main ol { padding-left: 1.25rem; }
@@ -177,9 +180,11 @@ function layout(title, body, currentPath = '/', tags = []) {
     .skip-link { position: absolute; left: -9999px; }
     .skip-link:focus { left: 1rem; top: 1rem; }
     footer { padding: .75rem 1rem; font-size: .9rem; }
-    .badges { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: min(100%, 260px); margin: .35rem auto 0; gap: .25rem; }
-    .badge { min-height: 36px; display: flex; align-items: center; justify-content: center; }
-    .badge img { display: block; max-width: 100%; height: auto; image-rendering: pixelated; }
+    /* Two equal columns sized to the widest badge (160px), so every row lines up. */
+    .badges { display: grid; grid-template-columns: repeat(2, 10rem); justify-content: center; justify-items: center; align-items: center; gap: .4rem .5rem; margin: .5rem auto 0; }
+    .badge { display: flex; align-items: center; justify-content: center; }
+    /* Badges are fixed-size pixel art: never scale or stretch them. */
+    .badge img { display: block; width: auto; height: auto; max-width: none; image-rendering: pixelated; }
     .footer-meta { display: flex; justify-content: center; align-items: baseline; flex-wrap: wrap; gap: 1rem; }
     .footer-meta p { margin: 0; }
     .visit-counter { display: flex; align-items: center; justify-content: center; gap: .35rem; min-height: 22px; margin-top: .75rem; font-size: .85rem; line-height: 1; color: var(--muted); }
@@ -216,7 +221,7 @@ function layout(title, body, currentPath = '/', tags = []) {
     <div class="badges" aria-label="Web badges">
       <span class="badge"><img src="/badges/bestvieweddesktop.gif" width="88" height="31" alt="Best viewed on desktop"></span>
       <span class="badge"><img src="/badges/cookie-free.png" width="88" height="31" alt="This site is certified 100% cookie free"></span>
-    <div class="badge"><img src="/badges/y2k-compliant.png" width="160" height="36" alt="Y2K compliant"></div>
+      <span class="badge"><img src="/badges/y2k-compliant.png" width="160" height="36" alt="Y2K compliant"></span>
       <span class="badge"><img src="/badges/no-ai-human-content.png" width="160" height="36" alt="No AI human content"></span>
     </div>
     <div class="visit-counter"><img src="/api/visitors" alt="You are visitor number" width="114" height="22"></div>
@@ -315,7 +320,7 @@ function latestJournalTicker() {
     .filter(Boolean)
     .join(' / ');
   if (!preview) return '';
-  return `<div class="journal-ticker" aria-label="Latest journal entry"><div class="journal-ticker-track"><span>Latest journal: ${escapeHtml(preview)}</span></div><span class="journal-ticker-static">Latest journal: ${escapeHtml(preview)}</span></div>`;
+  return `<div class="journal-ticker" aria-label="Latest journal entry"><div class="journal-ticker-track"><span>Latest journal: ${escapeHtml(preview)}</span><span aria-hidden="true">Latest journal: ${escapeHtml(preview)}</span></div></div>`;
 }
 
 function folderDisplayName(folderName) {
