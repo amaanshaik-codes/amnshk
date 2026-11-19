@@ -183,9 +183,9 @@ function layout(title, body, currentPath = '/', tags = []) {
     /* Each entry is a centred block so the links line up under the heading. */
     .journal-list li { display: block; text-align: center; }
     .journal-list a { font-size: 1rem; }
-    .category-links { display: inline-flex; max-width: 100%; box-sizing: border-box; flex-wrap: wrap; align-items: center; justify-content: center; gap: .35rem; padding: .75rem 1rem; border: 1px solid var(--text); }
+    .category-links { display: flex; width: 100%; max-width: var(--content-w); margin: 0 auto; box-sizing: border-box; flex-wrap: wrap; align-items: center; justify-content: center; gap: .35rem; padding: .75rem 1rem; border: 1px solid var(--text); }
     .category-link { color: black; font-size: clamp(1rem, 2.5vw, 1.1rem); }
-    .bad-about-links { max-width: 100%; margin: 1rem auto 2rem; text-align: center; font-size: clamp(1rem, 2.4vw, 1.15rem); font-style: italic; font-weight: bold; }
+    .bad-about-links { width: 100%; max-width: var(--content-w); margin: .8rem auto 1.2rem; text-align: center; font-size: clamp(1rem, 2.4vw, 1.15rem); font-style: italic; font-weight: bold; }
     .bad-about-label { color: var(--text); }
     .bad-about-separator { color: var(--text); }
     .table-scroll { max-width: 88ch; margin: 1rem auto; overflow-x: auto; }
@@ -237,7 +237,7 @@ function layout(title, body, currentPath = '/', tags = []) {
       td::before { content: attr(data-label); display: block; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
       td:empty { display: none; }
     }
-    .books-list { max-width: 60ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
+    .books-list { width: 100%; max-width: var(--content-w); margin: .5rem auto 1rem; padding: 0; list-style: none; text-align: left; }
     .books-list li { padding: .75rem 0; }
     .book-entry { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
     .book-info { min-width: 0; }
@@ -253,7 +253,7 @@ function layout(title, body, currentPath = '/', tags = []) {
     .article-category-link { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
     .article-category-title { font-size: 1.05rem; }
     .article-category-count { white-space: nowrap; font-size: .9rem; }
-    .folder-list { max-width: 68ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
+    .folder-list { width: 100%; max-width: var(--content-w); margin: .5rem auto 1rem; padding: 0; list-style: none; text-align: left; }
     .folder-entry { padding: .8rem 0; }
     .folder-entry-link { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
     .folder-entry-title { font-size: 1.05rem; }
