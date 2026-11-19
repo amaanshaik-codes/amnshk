@@ -4,6 +4,7 @@
   "scripts": {
     "build": "node build.js",
     "serve": "node dev-server.js",
-    "validate": "npm run build && node validate.js"
+    "validate": "npm run build && node validate.js",
+    "test:markdown": "MD_TEST=1 node markdown.test.js"
   }
 }

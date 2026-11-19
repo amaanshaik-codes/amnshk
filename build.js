@@ -92,7 +92,7 @@ function layout(title, body, currentPath = '/', tags = []) {
   <meta property="og:type" content="website">
   <title>${escapeHtml(title)} · AMNSHK</title>
   <style>
-    :root { color-scheme: light; --page-bg: #f4f1e8; --surface: #f4f1e8; --text: #111; --link: blue; --exec: green; --hover: yellow; --border: transparent; --muted: #444; }
+    :root { color-scheme: light; --page-bg: #f4f1e8; --surface: #f4f1e8; --text: #111; --link: blue; --exec: #111; --hover: yellow; --border: transparent; --muted: #333; }
     /* One column width shared by the masthead, the rule and the ticker, so nothing
        can drift outside the site's content edge. */
     /* One column width shared by masthead, rules and ticker. A fixed rem length,
@@ -108,7 +108,7 @@ function layout(title, body, currentPath = '/', tags = []) {
        inside either ends at the same x on both sides. */
     header, footer { padding-left: 1rem; padding-right: 1rem; }
     header { padding-top: .5rem; padding-bottom: .35rem; }
-    main { padding: 0 1.5rem 1rem; }
+    main { padding: 0 1.5rem 1rem; text-align: left; }
     header h1 { margin: 0; font-family: "Times New Roman", Times, Georgia, serif; font-size: clamp(1.7rem, 5vw, 2.5rem); font-weight: bold; line-height: 1.1; }
     header h1 a { color: #111 !important; text-decoration: none !important; background: none !important; }
     .masthead { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: "clock clock badge" "brand brand brand" "est est est"; align-items: center; row-gap: .45rem; width: 100%; max-width: var(--content-w); margin: 0 auto .15rem; }
@@ -160,7 +160,8 @@ function layout(title, body, currentPath = '/', tags = []) {
     a:hover { color: black !important; text-decoration-line: underline; text-decoration-style: dotted; background-color: var(--hover); }
     .DIR { color: var(--link) !important; }
     .EXEC { color: var(--exec) !important; }
-    main { min-height: 0; text-align: center; }
+    main { min-height: 0; text-align: left; }
+    main h1, main h2, main h3, main h4, main h5, main h6 { text-align: left; }
     main h2 { font-size: clamp(1.3rem, 3.5vw, 1.75rem); line-height: 1.2; margin: 0 0 .6rem; }
     main > p { max-width: 88ch; margin: 1rem auto; text-align: left; }
     /* On archive pages the folder's own prose aligns to the section column, so the
@@ -168,11 +169,6 @@ function layout(title, body, currentPath = '/', tags = []) {
     /* Same column as the section below it, so the page has one left edge. */
     main > .folder-intro { max-width: var(--content-w); margin: 0 auto 1rem; text-align: left; }
     main > .folder-intro p { margin: 0 0 .7rem; text-align: left; }
-    /* Lists live inside the centred text column, so they must not add a second
-       indent on top of it - that pushed markers outside the measure. */
-    main ul, main ol { max-width: 88ch; margin: 1rem auto; padding-left: 1.5rem; text-align: left; }
-    main li { padding-left: .15rem; }
-    main li > p { margin: .35rem 0; }
     pre { max-width: 100%; overflow-x: auto; margin: 1rem auto; text-align: left; width: max-content; }
     .text-viewer { max-width: 88ch; margin: 1rem auto; padding: 0; font-family: inherit; font-size: clamp(1.05rem, 2.5vw, 1.22rem); line-height: 1.8; overflow-wrap: anywhere; text-align: left; }
     .text-viewer p, .text-viewer ul, .text-viewer ol, .text-viewer blockquote { margin: 1rem 0; }
@@ -181,22 +177,58 @@ function layout(title, body, currentPath = '/', tags = []) {
     .plain-list li { margin: 0; line-height: 1.5; }
     .tag-list { width: 100%; max-width: var(--content-w); margin: .4rem auto 1rem; padding: 0 0 0 1.4rem; list-style: disc; text-align: left; columns: 2 16rem; column-gap: 2.5rem; }
     .tag-list li { margin: 0; line-height: 1.5; break-inside: avoid; }
-    .journal-list { width: 100%; max-width: var(--content-w); margin: .4rem auto 1rem; padding: 0; list-style: none; text-align: left; }
-    .journal-entry { padding: .3rem 0; }
-    .journal-entry-link { display: block; }
-    .journal-entry-title { display: block; font-size: 1rem; }
-    /* Date centred under each entry title, as on a hand-kept diary page. */
-    .journal-entry-date { display: block; margin-top: 0; font-size: .88rem; color: var(--text); text-align: center; }
+    /* Journal: a centred list of entry file names, nothing else. */
+    .journal-list { width: 100%; max-width: var(--content-w); margin: .5rem auto 1rem; padding: 0; list-style: none; text-align: center; }
+    .journal-list li { padding: .1rem 0; line-height: 1.5; }
+    /* Each entry is a centred block so the links line up under the heading. */
+    .journal-list li { display: block; text-align: center; }
+    .journal-list a { font-size: 1rem; }
     .category-links { display: inline-flex; max-width: 100%; box-sizing: border-box; flex-wrap: wrap; align-items: center; justify-content: center; gap: .35rem; padding: .75rem 1rem; border: 1px solid var(--text); }
     .category-link { color: black; font-size: clamp(1rem, 2.5vw, 1.1rem); }
     .bad-about-links { max-width: 100%; margin: 1rem auto 2rem; text-align: center; font-size: clamp(1rem, 2.4vw, 1.15rem); font-style: italic; font-weight: bold; }
     .bad-about-label { color: var(--text); }
     .bad-about-separator { color: var(--text); }
     .table-scroll { max-width: 88ch; margin: 1rem auto; overflow-x: auto; }
-    table { width: 100%; max-width: 100%; margin: 1rem auto; border-collapse: collapse; text-align: left; table-layout: auto; }
-    th, td { padding: .35rem .75rem; vertical-align: top; border-bottom: 1px dotted var(--text); overflow-wrap: anywhere; }
-    th { border-bottom: 1px solid var(--text); white-space: normal; }
-    td { white-space: normal; }
+    /* Text layout is one column sitewide: paragraphs fill the measure, headings
+       sit on its left edge, and alignment is opt-in per paragraph. */
+    .text-viewer, main > p, main h1, main h2, main h3, main h4, main h5, main h6,
+    .text-viewer h1, .text-viewer h2, .text-viewer h3, .text-viewer h4, .text-viewer h5, .text-viewer h6 {
+      width: 100%; max-width: var(--content-w); margin-left: auto; margin-right: auto; text-align: left; }
+    main > p, .text-viewer p { text-align: left; }
+    p.align-justify, .align-justify p { text-align: justify; }
+    p.align-center, .align-center p { text-align: center; }
+    p.align-right, .align-right p { text-align: right; }
+    p.align-justify, p.align-center, p.align-right { margin-left: auto; margin-right: auto; }
+
+    /* Rendered markdown */
+    code { font-family: 'Courier New', Courier, monospace; font-size: .92em; }
+    pre { width: 100%; max-width: var(--content-w); margin: 1rem auto; padding: .75rem 1rem; overflow-x: auto; text-align: left;
+      border: 1px solid var(--text); background: #efeade; }
+    pre code { font-size: .88em; line-height: 1.5; }
+    mark { background: #ffe97a; color: inherit; }
+    del { text-decoration: line-through; }
+    hr { border: 0; border-top: 1px dotted var(--text); width: 100%; max-width: var(--content-w); margin: 1.2rem auto; display: block; }
+    blockquote { width: 100%; max-width: var(--content-w); box-sizing: border-box; margin: 1rem auto; padding: .2rem 0 .2rem 1rem;
+      border-left: 3px solid var(--text); text-align: left; font-style: italic; }
+    blockquote.quote-2 { margin-left: auto; padding-left: 2rem; border-left: 1px dotted var(--text); }
+    blockquote.quote-3 { margin-left: auto; padding-left: 3rem; border-left: 1px dotted var(--text); }
+    .math { font-family: 'Times New Roman', Times, serif; font-style: italic; white-space: nowrap; }
+    .math-block { display: block; text-align: center; font-family: 'Times New Roman', Times, serif; font-style: italic; margin: .8rem 0; }
+    main img, .text-viewer img { max-width: 100%; height: auto; }
+    .task { list-style: none; margin-left: -1.2rem; }
+    .task input { margin-right: .4rem; }
+
+    main ul, main ol { width: 100%; max-width: var(--content-w); margin: .5rem auto 1rem; padding-left: 1.5rem; text-align: left; }
+    main li { margin: .15rem 0; }
+    main li > ul, main li > ol { margin: .2rem 0 .2rem 0; }
+
+    /* Tables size to their content and sit on the left edge of the column, the
+       way a printed table does - not stretched across the full measure. */
+    table { width: auto; max-width: var(--content-w); margin: 1rem auto 1rem 0; border-collapse: collapse; text-align: left; table-layout: auto; }
+    th, td { padding: .3rem .9rem .3rem 0; border-bottom: 1px dotted var(--text); vertical-align: top; text-align: left; }
+    th { border-bottom: 1px solid var(--text); font-weight: bold; }
+    .ta-center { text-align: center; }
+    .ta-right { text-align: right; padding-right: 0; }
     @media (max-width: 40rem) {
       table, thead, tbody, tr, td { display: block; width: 100%; }
       thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -264,127 +296,9 @@ function layout(title, body, currentPath = '/', tags = []) {
     .visit-counter { display: flex; align-items: center; justify-content: center; gap: .35rem; min-height: 22px; margin-top: .75rem; font-size: .85rem; line-height: 1; color: var(--muted); }
     .visit-counter img { display: block; height: 22px; width: auto; image-rendering: pixelated; }
 
-    /* =======================================================================
-       SECTION LAYOUTS
-       Archive pages share a small typographic vocabulary rather than a common
-       template: a left-aligned column, a small caps-ish label, an index of
-       numbered rows and a muted meta line. Each section then composes those
-       pieces in its own arrangement so no two pages read the same.
-       ====================================================================== */
-    .section { max-width: var(--content-w); margin: 0 auto 1rem; text-align: left; }
-    /* main is centred by default; archive content is always flush left. */
-    .section *, .collection * { text-align: left; }
-    .section-intro { max-width: 62ch; margin: 0 0 2rem; }
-    .section-intro p { margin: 0 0 .6rem; }
-    .section-label { display: block; margin: 0 0 .5rem; font-size: .68rem; letter-spacing: .22em; text-transform: uppercase; color: var(--exec); }
-    .section-title { margin: 0 0 .35rem; font-size: 1.55rem; font-weight: bold; line-height: 1.15; text-align: left; }
-    .section-dek { margin: 0; max-width: 58ch; font-size: .9rem; color: var(--muted); }
-    .section-count { display: block; margin-top: .55rem; font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--exec); }
-    .rule { border: 0; border-top: 1px dotted var(--text); margin: 0 0 .2rem; display: block; }
-
-    /* Index rows: number | title | meta. Used by tags, articles, readings. */
-    .index { margin: 0; padding: 0; list-style: none; counter-reset: idx; }
-    .index > li { display: grid; grid-template-columns: 2.6rem minmax(0, 1fr) auto;
-      align-items: baseline; gap: 0 .9rem; padding: .55rem 0; border-bottom: 1px dotted var(--text); }
-    .index > li:first-child { border-top: 1px solid var(--text); }
-    .index-num { font-size: .74rem; color: var(--exec); letter-spacing: .08em; text-align: right; font-variant-numeric: tabular-nums; }
-    .index-title { font-size: 1rem; line-height: 1.35; }
-    .index-title a { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .18em; }
-    .index-desc { display: block; margin-top: .1rem; font-size: .82rem; color: var(--muted); }
-    .index-meta { font-size: .74rem; color: var(--exec); white-space: nowrap; letter-spacing: .04em; font-variant-numeric: tabular-nums; }
-    .index-foot { margin: .9rem 0 0; font-size: .74rem; letter-spacing: .1em; text-transform: uppercase; color: var(--exec); }
-
-    /* Tags: a dense subject index, two columns on wide screens. */
-    .tag-index { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 2.5rem; margin: 0; padding: 0; list-style: none;
-      border-top: 1px solid var(--text); }
-    .tag-index > li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: .75rem;
-      padding: .6rem 0; border-bottom: 1px dotted var(--text); }
-    .tag-index .tag-name { font-size: 1rem; }
-    .tag-index .tag-count { font-size: .74rem; color: var(--exec); white-space: nowrap; font-variant-numeric: tabular-nums; letter-spacing: .04em; }
-
-    /* Articles: a featured slot above a numbered archive. */
-    .feature { margin: 0 0 2.4rem; padding: 0 0 1.4rem; border-bottom: 1px solid var(--text); }
-    .feature-label { display: block; margin-bottom: .45rem; font-size: .66rem; letter-spacing: .24em; text-transform: uppercase; color: var(--exec); }
-    .feature-title { margin: 0 0 .4rem; font-size: clamp(1.5rem, 3.2vw, 2.05rem); line-height: 1.15; text-align: left; }
-    .feature-title a { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .16em; }
-    .feature-desc { margin: 0 0 .55rem; max-width: 56ch; font-size: .92rem; color: var(--muted); }
-    .feature-meta { font-size: .74rem; color: var(--exec); letter-spacing: .06em; text-transform: uppercase; }
-    .archive-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
-      padding-bottom: .35rem; margin-bottom: 0; border-bottom: 1px solid var(--text); }
-    .archive-head span { font-size: .68rem; letter-spacing: .2em; text-transform: uppercase; color: var(--exec); }
-
-    /* Journal: year index, month grid, and a monochrome activity calendar. */
-    .year-head { display: flex; align-items: baseline; gap: 1rem; margin-bottom: 1.6rem; padding-bottom: .5rem; border-bottom: 1px solid var(--text); }
-    .year-num { font-size: 2rem; line-height: 1; font-weight: bold; letter-spacing: .02em; }
-    .year-meta { font-size: .74rem; letter-spacing: .12em; text-transform: uppercase; color: var(--exec); }
-    .month-index { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 2.5rem; margin: 0 0 2.4rem; padding: 0; list-style: none; }
-    .month-index > li { display: grid; grid-template-columns: 4.6rem minmax(0, 1fr) auto; align-items: baseline; gap: .6rem;
-      padding: .5rem 0; border-bottom: 1px dotted var(--text); }
-    .month-name { font-size: .95rem; }
-    .month-bar { height: 6px; align-self: center; background: repeating-linear-gradient(to right, var(--text) 0 2px, transparent 2px 4px); opacity: .35; }
-    .month-count { font-size: .74rem; color: var(--exec); white-space: nowrap; font-variant-numeric: tabular-nums; }
-
-    /* Writing-activity calendar: one cell per day, filled where an entry exists. */
-    .activity { margin: 0 0 .6rem; }
-    .activity-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: .6rem; }
-    .activity-head span { font-size: .68rem; letter-spacing: .2em; text-transform: uppercase; color: var(--exec); }
-    /* 6 months per row on desktop so each day cell stays large enough to see. */
-    .activity-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1rem 1.6rem; }
-    .activity-month { display: grid; gap: .3rem; }
-    .activity-month-label { font-size: .64rem; letter-spacing: .12em; color: var(--exec); text-transform: uppercase; }
-    .activity-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; max-width: 12rem; }
-    .activity-day { aspect-ratio: 1; min-width: 8px; border: 1px solid rgba(17,17,17,.22); }
-    .activity-day.is-empty { border-style: dotted; }
-    .activity-day.is-written { background: var(--text); border-color: var(--text); }
-    .activity-legend { margin: .5rem 0 0; font-size: .66rem; letter-spacing: .08em; text-transform: uppercase; color: var(--exec); }
-
-    /* Journal entries in a month: date as an understated gutter, text prominent. */
-    .entry-list { margin: 0; padding: 0; list-style: none; }
-    .entry { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 1.5rem;
-      padding: 1.1rem 0; border-bottom: 1px dotted var(--text); }
-    .entry:first-child { border-top: 1px solid var(--text); }
-    .entry-date { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--exec); white-space: nowrap; }
-    .entry-weekday { display: block; margin-top: .15rem; font-size: .66rem; color: var(--muted); text-transform: none; letter-spacing: .02em; }
-    .entry-body { min-width: 0; font-size: 1rem; line-height: 1.65; }
-    .entry-body p { margin: 0 0 .6rem; }
-    .entry-body p:last-child { margin-bottom: 0; }
-    .entry-body h1, .entry-body h2, .entry-body h3 { margin: 0 0 .4rem; font-size: 1rem; text-align: left; }
-    .entry-body ul, .entry-body ol { margin: .4rem 0 .6rem; padding-left: 1.35rem; }
-    .entry-body li { margin: .2rem 0; }
-    .entry-body li::marker { color: var(--exec); }
-    .entry-heading { margin: 0 0 .35rem; font-weight: bold; }
-    .entry-empty { margin: 0; font-size: .85rem; color: var(--muted); }
-
-    /* Readings: a research catalogue, recent additions first. */
-    .catalogue { margin: 0 0 2.6rem; }
-    .recent-list { margin: 0; padding: 0; list-style: none; }
-    .recent-list > li { padding: .6rem 0; border-bottom: 1px dotted var(--text); display: grid; grid-template-columns: minmax(0,1fr) auto; gap: .75rem; align-items: baseline; }
-    .recent-list > li:first-child { border-top: 1px solid var(--text); }
-    .subject-list { margin: 0; padding: 0; list-style: none; }
-    .subject-list > li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 1rem;
-      padding: .65rem 0; border-bottom: 1px dotted var(--text); }
-    .subject-list > li:first-child { border-top: 1px solid var(--text); }
-    .subject-title { font-size: 1rem; }
-    .subject-count { font-size: .74rem; color: var(--exec); white-space: nowrap; font-variant-numeric: tabular-nums; letter-spacing: .04em; }
-
-    /* What's Bad About: an editorial collection with its own masthead. */
-    .collection { max-width: 68ch; margin: 0 auto 3rem; text-align: left; }
-    .collection-mast { margin: 0 0 2rem; padding: 1.1rem 0 1.2rem; border-top: 3px double var(--text); border-bottom: 1px solid var(--text); }
-    .collection-kicker { display: block; font-size: .66rem; letter-spacing: .26em; text-transform: uppercase; color: var(--exec); margin-bottom: .45rem; }
-    .collection-title { margin: 0; font-size: clamp(1.6rem, 3.6vw, 2.2rem); line-height: 1.1; text-align: left; }
-    .collection-dek { margin: .55rem 0 0; max-width: 54ch; font-size: .9rem; color: var(--muted); }
-    .collection-list { margin: 0; padding: 0; list-style: none; counter-reset: coll; }
-    .collection-list > li { counter-increment: coll; display: grid; grid-template-columns: 2.2rem minmax(0,1fr); gap: 1rem;
-      padding: .85rem 0; border-bottom: 1px dotted var(--text); }
-    .collection-list > li:first-child { border-top: 1px solid var(--text); }
-    .collection-list > li::before { content: counter(coll, upper-roman); font-size: .72rem; color: var(--exec); letter-spacing: .08em; }
-    .collection-entry-title { font-size: 1.02rem; }
-
-    /* Section rules collapse to one column on narrow screens. */
-    @media (max-width: 54rem) {
-      .tag-index, .month-index { grid-template-columns: minmax(0, 1fr); }
-      .activity-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .8rem 1rem; }
-    }
+    /* One column for every page. Sections inherit this and add nothing. */
+    .section { width: 100%; max-width: var(--content-w); margin: 0 auto .75rem; text-align: left; }
+    .collection { width: 100%; max-width: var(--content-w); margin: 0 auto .75rem; text-align: left; }
     @media (max-width: 40rem) {
       /* Phone: three months per row keeps the day squares about 6px, readable
          without turning the calendar into a wall of squares. */
@@ -476,7 +390,6 @@ function layout(title, body, currentPath = '/', tags = []) {
     <div class="header-rule" aria-hidden="true"></div>
   </header>
   <main id="main-content">${breadcrumbs}${renderTagLinks(tags)}${body}</main>
-  <hr>
   <footer>
     <div class="footer-rule" aria-hidden="true"></div>
     <div class="footer-meta">
@@ -655,27 +568,7 @@ function isMusicFile(fileName, relativePath) {
   return relativePath === 'music.md' || fileName.toLowerCase() === 'music.md' && relativePath === 'music.md';
 }
 
-function journalEntrySort(a, b) {
-  if (a.isDirectory() !== b.isDirectory()) return a.isDirectory() ? -1 : 1;
-  const aDate = a.name.match(/^(\d{2})-(\d{2})-(\d{4})\.md$/i);
-  const bDate = b.name.match(/^(\d{2})-(\d{2})-(\d{4})\.md$/i);
-  if (aDate && bDate) {
-    return `${aDate[3]}-${aDate[2]}-${aDate[1]}`.localeCompare(`${bDate[3]}-${bDate[2]}-${bDate[1]}`);
-  }
-  if (/^\d{4}$/.test(a.name) && /^\d{4}$/.test(b.name)) return a.name.localeCompare(b.name);
-  const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
-  const aMonth = months.indexOf(a.name.toLowerCase());
-  const bMonth = months.indexOf(b.name.toLowerCase());
-  if (aMonth !== -1 && bMonth !== -1) return aMonth - bMonth;
-  return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-}
 
-function journalFileLabel(fileName) {
-  const date = fileName.match(/^(\d{2})-(\d{2})-(\d{4})\.md$/i);
-  if (!date) return publicLabel(displayName(fileName));
-  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
-    .format(new Date(Date.UTC(Number(date[3]), Number(date[2]) - 1, Number(date[1]))));
-}
 
 function fixedJournalTitle(sourceText, fallback) {
   const line = parseProperties(sourceText).body.split(/\r?\n/)
@@ -692,18 +585,24 @@ function fixedJournalTitle(sourceText, fallback) {
 }
 
 function renderJournalListing(sourceDir, relativeDir) {
-  const entries = fs.readdirSync(sourceDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() || (entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md' && !isHiddenContent(path.join(relativeDir, entry.name))))
-    .sort(journalEntrySort);
+  // Flat list of entries: just the file name, no date parsing, no contents.
+  // Numeric names (days-alive) sort high-first; anything else falls back to A-Z.
+  const entries = sortEntries(fs.readdirSync(sourceDir, { withFileTypes: true }))
+    .filter((entry) => !entry.isDirectory() && entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md' && !isHiddenContent(path.join(relativeDir, entry.name)))
+    .sort((a, b) => {
+      const an = Number(a.name.replace(/\.md$/i, ''));
+      const bn = Number(b.name.replace(/\.md$/i, ''));
+      const aNum = Number.isFinite(an) && /^\d+$/.test(a.name.replace(/\.md$/i, ''));
+      const bNum = Number.isFinite(bn) && /^\d+$/.test(b.name.replace(/\.md$/i, ''));
+      if (aNum && bNum) return bn - an;
+      if (aNum !== bNum) return aNum ? -1 : 1;
+      return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+    });
   if (!entries.length) return '<p>No journal entries yet.</p>';
-  const items = entries.map((entry) => {
-    const relativePath = path.join(relativeDir, entry.name);
-    if (entry.isDirectory()) return `<li><a class="DIR" href="${urlPath(relativePath)}/">${escapeHtml(publicLabel(folderDisplayName(entry.name)))}</a></li>`;
-    const destinationName = outputName(entry.name, relativePath);
-    const sourceText = fs.readFileSync(path.join(sourceDir, entry.name), 'utf8');
-    return `<li class="journal-entry"><a class="journal-entry-link EXEC" href="${urlPath(path.join(relativeDir, `${destinationName}.html`))}"><span class="journal-entry-title">${escapeHtml(fixedJournalTitle(sourceText, journalFileLabel(entry.name)))}</span><span class="journal-entry-date">${escapeHtml(journalFileLabel(entry.name))}</span></a></li>`;
-  });
-  return `<ul class="journal-list">${items.join('')}</ul>`;
+  const items = entries
+    .map((entry) => `<li><a href="${urlPath(path.join(relativeDir, outputName(entry.name, path.join(relativeDir, entry.name))))}">${escapeHtml(displayName(entry.name))}</a></li>`)
+    .join('');
+  return `<h2>Journal</h2><ul class="journal-list">${items}</ul>`;
 }
 
 function renderMusicPage(sourceText) {
@@ -985,6 +884,22 @@ function sortListItems(items, listType) {
   return items.sort((a, b) => listSortText(a.text).localeCompare(listSortText(b.text), undefined, { sensitivity: 'base' }));
 }
 
+// ---------------------------------------------------------------------------
+// Markdown engine
+//
+// A block parser (headings, lists, checklists, quotes, rules, code fences,
+// tables, alignment markers, paragraphs) driving an inline parser (emphasis,
+// strikethrough, code, highlight, links, images, autolinks, math, escapes).
+//
+// Everything is escaped up front, so raw HTML in a note is inert except for the
+// small allowlist of tags handled here (<u>, <br>, and the alignment wrappers).
+// ---------------------------------------------------------------------------
+
+// Opening and closing alignment wrappers, each on its own line. A closing tag
+// simply resets alignment; it is never emitted as text.
+const ALIGN_OPEN = /^<(justify|center|centre|right)>\s*$/i;
+const ALIGN_CLOSE = /^<\/(justify|center|centre|right)>\s*$/i;
+
 function isTableRow(line) {
   return /^\s*\|?.+\|.+\|?\s*$/.test(line);
 }
@@ -994,123 +909,334 @@ function isTableDivider(line) {
 }
 
 function tableCells(line) {
-  return line.trim().replace(/^\||\|$/g, '').split('|').map((cell) => cell.trim());
+  return line.trim().replace(/^\||\|$/g, '').split(/(?<!\\)\|/).map((cell) => cell.replace(/\\\|/g, '|').trim());
+}
+
+// Alignment for each column, from the :--- / :---: / ---: divider row.
+function tableAlignments(divider) {
+  return tableCells(divider).map((cell) => {
+    const left = cell.startsWith(':');
+    const right = cell.endsWith(':');
+    if (left && right) return 'center';
+    if (right) return 'right';
+    return 'left';
+  });
 }
 
 // Header text as it should appear in a data-label: no markdown syntax, no tags.
 function plainCell(cell) {
   return cell
     .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replace(/[*_`~]/g, '')
+    .replace(/[*_`~=]/g, '')
     .trim();
+}
+
+// Splits a fenced code block opening (``` or ~~~) into language and fence.
+function codeFence(line) {
+  const match = line.match(/^\s*(`{3,}|~{3,})\s*([\w+#.-]*)\s*$/);
+  if (!match) return null;
+  return { fence: match[1], lang: match[2] || '' };
+}
+
+function indentWidth(line) {
+  const match = line.match(/^[ \t]*/)[0];
+  return match.replace(/\t/g, '    ').length;
+}
+
+// List item: bullet or ordered, with nesting depth from leading spaces.
+function listItemMatch(line) {
+  const match = line.match(/^([ \t]*)([-*+]|\d{1,9}[.)])\s+(.*)$/);
+  if (!match) return null;
+  const depth = Math.floor(match[1].replace(/\t/g, '    ').length / 2);
+  const ordered = /\d/.test(match[2]);
+  let text = match[3];
+  let checked = null;
+  const task = text.match(/^\[([ xX])\]\s+(.*)$/);
+  if (task) {
+    checked = task[1].toLowerCase() === 'x';
+    text = task[2];
+  }
+  return { depth, ordered, text, checked };
+}
+
+// Renders a flat item list (each with a depth) into properly nested HTML.
+// A stack keeps one <li> open at each level; a deeper item opens a new list
+// inside the current <li>, a shallower one closes back up to its level.
+function renderListTree(items, relativeDir) {
+  if (!items.length) return '';
+  let html = '';
+  const open = []; // { tag } for each currently open list
+
+  const closeToList = (depth) => {
+    while (open.length > depth) html += `</li></${open.pop().tag}>`;
+  };
+
+  for (const item of items) {
+    const tag = item.ordered ? 'ol' : 'ul';
+    if (open.length === 0) {
+      html += `<${tag}>`;
+      open.push({ tag });
+    } else if (item.depth > open.length - 1) {
+      // Nest inside the still-open parent <li>.
+      while (open.length - 1 < item.depth) {
+        html += `<${tag}>`;
+        open.push({ tag });
+      }
+    } else {
+      closeToList(item.depth + 1);
+      if (open.length === 0) {
+        html += `<${tag}>`;
+        open.push({ tag });
+      } else if (open[open.length - 1].tag !== tag) {
+        html += `</li></${open.pop().tag}><${tag}>`;
+        open.push({ tag });
+      } else {
+        html += '</li>';
+      }
+    }
+    const box = item.checked === null ? '' : `<input type="checkbox" disabled${item.checked ? ' checked' : ''}> `;
+    const cls = item.checked === null ? '' : ' class="task"';
+    html += `<li${cls}>${box}${inlineMarkdown(item.text, relativeDir)}`;
+  }
+  while (open.length) html += `</li></${open.pop().tag}>`;
+  return html;
 }
 
 function markdownToHtml(value, relativeDir = '') {
   const lines = value.split(/\r?\n/);
   const output = [];
   let paragraph = [];
-  let listType = null;
-  let listItems = [];
-  let tableRows = null;
+  let alignment = null;
+  let listBuffer = [];
+  let inList = false;
 
   const flushParagraph = () => {
     if (!paragraph.length) return;
-    output.push(`<p>${inlineMarkdown(paragraph.join(' '), relativeDir)}</p>`);
+    const text = paragraph.join(' ');
+    const cls = alignment ? ` class="align-${alignment}"` : '';
+    output.push(`<p${cls}>${inlineMarkdown(text, relativeDir)}</p>`);
     paragraph = [];
-  };
-  const closeList = () => {
-    if (!listType) return;
-    for (const item of sortListItems(listItems, listType)) output.push(`<li>${inlineMarkdown(item.text, relativeDir)}</li>`);
-    output.push(`</${listType}>`);
-    listType = null;
-    listItems = [];
-  };
-  const closeTable = () => {
-    if (!tableRows) return;
-    const [header, ...rows] = tableRows;
-    output.push(`<table><thead><tr>${header.map((cell) => `<th>${inlineMarkdown(cell, relativeDir)}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((cell, index) => `<td data-label="${escapeHtml(plainCell(header[index] ?? ''))}">${inlineMarkdown(cell, relativeDir)}</td>`).join('')}</tr>`).join('')}</tbody></table>`);
-    tableRows = null;
+    alignment = null;
   };
 
-  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
-    const line = lines[lineIndex];
-    if (tableRows && isTableRow(line)) {
-      tableRows.push(tableCells(line));
+  const flushList = () => {
+    if (!inList) return;
+    output.push(renderListTree(listBuffer, relativeDir));
+    listBuffer = [];
+    inList = false;
+  };
+
+  const flushAll = () => {
+    flushParagraph();
+    flushList();
+  };
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    const next = lines[i + 1] || '';
+
+    // Fenced code block: consume verbatim until the matching fence.
+    const fence = codeFence(line);
+    if (fence) {
+      flushAll();
+      const body = [];
+      let j = i + 1;
+      while (j < lines.length && !new RegExp(`^\\s*${fence.fence[0]}{${fence.fence.length},}\\s*$`).test(lines[j])) {
+        body.push(lines[j]);
+        j += 1;
+      }
+      const langAttr = fence.lang ? ` class="language-${escapeAttr(fence.lang)}"` : '';
+      output.push(`<pre><code${langAttr}>${escapeHtml(body.join('\n'))}</code></pre>`);
+      i = j;
       continue;
     }
-    if (!tableRows && isTableRow(line) && isTableDivider(lines[lineIndex + 1] || '')) {
-      flushParagraph();
-      closeList();
-      tableRows = [tableCells(line)];
-      lineIndex += 1;
+
+    // Alignment wrapper: either on its own line (applies to the next block) or
+    // wrapping a paragraph inline, as in <justify>text</justify>.
+    const inlineWrap = line.match(/^\s*<(justify|center|centre|right)>([\s\S]*?)<\/\1>\s*$/i);
+    if (inlineWrap) {
+      flushAll();
+      const kind = inlineWrap[1].toLowerCase() === 'centre' ? 'center' : inlineWrap[1].toLowerCase();
+      output.push(`<p class="align-${kind}">${inlineMarkdown(inlineWrap[2].trim(), relativeDir)}</p>`);
       continue;
     }
-    if (tableRows) closeTable();
+    const alignMatch = line.trim().match(ALIGN_OPEN);
+    if (alignMatch) {
+      flushAll();
+      const kind = alignMatch[1].toLowerCase();
+      alignment = kind === 'centre' ? 'center' : kind;
+      continue;
+    }
+    if (ALIGN_CLOSE.test(line.trim())) {
+      flushAll();
+      alignment = null;
+      continue;
+    }
+
+    // Thematic break.
+    if (/^\s{0,3}([-*_])(?:\s*\1){2,}\s*$/.test(line)) {
+      flushAll();
+      output.push('<hr>');
+      continue;
+    }
+
+    // Table: a row followed by a divider row.
+    if (isTableRow(line) && isTableDivider(next)) {
+      flushAll();
+      alignment = null;
+      const header = tableCells(line);
+      const aligns = tableAlignments(next);
+      const rows = [];
+      let j = i + 2;
+      while (j < lines.length && isTableRow(lines[j])) {
+        rows.push(tableCells(lines[j]));
+        j += 1;
+      }
+      const cellAlign = (index) => aligns[index] && aligns[index] !== 'left' ? ` class="ta-${aligns[index]}"` : '';
+      const head = header.map((cell, index) => `<th${cellAlign(index)}>${inlineMarkdown(cell, relativeDir)}</th>`).join('');
+      const body = rows.map((row) => `<tr>${row.map((cell, index) => `<td${cellAlign(index)} data-label="${escapeAttr(plainCell(header[index] ?? ''))}">${inlineMarkdown(cell, relativeDir)}</td>`).join('')}</tr>`).join('');
+      output.push(`<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`);
+      i = j - 1;
+      continue;
+    }
+
+    // Blank line closes a paragraph or list.
     if (!line.trim()) {
-      const nextLine = lines[lineIndex + 1] || '';
-      if (listType && /^\s*(?:[-*+]\s+|\d+[.)]\s+)/.test(nextLine)) continue;
-      flushParagraph();
-      closeList();
+      // A blank line inside a list followed by another item keeps the list open.
+      if (inList && listItemMatch(next)) continue;
+      flushAll();
       continue;
     }
-    if (/^[-*+]\s*$/.test(line)) continue;
-    const heading = line.match(/^(#{1,6})\s+(.+)$/);
-    const listItem = line.match(/^[-*+]\s+(.+)$/);
-    const orderedItem = line.match(/^\d+[.)]\s+(.+)$/);
-    const quote = line.match(/^>\s?(.+)$/);
+
+    // Heading.
+    const heading = line.match(/^(#{1,6})\s+(.+?)\s*#*\s*$/);
     if (heading) {
-      flushParagraph();
-      closeList();
+      flushAll();
       const level = heading[1].length;
       output.push(`<h${level}>${inlineMarkdown(heading[2], relativeDir)}</h${level}>`);
-    } else if (listItem || orderedItem) {
-      flushParagraph();
-      const nextListType = orderedItem ? 'ol' : 'ul';
-      if (listType !== nextListType) {
-        closeList();
-        output.push(`<${nextListType}>`);
-        listType = nextListType;
-      }
-      listItems.push({
-        text: (listItem || orderedItem)[1],
-        number: orderedItem ? Number(orderedItem[0].match(/^\d+/)[0]) : 0,
-      });
-    } else if (quote) {
-      flushParagraph();
-      closeList();
-      output.push(`<blockquote>${inlineMarkdown(quote[1], relativeDir)}</blockquote>`);
-    } else {
-      closeList();
-      paragraph.push(line);
+      continue;
     }
+
+    // Blockquote (nested: >> and >>>).
+    const quote = line.match(/^\s*(>{1,})\s?(.*)$/);
+    if (quote) {
+      flushAll();
+      const depth = quote[1].length;
+      output.push(`<blockquote${depth > 1 ? ` class="quote-${Math.min(depth, 3)}"` : ''}>${inlineMarkdown(quote[2], relativeDir)}</blockquote>`);
+      continue;
+    }
+
+    // List item (bullet, ordered, or task).
+    const item = listItemMatch(line);
+    if (item) {
+      flushParagraph();
+      inList = true;
+      listBuffer.push(item);
+      continue;
+    }
+
+    // Continuation of the previous paragraph.
+    if (inList && indentWidth(line) > 0) {
+      listBuffer[listBuffer.length - 1].text += ` ${line.trim()}`;
+      continue;
+    }
+
+    // Plain paragraph text.
+    flushList();
+    paragraph.push(line.trim());
   }
-  flushParagraph();
-  closeList();
-  closeTable();
+
+  flushAll();
   return output.join('\n');
 }
 
+// Inline formatting. Escapes first; placeholders protect code spans so their
+// contents are never treated as markdown.
 function inlineMarkdown(value, relativeDir = '') {
-  const html = escapeHtml(value)
+  const codeSpans = [];
+  let text = escapeHtml(value);
+
+  // Escaped punctuation first: swap \* for a placeholder that no formatting
+  // rule can match, so it survives emphasis parsing and is restored at the end.
+  const escaped = [];
+  text = text.replace(/\\([\\`*_{}[\]()#+\-.!|~=$>])/g, (_, char) => {
+    escaped.push(char);
+    return `\u0001${escaped.length - 1}\u0001`;
+  });
+
+  // Inline code: capture with a sentinel so emphasis inside it is left alone.
+  text = text.replace(/(`+)([\s\S]*?)\1/g, (_, _ticks, code) => {
+    codeSpans.push(`<code>${code.trim()}</code>`);
+    return `\u0000${codeSpans.length - 1}\u0000`;
+  });
+
+  // Images before links (they share bracket syntax).
+  text = text.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;([^&]*)&quot;)?\)/g, (_, alt, src, title) => {
+    const t = title ? ` title="${title}"` : '';
+    return `<img src="${src}" alt="${alt}"${t} loading="lazy" decoding="async">`;
+  });
+
+  // Wikilinks, then standard links.
+  text = text.replace(/\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]/g, (_, target, label) => {
+    const href = resolveContentLink(target.trim(), relativeDir);
+    return anchor(href, label ? escapeHtml(label.trim()) : escapeHtml(target.trim()));
+  });
+  text = text.replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+&quot;([^&]*)&quot;)?\)/g, (_, label, href, title) => {
+    const hrefAttr = resolveMarkdownLink(href, relativeDir);
+    const extra = title ? ` title="${title}"` : '';
+    return anchor(hrefAttr, label, extra);
+  });
+
+  // Emphasis. Order matters: bold-italic, bold, italic, strike, highlight.
+  text = text
+    .replace(/\*\*\*(?=\S)([\s\S]*?\S)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/___(?=\S)([\s\S]*?\S)___/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(?=\S)([\s\S]*?\S)\*\*/g, '<strong>$1</strong>')
+    .replace(/__(?=\S)([\s\S]*?\S)__/g, '<strong>$1</strong>')
+    .replace(/(?<![\w*])\*(?=\S)([^*\n]*?\S)\*(?![\w*])/g, '<em>$1</em>')
+    .replace(/(?<![\w_])_(?=\S)([^_\n]*?\S)_(?![\w_])/g, '<em>$1</em>')
+    .replace(/~~(?=\S)([\s\S]*?\S)~~/g, '<del>$1</del>')
+    .replace(/==(?=\S)([\s\S]*?\S)==/g, '<mark>$1</mark>');
+
+  // Math: block markers inline become display spans, then inline math.
+  text = text
+    .replace(/\$\$([\s\S]+?)\$\$/g, '<span class="math-block">$1</span>')
+    .replace(/(?<![\\$])\$([^$\n]+?)\$(?!\d)/g, '<span class="math">$1</span>');
+
+  // Subscript and superscript, after math so H_2O and x^2 read correctly.
+  text = text
+    .replace(/(?<![\\\w])_\{([^}]{1,20})\}/g, '<sub>$1</sub>')
+    .replace(/(?<![\\\w])_([A-Za-z0-9]{1,3})(?![\w{])/g, '<sub>$1</sub>')
+    .replace(/\^\{([^}]{1,20})\}/g, '<sup>$1</sup>')
+    .replace(/\^([A-Za-z0-9]{1,3})(?![\w{])/g, '<sup>$1</sup>');
+
+  // LaTeX-ish commands inside math spans become readable text.
+  text = text
+    .replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '($1)/($2)')
+    .replace(/\\sqrt\{([^{}]+)\}/g, '\u221a($1)');
+
+  // Escaped punctuation: restore the literal character.
+  text = text.replace(/\u0001(\d+)\u0001/g, (_, index) => escapeHtml(escaped[Number(index)]));
+
+  // Allowlisted raw HTML: <u>, <br> (already escaped, so they arrive as entities).
+  text = text
     .replace(/&lt;br\s*\/?&gt;/gi, '<br>')
-    .replace(/\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]/g, (_, target, label) => {
-      const href = resolveContentLink(target.trim(), relativeDir);
-      return anchor(href, label ? escapeHtml(label.trim()) : escapeHtml(target.trim()));
-    })
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, href) => anchor(resolveMarkdownLink(href, relativeDir), label))
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>');
-  return linkifyBareUrls(html);
+    .replace(/&lt;u&gt;/gi, '<u>')
+    .replace(/&lt;\/u&gt;/gi, '</u>');
+
+  text = linkifyBareUrls(text);
+
+  // Put code spans back last so nothing above could have altered them.
+  text = text.replace(/\u0000(\d+)\u0000/g, (_, index) => codeSpans[Number(index)]);
+  return text;
 }
 
-// Turns plain http(s):// URLs into links. Runs last, on already-escaped HTML, so
-// URLs inside existing anchor text or href attributes are left untouched and
-// markdown links are never nested inside a second anchor.
+// Turns plain http(s):// URLs into links. Runs on already-escaped HTML, so URLs
+// inside existing anchors or attributes are untouched and links never nest.
 function linkifyBareUrls(html) {
   return html
-    .split(/(<a\b[^>]*>.*?<\/a>)/g)
-    .map((part) => (part.startsWith('<a') ? part : part.replace(/https?:\/\/[^\s<]+/g, (url) => {
+    .split(/(<a\b[^>]*>[\s\S]*?<\/a>|<code>[\s\S]*?<\/code>)/g)
+    .map((part) => (part.startsWith('<a') || part.startsWith('<code>') ? part : part.replace(/https?:\/\/[^\s<]+/g, (url) => {
       const trimmed = url.replace(/[.,;:!?)\]}]+$/, '');
       const trailing = url.slice(trimmed.length);
       return `<a href="${trimmed}" target="_blank" rel="noopener noreferrer">${trimmed}</a>${trailing}`;
@@ -1266,7 +1392,7 @@ function buildFolder(sourceDir, relativeDir = '') {
   const currentPath = relativeDir ? `${urlPath(relativeDir)}/` : '/';
   // Section renderers supply their own header and intro, so no outer heading is
   // added for them. Generic folders still get the plain title.
-  const sectionOwnsHeader = isArticlesPath(relativeDir) || isBadAboutPath(relativeDir);
+  const sectionOwnsHeader = isArticlesPath(relativeDir) || isBadAboutPath(relativeDir) || isJournalPath(relativeDir);
   const pageBody = sectionOwnsHeader
     ? `${folderDescription}${listing}`
     : `${folderDescription}<h2>${escapeHtml(publicLabel(folderDisplayName(title)))}</h2>${listing}`;
@@ -1329,3 +1455,6 @@ fs.writeFileSync(path.join(fileTreeDir, 'index.html'), layout('File Tree', `<h2>
 fs.writeFileSync(path.join(outputRoot, '404.html'), layout('Page not found', '<h2>Page not found</h2><p><a href="/">Return home</a> or <a href="/file-tree/">browse the File Tree</a>.</p>', ''));
 
 console.log(`Built ${outputRoot}`);
+
+// Exported so the markdown engine can be unit-tested without running a build.
+if (require.main !== module) module.exports = { markdownToHtml, inlineMarkdown };
