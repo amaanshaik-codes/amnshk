@@ -850,9 +850,7 @@ function renderHomeCategories() {
     const linkPath = isTextOutput(entry.name, relativePath) ? `${destinationName}.html` : destinationName;
     return `${separator}<a class="category-link" href="${urlPath(linkPath)}">${escapeHtml(publicLabel(displayName(destinationName)))}</a>`;
   }).join('');
-  const badAboutEntry = entries.find((entry) => entry.isDirectory() && isBadAboutPath(entry.name));
-  const badAbout = badAboutEntry ? renderBadAboutLinks(path.join(contentRoot, badAboutEntry.name), badAboutEntry.name) : '';
-  return `${links ? `<h2>Browse</h2><div class="category-links">${links}</div>` : ''}${badAbout}`;
+    return links ? `<h2>Browse</h2><div class="category-links">${links}</div>` : '';
 }
 
 function outputName(fileName, relativePath) {
