@@ -833,13 +833,26 @@ function renderTaggedNotes(entries, tag) {
 
 
 function renderHomeCategories() {
+  // Everything at the top level of Content/ appears in the Browse box: pages and
+  // folders alike, so anything added to the vault shows up here without a code
+  // change. Welcome.md is the home page itself and is excluded.
   const entries = sortEntries(fs.readdirSync(contentRoot, { withFileTypes: true }))
-    .filter((entry) => entry.isDirectory() || (entry.name.toLowerCase().endsWith('.md') && !['index.md', 'welcome.md'].includes(entry.name.toLowerCase()) && !isHiddenContent(entry.name)));
+    .filter((entry) => !['index.md', 'welcome.md'].includes(entry.name.toLowerCase()) && !isHiddenContent(entry.name))
+    .filter((entry) => entry.isDirectory() || entry.name.toLowerCase().endsWith('.md'));
   if (!entries.length) return '';
-  // No folder listing on the home page: the nav and the file tree already cover
-  // navigation. Only the special collection keeps its inline line.
+  const links = entries.map((entry, index) => {
+    const separator = index ? '<span class="category-separator" aria-hidden="true"> | </span>' : '';
+    if (entry.isDirectory()) {
+      return `${separator}<a class="category-link" href="${urlPath(entry.name)}/">${escapeHtml(publicLabel(entry.name))}</a>`;
+    }
+    const relativePath = entry.name;
+    const destinationName = outputName(entry.name, relativePath);
+    const linkPath = isTextOutput(entry.name, relativePath) ? `${destinationName}.html` : destinationName;
+    return `${separator}<a class="category-link" href="${urlPath(linkPath)}">${escapeHtml(publicLabel(displayName(destinationName)))}</a>`;
+  }).join('');
   const badAboutEntry = entries.find((entry) => entry.isDirectory() && isBadAboutPath(entry.name));
-  return badAboutEntry ? renderBadAboutLinks(path.join(contentRoot, badAboutEntry.name), badAboutEntry.name) : '';
+  const badAbout = badAboutEntry ? renderBadAboutLinks(path.join(contentRoot, badAboutEntry.name), badAboutEntry.name) : '';
+  return `${links ? `<h2>Browse</h2><div class="category-links">${links}</div>` : ''}${badAbout}`;
 }
 
 function outputName(fileName, relativePath) {
