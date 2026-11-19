@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { dayFromName } = require('./lib/daycount');
 
 const root = __dirname;
 const contentRoot = path.join(root, 'Content');
@@ -92,7 +93,7 @@ function layout(title, body, currentPath = '/', tags = []) {
   <meta property="og:type" content="website">
   <title>${escapeHtml(title)} · AMNSHK</title>
   <style>
-    :root { color-scheme: light; --page-bg: #f4f1e8; --surface: #f4f1e8; --text: #111; --link: blue; --exec: #111; --hover: yellow; --border: transparent; --muted: #333; }
+    :root { color-scheme: light; --page-bg: #fbf9f3; --surface: #fbf9f3; --text: #111; --link: blue; --exec: #111; --hover: yellow; --border: transparent; --muted: #333; }
     /* One column width shared by the masthead, the rule and the ticker, so nothing
        can drift outside the site's content edge. */
     /* One column width shared by masthead, rules and ticker. A fixed rem length,
@@ -101,6 +102,8 @@ function layout(title, body, currentPath = '/', tags = []) {
     :root { --content-w: 52rem; }
     *, *::before, *::after { box-sizing: border-box; }
     body { font-family: "Times New Roman", Times, Georgia, serif; font-size: 17px; line-height: 1.45; color: var(--text); background: var(--surface); margin: 0; padding: 0; }
+    /* Faint paper grain: hairlines of slightly darker cream, no image file. */
+    body { background-image: repeating-linear-gradient(0deg, rgba(0,0,0,.012) 0 1px, transparent 1px 3px); }
     .site-shell { width: auto; max-width: 1100px; min-height: 100dvh; margin: 0 auto; background: var(--surface); }
     @media (min-width: 1101px) { .site-shell { border-left: 1px solid #d9d3c4; border-right: 1px solid #d9d3c4; } }
     header, footer { text-align: center; padding: 1.25rem 1.5rem; }
@@ -179,6 +182,14 @@ function layout(title, body, currentPath = '/', tags = []) {
     pre { max-width: 100%; overflow-x: auto; margin: 1rem auto; text-align: left; width: max-content; }
     .text-viewer { max-width: 88ch; margin: 1rem auto; padding: 0; font-family: inherit; font-size: clamp(1.05rem, 2.5vw, 1.22rem); line-height: 1.8; overflow-wrap: anywhere; text-align: left; }
     .text-viewer p, .text-viewer ul, .text-viewer ol, .text-viewer blockquote { margin: 1rem 0; }
+    /* Book pages: a plain reading column. Prose gets a printed-page indent;
+       short standalone lines (contents, chapter titles) stay flush left. */
+    .book-viewer { width: 100%; max-width: var(--content-w); margin: 1rem auto; padding: 0; text-align: left; font-size: 1.02rem; line-height: 1.7; }
+    .book-viewer p { margin: 0 0 .6rem; text-align: left; text-indent: 0; }
+    .book-viewer p.prose { text-indent: 1.5rem; margin-bottom: .9rem; }
+    .book-viewer p:first-child, .book-viewer p:first-of-type { text-indent: 0; }
+    .book-viewer hr { margin: 1.2rem 0; }
+    .book-viewer h1, .book-viewer h2, .book-viewer h3 { text-indent: 0; margin: 1.4rem 0 .6rem; }
     /* Plain old-school lists: no numbers, no rules, no described rows. */
     .plain-list { width: 100%; max-width: var(--content-w); margin: .4rem auto 1rem; padding: 0 0 0 1.4rem; list-style: disc; text-align: left; }
     .plain-list li { margin: 0; line-height: 1.5; }
@@ -507,29 +518,21 @@ function renderTagLinks(tags) {
 function latestJournalTicker() {
   const journalRoot = path.join(contentRoot, 'journal');
   if (!fs.existsSync(journalRoot)) return '';
-  const files = [];
-  const walk = (directory) => {
-    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-      const filePath = path.join(directory, entry.name);
-      if (entry.isDirectory()) walk(filePath);
-      else if (/^\d{2}-\d{2}-\d{4}\.md$/i.test(entry.name)) files.push(filePath);
-    }
-  };
-  walk(journalRoot);
-  const journalDateKey = (filePath) => {
-    const match = path.basename(filePath).match(/^(\d{2})-(\d{2})-(\d{4})\.md$/i);
-    return match ? `${match[3]}-${match[2]}-${match[1]}` : '';
-  };
-  files.sort((a, b) => journalDateKey(b).localeCompare(journalDateKey(a)));
+  // Entries are named by day-of-life, so the highest number is the newest.
+  const files = fs.readdirSync(journalRoot, { withFileTypes: true })
+    .filter((entry) => !entry.isDirectory() && entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md')
+    .map((entry) => ({ entry, day: dayFromName(entry.name) }))
+    .filter((item) => item.day !== null && fs.readFileSync(path.join(journalRoot, item.entry.name), 'utf8').trim())
+    .sort((a, b) => b.day - a.day);
   if (!files.length) return '';
-  const source = parseProperties(fs.readFileSync(files[0], 'utf8')).body;
+  const source = parseProperties(fs.readFileSync(path.join(journalRoot, files[0].entry.name), 'utf8')).body;
   const preview = source
     .split(/\r?\n/)
-    .map((value) => value.replace(/^\s*[-*+]\s+/, '').replace(/^\s*#{1,6}\s+/, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[*_`>#]/g, '').replace(/\s+/g, ' ').trim())
+    .map((value) => value.replace(/^\s*[-*+]\s+/, '').replace(/^\s*#{1,6}\s+/, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[*_`>#=~]/g, '').replace(/\s+/g, ' ').trim())
     .filter(Boolean)
     .join(' ');
   if (!preview) return '';
-  return `<div class="journal-ticker" aria-label="Latest journal entry"><div class="journal-ticker-track"><span>Latest journal: ${escapeHtml(preview)}</span><span aria-hidden="true">Latest journal: ${escapeHtml(preview)}</span></div></div>`;
+  return `<div class="journal-ticker" aria-label="Latest journal entry"><div class="journal-ticker-track"><span>${escapeHtml(preview)}</span><span aria-hidden="true">${escapeHtml(preview)}</span></div></div>`;
 }
 
 function folderDisplayName(folderName) {
@@ -591,22 +594,20 @@ function fixedJournalTitle(sourceText, fallback) {
 }
 
 function renderJournalListing(sourceDir, relativeDir) {
-  // Flat list of entries: just the file name, no date parsing, no contents.
-  // Numeric names (days-alive) sort high-first; anything else falls back to A-Z.
-  const entries = sortEntries(fs.readdirSync(sourceDir, { withFileTypes: true }))
-    .filter((entry) => !entry.isDirectory() && entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md' && !isHiddenContent(path.join(relativeDir, entry.name)))
-    .sort((a, b) => {
-      const an = Number(a.name.replace(/\.md$/i, ''));
-      const bn = Number(b.name.replace(/\.md$/i, ''));
-      const aNum = Number.isFinite(an) && /^\d+$/.test(a.name.replace(/\.md$/i, ''));
-      const bNum = Number.isFinite(bn) && /^\d+$/.test(b.name.replace(/\.md$/i, ''));
-      if (aNum && bNum) return bn - an;
-      if (aNum !== bNum) return aNum ? -1 : 1;
-      return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
-    });
+  // The label is always the day-of-life number, derived from the entry's date.
+  // A filename that is already a bare number carries no other date, so its number
+  // is used as-is; dated filenames are converted. Nothing is read from the body.
+  const entries = fs.readdirSync(sourceDir, { withFileTypes: true })
+    .filter((entry) => !entry.isDirectory() && entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md')
+    .map((entry) => ({ entry, day: dayFromName(entry.name) }))
+    .filter((item) => item.day !== null)
+    .sort((a, b) => b.day - a.day);
   if (!entries.length) return '<p>No journal entries yet.</p>';
   const items = entries
-    .map((entry) => `<li><a href="${urlPath(path.join(relativeDir, outputName(entry.name, path.join(relativeDir, entry.name))))}">${escapeHtml(displayName(entry.name))}</a></li>`)
+    .map(({ entry, day }) => {
+      const href = urlPath(path.join(relativeDir, outputName(entry.name, path.join(relativeDir, entry.name))));
+      return `<li><a href="${href}">${day}</a></li>`;
+    })
     .join('');
   return `<ul class="journal-list">${items}</ul>`;
 }
@@ -835,18 +836,10 @@ function renderHomeCategories() {
   const entries = sortEntries(fs.readdirSync(contentRoot, { withFileTypes: true }))
     .filter((entry) => entry.isDirectory() || (entry.name.toLowerCase().endsWith('.md') && !['index.md', 'welcome.md'].includes(entry.name.toLowerCase()) && !isHiddenContent(entry.name)));
   if (!entries.length) return '';
+  // No folder listing on the home page: the nav and the file tree already cover
+  // navigation. Only the special collection keeps its inline line.
   const badAboutEntry = entries.find((entry) => entry.isDirectory() && isBadAboutPath(entry.name));
-  const normalEntries = entries.filter((entry) => entry !== badAboutEntry);
-  const links = normalEntries.map((entry, index) => {
-    const relativePath = entry.name;
-    const separator = index ? '<span class="category-separator" aria-hidden="true">|</span>' : '';
-    if (entry.isDirectory()) return `${separator}<a class="category-link DIR" href="${urlPath(relativePath)}/">${escapeHtml(publicLabel(folderDisplayName(entry.name)))}</a>`;
-    const destinationName = outputName(entry.name, relativePath);
-    const linkPath = isTextOutput(entry.name, relativePath) ? `${destinationName}.html` : destinationName;
-    return `${separator}<a class="category-link" href="${urlPath(linkPath)}">${escapeHtml(publicLabel(displayName(destinationName)))}</a>`;
-  }).join('');
-  const badAbout = badAboutEntry ? renderBadAboutLinks(path.join(contentRoot, badAboutEntry.name), badAboutEntry.name) : '';
-  return `${links ? `<h2>Browse</h2><div class="category-links">${links}</div>` : ''}${badAbout}`;
+  return badAboutEntry ? renderBadAboutLinks(path.join(contentRoot, badAboutEntry.name), badAboutEntry.name) : '';
 }
 
 function outputName(fileName, relativePath) {
@@ -884,9 +877,8 @@ function listDateValue(value) {
 }
 
 function sortListItems(items, listType) {
+  // Ordered lists keep the author's numbering; bullets are always A-Z.
   if (listType === 'ol') return items.sort((a, b) => a.number - b.number);
-  const dates = items.map((item) => listDateValue(item.text));
-  if (dates.every(Boolean)) return items.sort((a, b) => listDateValue(a.text).localeCompare(listDateValue(b.text)));
   return items.sort((a, b) => listSortText(a.text).localeCompare(listSortText(b.text), undefined, { sensitivity: 'base' }));
 }
 
@@ -1019,7 +1011,7 @@ function markdownToHtml(value, relativeDir = '') {
   const flushParagraph = () => {
     if (!paragraph.length) return;
     const text = paragraph.join(' ');
-    const cls = alignment ? ` class="align-${alignment}"` : '';
+    const cls = alignment ? ` class="align-${alignment}"` : (text.length > 120 ? ' class="prose"' : '');
     output.push(`<p${cls}>${inlineMarkdown(text, relativeDir)}</p>`);
     paragraph = [];
     alignment = null;
@@ -1079,8 +1071,8 @@ function markdownToHtml(value, relativeDir = '') {
       continue;
     }
 
-    // Thematic break.
-    if (/^\s{0,3}([-*_])(?:\s*\1){2,}\s*$/.test(line)) {
+    // Thematic break (and a plain-text rule of ===, which books use as a divider).
+    if (/^\s{0,3}([-*_])(?:\s*\1){2,}\s*$/.test(line) || /^\s*=+\s*$/.test(line)) {
       flushAll();
       output.push('<hr>');
       continue;
@@ -1374,9 +1366,12 @@ function buildFolder(sourceDir, relativeDir = '') {
       fs.writeFileSync(readerPath, layout(readerTitle, readerBody, urlPath(path.join(relativeDir, destinationName)), note.tags));
     } else {
       const title = markdownTitle(note.body, publicLabel(displayName(entry.name)));
+      const isBookFile = isBooksPath(relativeDir) && !entry.isDirectory();
       const body = isMusicFile(entry.name, relativePath)
         ? renderMusicPage(sourceText)
-        : markdownToHtml(isArticlesPath(relativeDir) ? sortArticleLinks(note.body) : note.body, relativeDir);
+        : isBookFile
+          ? `<article class="book-viewer">${markdownToHtml(note.body, relativeDir)}</article>`
+          : markdownToHtml(isArticlesPath(relativeDir) ? sortArticleLinks(note.body) : note.body, relativeDir);
       fs.writeFileSync(destinationPath, layout(title, body, urlPath(path.join(relativeDir, destinationName)), note.tags));
     }
   }
