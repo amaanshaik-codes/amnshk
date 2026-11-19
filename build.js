@@ -154,7 +154,14 @@ function layout(title, body, currentPath = '/', tags = []) {
     /* Trail centred, Back pinned to the left edge of the content column. */
     .breadcrumbs { position: relative; margin: 1.25rem auto; max-width: var(--content-w); text-align: center; font-size: .85rem;
       letter-spacing: .04em; }
-    .back-link { position: absolute; left: 0; top: 0; white-space: nowrap; color: var(--exec) !important; }
+    .back-link { position: absolute; left: 0; top: 0; white-space: nowrap; color: var(--link) !important; }
+    /* Every link is hypertext blue: internal, external, back, nav, lists. */
+    main a, main a:link, main a:visited, nav a, .breadcrumbs a, .footer-meta a,
+    .journal-list a, .plain-list a, .tag-list a, .books-list a, .folder-list a,
+    .collection a, .back-link { color: var(--link); }
+    main a:hover, nav a:hover, .breadcrumbs a:hover, .journal-list a:hover,
+    .plain-list a:hover, .tag-list a:hover, .books-list a:hover, .folder-list a:hover,
+    .back-link:hover { color: black !important; }
     .back-link:hover { color: black !important; }
     a:link, a:visited { color: var(--link); text-decoration: none; }
     a:hover { color: black !important; text-decoration-line: underline; text-decoration-style: dotted; background-color: var(--hover); }
@@ -177,11 +184,11 @@ function layout(title, body, currentPath = '/', tags = []) {
     .plain-list li { margin: 0; line-height: 1.5; }
     .tag-list { width: 100%; max-width: var(--content-w); margin: .4rem auto 1rem; padding: 0 0 0 1.4rem; list-style: disc; text-align: left; columns: 2 16rem; column-gap: 2.5rem; }
     .tag-list li { margin: 0; line-height: 1.5; break-inside: avoid; }
-    /* Journal: a centred list of entry file names, nothing else. */
-    .journal-list { width: 100%; max-width: var(--content-w); margin: .5rem auto 1rem; padding: 0; list-style: none; text-align: center; }
-    .journal-list li { padding: .1rem 0; line-height: 1.5; }
-    /* Each entry is a centred block so the links line up under the heading. */
-    .journal-list li { display: block; text-align: center; }
+    /* Journal: one flowing run of entry links, descending, spaced by whitespace
+       rather than separators. Wraps naturally at the column edge. */
+    .journal-list { width: 100%; max-width: var(--content-w); margin: .5rem auto 1rem; padding: 0; list-style: none;
+      display: flex; flex-wrap: wrap; justify-content: center; gap: .3rem 1.6rem; text-align: center; }
+    .journal-list li { padding: 0; line-height: 1.6; }
     .journal-list a { font-size: 1rem; }
     .category-links { display: flex; width: 100%; max-width: var(--content-w); margin: 0 auto; box-sizing: border-box; flex-wrap: wrap; align-items: center; justify-content: center; gap: .35rem; padding: .75rem 1rem; border: 1px solid var(--text); }
     .category-link { color: black; font-size: clamp(1rem, 2.5vw, 1.1rem); }
@@ -242,8 +249,7 @@ function layout(title, body, currentPath = '/', tags = []) {
     .book-entry { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
     .book-info { min-width: 0; }
     .books-list a { font-size: 1.05rem; }
-    .read-button { flex: 0 0 auto; padding: .35rem .65rem; color: var(--text) !important; }
-    .read-button:hover { color: black !important; text-decoration-line: underline; text-decoration-style: dotted; background-color: var(--hover); }
+    .read-button { display: none; }
     .book-entry:hover .book-title { text-decoration-line: underline; text-decoration-style: dotted; }
     .books-list .DIR:hover { background-color: var(--hover); }
     .book-title, .book-author { display: block; }
@@ -602,7 +608,7 @@ function renderJournalListing(sourceDir, relativeDir) {
   const items = entries
     .map((entry) => `<li><a href="${urlPath(path.join(relativeDir, outputName(entry.name, path.join(relativeDir, entry.name))))}">${escapeHtml(displayName(entry.name))}</a></li>`)
     .join('');
-  return `<h2>Journal</h2><ul class="journal-list">${items}</ul>`;
+  return `<ul class="journal-list">${items}</ul>`;
 }
 
 function renderMusicPage(sourceText) {
@@ -642,7 +648,7 @@ function renderBooksListing(sourceDir, relativeDir) {
     const title = markdownTitle(note.body, publicLabel(displayName(entry.name)));
     const authorLine = sourceLines.find((line) => /^by\s+/i.test(line));
     const author = authorLine ? authorLine.replace(/^by\s+/i, '') : '';
-    return `<li class="book-entry"><div class="book-info"><span class="book-title">${escapeHtml(title)}</span>${author ? `<span class="book-author">${escapeHtml(author)}</span>` : ''}</div><a class="read-button" href="${urlPath(linkPath)}">Read</a></li>`;
+    return `<li class="book-entry"><div class="book-info"><a class="book-title" href="${urlPath(linkPath)}">${escapeHtml(title)}</a>${author ? `<span class="book-author">${escapeHtml(author)}</span>` : ''}</div></li>`;
   });
   return `<ul class="books-list">${items.join('')}</ul>`;
 }
@@ -703,9 +709,9 @@ function collectArticles(sourceDir, relativeDir) {
 
 function renderArticlesListing(sourceDir, relativeDir) {
   const articles = collectArticles(sourceDir, relativeDir);
-  if (!articles.length) return '<h2>Articles</h2><p>No articles yet.</p>';
+  if (!articles.length) return '<p>No articles yet.</p>';
   const items = articles.map((article) => `<li><a href="${article.href}">${escapeHtml(article.title)}</a></li>`).join('');
-  return `<h2>Articles</h2><ul class="plain-list">${items}</ul>`;
+  return `<ul class="plain-list">${items}</ul>`;
 }
 
 function renderFolderListing(sourceDir, relativeDir) {
@@ -748,9 +754,9 @@ function renderBadAboutLinks(sourceDir, relativeDir) {
 // Collection page: its own masthead, numbered archive, still part of the site.
 function renderBadAboutCollection(sourceDir, relativeDir) {
   const entries = badAboutEntries(sourceDir, relativeDir);
-  if (!entries.length) return `<h2>What&rsquo;s Bad About</h2><p>No entries yet.</p>`;
+  if (!entries.length) return '<p>No entries yet.</p>';
   const rows = entries.map((entry) => `<li><a href="${entry.href}">${escapeHtml(entry.label)}</a></li>`).join('');
-  return `<h2>What&rsquo;s Bad About</h2><ul class="plain-list">${rows}</ul>`;
+  return `<ul class="plain-list">${rows}</ul>`;
 }
 
 function collectTaggedEntries(directory = contentRoot, relativeDir = '') {
@@ -808,11 +814,11 @@ function renderTagIndex(entries) {
     }
   }
   const sortedTags = [...tags.keys()].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
-  if (!sortedTags.length) return '<h2>Tags</h2><p>No tags yet.</p>';
+  if (!sortedTags.length) return '<p>No tags yet.</p>';
   const items = sortedTags
     .map((tag) => `<li><a href="${urlPath(path.join('tags', tagSlug(tag)))}/">${escapeHtml(tag)}</a>(${tags.get(tag).length})</li>`)
     .join('');
-  return `<h2>Tags</h2><ul class="tag-list">${items}</ul>`;
+  return `<ul class="tag-list">${items}</ul>`;
 }
 
 function renderTaggedNotes(entries, tag) {
