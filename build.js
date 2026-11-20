@@ -45,8 +45,26 @@ const availableNavigation = navigation.filter((item) => !item.source || fs.exist
 // unique visits with a salted hash of IP + User-Agent and sets no cookies.
 const GOATCOUNTER_SITE = (process.env.GOATCOUNTER_SITE || 'amnshk').trim().replace(/\.goatcounter\.com\/?$/i, '');
 
+// GoatCounter's pageview script records the visit. It is loaded after the page is
+// idle instead of during it: the script is a third-party round trip (~150-500ms)
+// and nothing on the page waits for it, so holding up navigation for it only made
+// every link feel slow.
 function goatcounterScript() {
-  return `<script data-goatcounter="https://${GOATCOUNTER_SITE}.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>`;
+  return `<script>
+  (function () {
+    function load() {
+      var s = document.createElement('script');
+      s.async = true;
+      s.src = 'https://gc.zgo.at/count.js';
+      s.setAttribute('data-goatcounter', 'https://${GOATCOUNTER_SITE}.goatcounter.com/count');
+      document.body.appendChild(s);
+    }
+    // After everything the reader can see has settled. requestIdleCallback is not
+    // in Safari, so fall back to a timeout.
+    if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout: 2500 });
+    else window.addEventListener('load', function () { setTimeout(load, 400); });
+  })();
+  </script>`;
 }
 
 function escapeHtml(value) {
@@ -61,6 +79,334 @@ function escapeHtml(value) {
 function urlPath(relativePath) {
   return '/' + relativePath.split(path.sep).map(encodeURIComponent).join('/');
 }
+
+const SITE_CSS = `:root { color-scheme: light; --page-bg: #fbf9f3; --surface: #fbf9f3; --text: #111; --link: blue; --exec: #111; --hover: yellow; --border: transparent; --muted: #333; }
+/* One column width shared by the masthead, the rule and the ticker, so nothing
+   can drift outside the site's content edge. */
+/* One column width shared by masthead, rules and ticker. A fixed rem length,
+   not ch: ch resolves against each element's own font-size, so the header and
+   footer rules came out at different widths. */
+:root { --content-w: 52rem; }
+*, *::before, *::after { box-sizing: border-box; }
+body { font-family: "Times New Roman", Times, Georgia, serif; font-size: 17px; line-height: 1.45; color: var(--text); background: var(--surface); margin: 0; padding: 0; }
+/* Faint paper grain: hairlines of slightly darker cream, no image file. */
+body { background-image: repeating-linear-gradient(0deg, rgba(0,0,0,.012) 0 1px, transparent 1px 3px); }
+.site-shell { width: auto; max-width: 1100px; min-height: 100dvh; margin: 0 auto; background: var(--surface); }
+@media (min-width: 1101px) { .site-shell { border-left: 1px solid #d9d3c4; border-right: 1px solid #d9d3c4; } }
+header, footer { text-align: center; padding: 1.25rem 1.5rem; }
+/* Header and footer share the same horizontal padding, so a full-width rule
+   inside either ends at the same x on both sides. */
+header, footer { padding-left: 1rem; padding-right: 1rem; }
+header { padding-top: .5rem; padding-bottom: .35rem; }
+main { padding: 0 1.5rem 1rem; text-align: left; }
+header h1 { margin: 0; font-family: "Times New Roman", Times, Georgia, serif; font-size: clamp(1.7rem, 5vw, 2.5rem); font-weight: bold; line-height: 1.1; }
+header h1 a { color: #111 !important; text-decoration: none !important; background: none !important; }
+.masthead { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: "clock clock badge" "brand brand brand" "est est est"; align-items: center; row-gap: .45rem; width: 100%; max-width: var(--content-w); margin: 0 auto .15rem; }
+.masthead-brand { grid-area: brand; justify-self: center; }
+.mast-time { grid-area: clock; justify-self: start; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .5rem; margin: 0; font-size: .68rem; line-height: 1.35; letter-spacing: .1em; text-transform: uppercase; color: var(--text); }
+.mast-time .mast-day { font-weight: bold; }
+.mast-time .mast-sep { opacity: .5; }
+.est-mark { grid-area: est; justify-self: center; text-align: center; font-size: .7rem; line-height: 1; letter-spacing: .26em; text-transform: uppercase; white-space: nowrap; color: var(--text); }
+.header-badge { grid-area: badge; justify-self: end; margin: 0; line-height: 0; }
+.header-badge img { display: block; width: 80px; height: 15px; }
+.header-rule { width: 100%; max-width: var(--content-w); margin: .35rem auto 0; border-top: 1px dotted var(--text); }
+/* Edge fade so text dissolves at the boundaries instead of being hard-cut mid-glyph. */
+.journal-ticker { max-width: var(--content-w); margin: .5rem auto .35rem; overflow: hidden; text-align: left;
+  position: relative;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 2.5rem, #000 calc(100% - 2.5rem), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 2.5rem, #000 calc(100% - 2.5rem), transparent 100%);
+  /* Reserve the line height so the header never jumps while the ticker runs. */
+  min-height: 1.6em; display: flex; align-items: center; }
+/* Two identical copies side by side; sliding the track by exactly one copy
+   (-50% of the track) loops seamlessly, in track-width units rather than
+   viewport units, so it is already moving on the first frame. */
+.journal-ticker-track { display: flex; width: max-content;
+  animation: ticker-scroll var(--ticker-duration, 60s) linear infinite;
+  animation-delay: var(--ticker-delay, 0s); will-change: transform; }
+.journal-ticker-track > span { white-space: nowrap; padding-right: 3rem; }
+.journal-ticker:hover .journal-ticker-track { animation-play-state: paused; }
+/* Start just past the right edge of the *container*, then travel one copy. */
+@keyframes ticker-scroll {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .journal-ticker-track { animation: none; }
+  /* Without motion, show the line statically but keep it readable. */
+  .journal-ticker { -webkit-mask-image: none; mask-image: none; }
+}
+.journal-ticker-static { display: none; }
+nav a { font-size: 1rem; }
+nav ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 1.1rem; padding: .15rem 0; margin: 0 auto; list-style: none; max-width: var(--content-w); }
+nav li::after { content: none; }
+nav a[aria-current="page"] { font-weight: bold; }
+hr { display: none; }
+/* Trail centred, Back pinned to the left edge of the content column. */
+.breadcrumbs { position: relative; margin: 1.25rem auto; max-width: var(--content-w); text-align: center; font-size: .85rem;
+  letter-spacing: .04em; }
+.back-link { position: absolute; left: 0; top: 0; white-space: nowrap; color: var(--link) !important; }
+/* Every link is hypertext blue: internal, external, back, nav, lists. */
+main a, main a:link, main a:visited, nav a, .breadcrumbs a, .footer-meta a,
+.journal-list a, .plain-list a, .tag-list a, .books-list a, .folder-list a,
+.collection a, .back-link { color: var(--link); }
+main a:hover, nav a:hover, .breadcrumbs a:hover, .journal-list a:hover,
+.plain-list a:hover, .tag-list a:hover, .books-list a:hover, .folder-list a:hover,
+.back-link:hover { color: black !important; }
+.back-link:hover { color: black !important; }
+a:link, a:visited { color: var(--link); text-decoration: none; }
+a:hover { color: black !important; text-decoration-line: underline; text-decoration-style: dotted; background-color: var(--hover); }
+.DIR { color: var(--link) !important; }
+.EXEC { color: var(--exec) !important; }
+main { min-height: 0; text-align: left; }
+main h1, main h2, main h3, main h4, main h5, main h6 { text-align: left; }
+main h2 { font-size: clamp(1.3rem, 3.5vw, 1.75rem); line-height: 1.2; margin: 0 0 .6rem; }
+main > p { max-width: 88ch; margin: 1rem auto; text-align: left; }
+/* On archive pages the folder's own prose aligns to the section column, so the
+   page has one left edge instead of two competing ones. */
+/* Same column as the section below it, so the page has one left edge. */
+main > .folder-intro { max-width: var(--content-w); margin: 0 auto 1rem; text-align: left; }
+main > .folder-intro p { margin: 0 0 .7rem; text-align: left; }
+pre { max-width: 100%; overflow-x: auto; margin: 1rem auto; text-align: left; width: max-content; }
+.text-viewer { max-width: 88ch; margin: 1rem auto; padding: 0; font-family: inherit; font-size: clamp(1.05rem, 2.5vw, 1.22rem); line-height: 1.8; overflow-wrap: anywhere; text-align: left; }
+.text-viewer p, .text-viewer ul, .text-viewer ol, .text-viewer blockquote { margin: 1rem 0; }
+/* Book pages: a plain reading column. Prose gets a printed-page indent;
+   short standalone lines (contents, chapter titles) stay flush left. */
+/* Book pages: a long-form reading column. Wider lines, generous leading and a
+   real paragraph gap, so a book reads like a printed page instead of a list
+   of short left-aligned lines. */
+.book-viewer { width: 100%; max-width: var(--content-w); margin: 1rem auto 2rem; padding: 0;
+  text-align: left; font-size: clamp(1.05rem, 1.4vw, 1.2rem); line-height: 1.85; }
+.book-viewer p { margin: 0 0 1rem; text-align: left; text-indent: 0; }
+/* Short standalone lines (contents, chapter titles) sit tight together, the way
+   a printed contents page reads, instead of one per spaced paragraph. */
+.book-viewer p.short { margin: 0; line-height: 1.6; }
+.book-viewer p.short + p.prose { margin-top: 1rem; }
+/* Prose paragraphs get the printed-page indent; a first line after a heading,
+   a rule or another paragraph does not. */
+.book-viewer p.prose { text-indent: 1.6rem; }
+.book-viewer p.prose:first-of-type, .book-viewer hr + p.prose, .book-viewer h1 + p.prose,
+.book-viewer h2 + p.prose, .book-viewer h3 + p.prose { text-indent: 0; }
+/* A section break (===== or ---) gets breathing room on both sides. */
+.book-viewer hr { width: 30%; margin: 1.8rem auto; border: 0; border-top: 1px solid var(--text); }
+.book-viewer h1, .book-viewer h2, .book-viewer h3 { text-indent: 0; margin: 2rem 0 .8rem; text-align: center; font-weight: bold; }
+.book-viewer blockquote { font-style: italic; }
+/* Plain old-school lists: no numbers, no rules, no described rows. */
+.plain-list { width: 100%; max-width: var(--content-w); margin: .4rem auto 1rem; padding: 0 0 0 1.4rem; list-style: disc; text-align: left; }
+.plain-list li { margin: 0; line-height: 1.5; }
+.tag-list { width: 100%; max-width: var(--content-w); margin: .4rem auto 1rem; padding: 0 0 0 1.4rem; list-style: disc; text-align: left; columns: 2 16rem; column-gap: 2.5rem; }
+.tag-list li { margin: 0; line-height: 1.5; break-inside: avoid; }
+/* Journal: one flowing run of entry links, descending, spaced by whitespace
+   rather than separators. Wraps naturally at the column edge. */
+.journal-list { width: 100%; max-width: var(--content-w); margin: .5rem auto 1rem; padding: 0; list-style: none;
+  display: flex; flex-wrap: wrap; justify-content: center; gap: .3rem 1.6rem; text-align: center; }
+.journal-list li { padding: 0; line-height: 1.6; }
+.journal-list a { font-size: 1rem; }
+
+/* Readings: category index in two columns; each category page keeps the
+   author's letter groups as small headings. */
+.readings-index { width: 100%; max-width: var(--content-w); margin: .6rem auto 1rem; padding: 0; list-style: none;
+  columns: 2; column-gap: 2.5rem; text-align: left; }
+.readings-index li { display: flex; align-items: baseline; justify-content: space-between; gap: .6rem;
+  padding: .15rem 0; break-inside: avoid; }
+.readings-index a { font-size: 1.02rem; }
+.readings-count { font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.readings-category { width: 100%; max-width: var(--content-w); margin: .6rem auto 1rem; text-align: left;
+  columns: 2; column-gap: 2.5rem; }
+.readings-letter { margin: .9rem 0 .2rem; font-size: .95rem; font-weight: bold; text-align: left; break-after: avoid; }
+.readings-letter:first-child { margin-top: 0; }
+.readings-list { margin: 0 0 .4rem; padding: 0 0 0 1.1rem; list-style: disc; }
+.readings-list li { margin: .05rem 0; line-height: 1.45; break-inside: avoid; }
+/* A bullet only appears where the author wrote one. */
+.readings-list li.no-bullet { list-style: none; }
+.readings-list li.no-bullet { margin-left: -1.1rem; }
+
+@media (max-width: 46rem) {
+  .readings-index, .readings-category { columns: 1; }
+}
+.category-links { display: flex; width: 100%; max-width: var(--content-w); margin: 0 auto; box-sizing: border-box; flex-wrap: wrap; align-items: center; justify-content: center; gap: .35rem; padding: .75rem 1rem; border: 1px solid var(--text); }
+.category-link { color: black; font-size: clamp(1rem, 2.5vw, 1.1rem); }
+.bad-about-links { width: 100%; max-width: var(--content-w); margin: .8rem auto 1.2rem; text-align: center; font-size: clamp(1rem, 2.4vw, 1.15rem); font-style: italic; font-weight: bold; }
+.bad-about-label { color: var(--text); }
+.bad-about-separator { color: var(--text); }
+.table-scroll { max-width: 88ch; margin: 1rem auto; overflow-x: auto; }
+/* Text layout is one column sitewide: paragraphs fill the measure, headings
+   sit on its left edge, and alignment is opt-in per paragraph. */
+.text-viewer, main > p, main h1, main h2, main h3, main h4, main h5, main h6,
+.text-viewer h1, .text-viewer h2, .text-viewer h3, .text-viewer h4, .text-viewer h5, .text-viewer h6 {
+  width: 100%; max-width: var(--content-w); margin-left: auto; margin-right: auto; text-align: left; }
+main > p, .text-viewer p { text-align: left; }
+p.align-justify, .align-justify p { text-align: justify; }
+p.align-center, .align-center p { text-align: center; }
+p.align-right, .align-right p { text-align: right; }
+p.align-justify, p.align-center, p.align-right { margin-left: auto; margin-right: auto; }
+
+/* Rendered markdown */
+code { font-family: 'Courier New', Courier, monospace; font-size: .92em; }
+pre { width: 100%; max-width: var(--content-w); margin: 1rem auto; padding: .75rem 1rem; overflow-x: auto; text-align: left;
+  border: 1px solid var(--text); background: #efeade; }
+pre code { font-size: .88em; line-height: 1.5; }
+mark { background: #ffe97a; color: inherit; }
+del { text-decoration: line-through; }
+hr { border: 0; border-top: 1px dotted var(--text); width: 100%; max-width: var(--content-w); margin: 1.2rem auto; display: block; }
+blockquote { width: 100%; max-width: var(--content-w); box-sizing: border-box; margin: 1rem auto; padding: .2rem 0 .2rem 1rem;
+  border-left: 3px solid var(--text); text-align: left; font-style: italic; }
+blockquote.quote-2 { margin-left: auto; padding-left: 2rem; border-left: 1px dotted var(--text); }
+blockquote.quote-3 { margin-left: auto; padding-left: 3rem; border-left: 1px dotted var(--text); }
+.math { font-family: 'Times New Roman', Times, serif; font-style: italic; white-space: nowrap; }
+.math-block { display: block; text-align: center; font-family: 'Times New Roman', Times, serif; font-style: italic; margin: .8rem 0; }
+main img, .text-viewer img { max-width: 100%; height: auto; }
+.task { list-style: none; margin-left: -1.2rem; }
+.task input { margin-right: .4rem; }
+
+main ul, main ol { width: 100%; max-width: var(--content-w); margin: .5rem auto 1rem; padding-left: 1.5rem; text-align: left; }
+main li { margin: .15rem 0; }
+main li > ul, main li > ol { margin: .2rem 0 .2rem 0; }
+
+/* Tables size to their content and sit on the left edge of the column, the
+   way a printed table does - not stretched across the full measure. */
+table { width: auto; max-width: var(--content-w); margin: 1rem auto 1rem 0; border-collapse: collapse; text-align: left; table-layout: auto; }
+th, td { padding: .3rem .9rem .3rem 0; border-bottom: 1px dotted var(--text); vertical-align: top; text-align: left; }
+th { border-bottom: 1px solid var(--text); font-weight: bold; }
+.ta-center { text-align: center; }
+.ta-right { text-align: right; padding-right: 0; }
+@media (max-width: 40rem) {
+  table, thead, tbody, tr, td { display: block; width: 100%; }
+  thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  tr { padding: .6rem 0; border-bottom: 1px dotted var(--text); }
+  td { padding: .15rem 0; border: 0; }
+  td::before { content: attr(data-label); display: block; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  td:empty { display: none; }
+}
+/* Books and the What's Bad About collection use the same two-column shape as
+   readings and music: links only, secondary text muted and inline. */
+.two-col-list { width: 100%; max-width: var(--content-w); margin: .5rem auto 1rem; padding: 0 0 0 1.1rem; list-style: disc;
+  columns: 2; column-gap: 2.5rem; text-align: left; }
+.two-col-list li { margin: .1rem 0; line-height: 1.5; break-inside: avoid; }
+.two-col-list .item-note { font-size: .88rem; color: var(--muted); }
+@media (max-width: 46rem) { .two-col-list { columns: 1; } }
+.article-categories { max-width: 60ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
+.article-category { padding: .8rem 0; }
+.article-category-link { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.article-category-title { font-size: 1.05rem; }
+.article-category-count { white-space: nowrap; font-size: .9rem; }
+.folder-list { width: 100%; max-width: var(--content-w); margin: .5rem auto 1rem; padding: 0; list-style: none; text-align: left; }
+.folder-entry { padding: .8rem 0; }
+.folder-entry-link { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.folder-entry-title { font-size: 1.05rem; }
+.folder-entry-kind { white-space: nowrap; font-size: .9rem; color: var(--text); }
+.tags-page { max-width: 68ch; margin: 1rem auto; text-align: left; }
+.tag-list { margin: 1rem auto; padding-left: 1.25rem; list-style: disc; text-align: left; }
+.tagged-notes { margin: 1rem 0; padding: 0; list-style: none; }
+.tag-entry, .tagged-note { padding: .8rem 0; }
+.tag-link, .tagged-note-link { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.tag-name, .tagged-note-title { font-size: 1.05rem; }
+.tagged-note-path { white-space: nowrap; font-size: .9rem; }
+.note-tags { max-width: 88ch; margin: 1rem auto; text-align: left; font-size: .95rem; }
+/* Music: same column, same rhythm as the rest of the site. Two columns of
+   album links with the artist in muted type, no per-row action label. */
+.music-page { width: 100%; max-width: var(--content-w); margin: .6rem auto 1rem; text-align: left; }
+.music-page > p { margin: 0 0 1rem; }
+.music-list { columns: 2; column-gap: 2.5rem; margin: .4rem 0 0; padding: 0 0 0 1.1rem; list-style: disc; }
+.music-list li { margin: .1rem 0; line-height: 1.5; break-inside: avoid; }
+.music-list .album-artist { font-size: .88rem; color: var(--muted); }
+@media (max-width: 46rem) { .music-list { columns: 1; } }
+.category-link { color: var(--text); }
+.category-separator { margin: 0 .25rem; }
+.skip-link { position: absolute; left: -9999px; }
+.skip-link:focus { left: 1rem; top: 1rem; }
+footer { padding: .75rem 1rem 1.1rem; font-size: .9rem; }
+/* Same dotted rule as the header, at the same width, so the page closes the
+   way it opens. */
+.footer-rule { width: 100%; max-width: var(--content-w); margin: 0 auto .9rem; border-top: 1px dotted var(--text); }
+/* Two equal columns sized to the widest badge (160px), so every row lines up. */
+/* Each badge sits in its own equal cell and keeps its natural size, so the two
+   rows share the same outer edges instead of one row looking narrower. */
+/* One centred row per pair: 88px badges on top, 160px below, so both rows
+   share the same axis instead of each being left-packed. */
+.badges { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .5rem 1.1rem; max-width: 22rem; margin: .6rem auto 0; }
+.badges .badge { flex: 0 0 auto; }
+.badge { display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+/* Badges are fixed-size pixel art: never scale or stretch them. */
+/* Badges are fixed-size pixel art and render at their natural dimensions. */
+.badge img { display: block; width: auto; height: auto; max-width: none; image-rendering: pixelated; }
+.footer-meta { display: flex; justify-content: center; align-items: baseline; flex-wrap: wrap; gap: 1rem; }
+.footer-meta p { margin: 0; }
+.visit-counter { display: flex; align-items: center; justify-content: center; gap: .35rem; min-height: 22px; margin-top: .75rem; font-size: .85rem; line-height: 1; color: var(--muted); }
+.visit-counter img { display: block; height: 22px; width: auto; image-rendering: pixelated; }
+
+/* One column for every page. Sections inherit this and add nothing. */
+.section { width: 100%; max-width: var(--content-w); margin: 0 auto .75rem; text-align: left; }
+.collection { width: 100%; max-width: var(--content-w); margin: 0 auto .75rem; text-align: left; }
+@media (max-width: 40rem) {
+  /* Phone: three months per row keeps the day squares about 6px, readable
+     without turning the calendar into a wall of squares. */
+  .activity-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .7rem .8rem; }
+  .activity-month-label { font-size: .58rem; letter-spacing: .06em; }
+  .entry { grid-template-columns: 1fr; gap: .3rem; }
+  .entry-date { display: flex; gap: .4rem; align-items: baseline; }
+  .entry-weekday { display: inline; margin-top: 0; }
+}
+
+/* -----------------------------------------------------------------------
+   Mobile: same paper, monospace and dotted rules, laid out for a phone.
+   Grouped at the end so every rule here is easy to see and adjust.
+   ---------------------------------------------------------------------- */
+@media (max-width: 40rem) {
+  body { padding: 0; font-size: 16px; }
+  .site-shell { max-width: none; min-height: 100dvh; }
+
+  /* Header: clock and badge share the top line, wordmark fills the next. */
+  header { padding: .6rem .9rem .1rem; }
+  .masthead { grid-template-columns: 1fr auto; grid-template-areas: "clock badge" "brand brand" "est est";
+    column-gap: .5rem; row-gap: .2rem; }
+  .mast-time { font-size: .6rem; letter-spacing: .04em; gap: 0 .3rem; }
+  .mast-time .mast-sep { opacity: .4; }
+  .header-badge img { width: 66px; height: 12px; }
+  header h1 { font-size: 1.85rem; letter-spacing: .02em; }
+  .est-mark { font-size: .6rem; letter-spacing: .2em; }
+  .header-rule { margin-top: .4rem; }
+
+  /* Ticker: scroll it on mobile too, just smaller and faster so a short line
+     reads comfortably in a narrow window. */
+  .journal-ticker { margin: .4rem 0 .1rem; min-height: 1.3em; font-size: .78rem;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 1.2rem, #000 calc(100% - 1.2rem), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 1.2rem, #000 calc(100% - 1.2rem), transparent 100%); }
+  .journal-ticker-track { animation-duration: 40s; }
+  .journal-ticker-track > span { padding-right: 2rem; }
+
+  /* Nav: big enough to tap, spread across the width. */
+  nav ul { justify-content: center; gap: .15rem .1rem; padding: .35rem 0 .15rem; }
+  nav a { font-size: .92rem; padding: .3rem .25rem; display: inline-block; }
+
+  /* Content: comfortable measure and gutters. */
+  main { padding: 0 .9rem 1rem; }
+  main h2 { font-size: 1.25rem; }
+  .breadcrumbs { margin: .8rem 0; font-size: .8rem; text-align: left; }
+  .back-link { position: static; display: block; margin-bottom: .25rem; }
+  .text-viewer { font-size: 1rem; line-height: 1.7; }
+  .books-list, .journal-list, .article-categories, .folder-list, .tag-list { max-width: none; }
+
+  /* List rows: keep title and action on one line with room to breathe. */
+  .book-entry, .article-category-link, .folder-entry-link, .tag-link, .tagged-note-link { gap: .6rem; }
+  .read-button { padding: .45rem .8rem; }
+
+  /* Footer: two badges per row still fit, meta stacks neatly. */
+  footer { padding: .9rem .9rem 1.2rem; font-size: .85rem; }
+  .footer-meta { flex-direction: column; gap: .25rem; }
+  .badges { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem .3rem; width: auto; max-width: 21rem; }
+  .badge img { max-width: 100%; height: auto; }
+  .visit-counter { margin-top: .6rem; }
+}
+
+/* Very narrow phones: drop the badge beside the clock, let the wordmark lead. */
+@media (max-width: 22rem) {
+  .masthead { grid-template-columns: 1fr; grid-template-areas: "brand" "clock" "est" "badge"; justify-items: center; }
+  .mast-time { justify-self: center; text-align: center; }
+  .header-badge { justify-self: center; }
+  .badges { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+`;
 
 function layout(title, body, currentPath = '/', tags = []) {
   const description = 'AMNSHK, Amaan Shaik\'s personal site, journals, lists, and books.';
@@ -92,334 +438,7 @@ function layout(title, body, currentPath = '/', tags = []) {
   <meta property="og:description" content="${description}">
   <meta property="og:type" content="website">
   <title>${escapeHtml(title)} · AMNSHK</title>
-  <style>
-    :root { color-scheme: light; --page-bg: #fbf9f3; --surface: #fbf9f3; --text: #111; --link: blue; --exec: #111; --hover: yellow; --border: transparent; --muted: #333; }
-    /* One column width shared by the masthead, the rule and the ticker, so nothing
-       can drift outside the site's content edge. */
-    /* One column width shared by masthead, rules and ticker. A fixed rem length,
-       not ch: ch resolves against each element's own font-size, so the header and
-       footer rules came out at different widths. */
-    :root { --content-w: 52rem; }
-    *, *::before, *::after { box-sizing: border-box; }
-    body { font-family: "Times New Roman", Times, Georgia, serif; font-size: 17px; line-height: 1.45; color: var(--text); background: var(--surface); margin: 0; padding: 0; }
-    /* Faint paper grain: hairlines of slightly darker cream, no image file. */
-    body { background-image: repeating-linear-gradient(0deg, rgba(0,0,0,.012) 0 1px, transparent 1px 3px); }
-    .site-shell { width: auto; max-width: 1100px; min-height: 100dvh; margin: 0 auto; background: var(--surface); }
-    @media (min-width: 1101px) { .site-shell { border-left: 1px solid #d9d3c4; border-right: 1px solid #d9d3c4; } }
-    header, footer { text-align: center; padding: 1.25rem 1.5rem; }
-    /* Header and footer share the same horizontal padding, so a full-width rule
-       inside either ends at the same x on both sides. */
-    header, footer { padding-left: 1rem; padding-right: 1rem; }
-    header { padding-top: .5rem; padding-bottom: .35rem; }
-    main { padding: 0 1.5rem 1rem; text-align: left; }
-    header h1 { margin: 0; font-family: "Times New Roman", Times, Georgia, serif; font-size: clamp(1.7rem, 5vw, 2.5rem); font-weight: bold; line-height: 1.1; }
-    header h1 a { color: #111 !important; text-decoration: none !important; background: none !important; }
-    .masthead { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: "clock clock badge" "brand brand brand" "est est est"; align-items: center; row-gap: .45rem; width: 100%; max-width: var(--content-w); margin: 0 auto .15rem; }
-    .masthead-brand { grid-area: brand; justify-self: center; }
-    .mast-time { grid-area: clock; justify-self: start; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .5rem; margin: 0; font-size: .68rem; line-height: 1.35; letter-spacing: .1em; text-transform: uppercase; color: var(--text); }
-    .mast-time .mast-day { font-weight: bold; }
-    .mast-time .mast-sep { opacity: .5; }
-    .est-mark { grid-area: est; justify-self: center; text-align: center; font-size: .7rem; line-height: 1; letter-spacing: .26em; text-transform: uppercase; white-space: nowrap; color: var(--text); }
-    .header-badge { grid-area: badge; justify-self: end; margin: 0; line-height: 0; }
-    .header-badge img { display: block; width: 80px; height: 15px; }
-    .header-rule { width: 100%; max-width: var(--content-w); margin: .35rem auto 0; border-top: 1px dotted var(--text); }
-    /* Edge fade so text dissolves at the boundaries instead of being hard-cut mid-glyph. */
-    .journal-ticker { max-width: var(--content-w); margin: .5rem auto .35rem; overflow: hidden; text-align: left;
-      position: relative;
-      -webkit-mask-image: linear-gradient(to right, transparent 0, #000 2.5rem, #000 calc(100% - 2.5rem), transparent 100%);
-      mask-image: linear-gradient(to right, transparent 0, #000 2.5rem, #000 calc(100% - 2.5rem), transparent 100%);
-      /* Reserve the line height so the header never jumps while the ticker runs. */
-      min-height: 1.6em; display: flex; align-items: center; }
-    /* Two identical copies side by side; sliding the track by exactly one copy
-       (-50% of the track) loops seamlessly, in track-width units rather than
-       viewport units, so it is already moving on the first frame. */
-    .journal-ticker-track { display: flex; width: max-content;
-      animation: ticker-scroll var(--ticker-duration, 60s) linear infinite;
-      animation-delay: var(--ticker-delay, 0s); will-change: transform; }
-    .journal-ticker-track > span { white-space: nowrap; padding-right: 3rem; }
-    .journal-ticker:hover .journal-ticker-track { animation-play-state: paused; }
-    /* Start just past the right edge of the *container*, then travel one copy. */
-    @keyframes ticker-scroll {
-      from { transform: translate3d(0, 0, 0); }
-      to { transform: translate3d(-50%, 0, 0); }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .journal-ticker-track { animation: none; }
-      /* Without motion, show the line statically but keep it readable. */
-      .journal-ticker { -webkit-mask-image: none; mask-image: none; }
-    }
-    .journal-ticker-static { display: none; }
-    nav a { font-size: 1rem; }
-    nav ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 1.1rem; padding: .15rem 0; margin: 0 auto; list-style: none; max-width: var(--content-w); }
-    nav li::after { content: none; }
-    nav a[aria-current="page"] { font-weight: bold; }
-    hr { display: none; }
-    /* Trail centred, Back pinned to the left edge of the content column. */
-    .breadcrumbs { position: relative; margin: 1.25rem auto; max-width: var(--content-w); text-align: center; font-size: .85rem;
-      letter-spacing: .04em; }
-    .back-link { position: absolute; left: 0; top: 0; white-space: nowrap; color: var(--link) !important; }
-    /* Every link is hypertext blue: internal, external, back, nav, lists. */
-    main a, main a:link, main a:visited, nav a, .breadcrumbs a, .footer-meta a,
-    .journal-list a, .plain-list a, .tag-list a, .books-list a, .folder-list a,
-    .collection a, .back-link { color: var(--link); }
-    main a:hover, nav a:hover, .breadcrumbs a:hover, .journal-list a:hover,
-    .plain-list a:hover, .tag-list a:hover, .books-list a:hover, .folder-list a:hover,
-    .back-link:hover { color: black !important; }
-    .back-link:hover { color: black !important; }
-    a:link, a:visited { color: var(--link); text-decoration: none; }
-    a:hover { color: black !important; text-decoration-line: underline; text-decoration-style: dotted; background-color: var(--hover); }
-    .DIR { color: var(--link) !important; }
-    .EXEC { color: var(--exec) !important; }
-    main { min-height: 0; text-align: left; }
-    main h1, main h2, main h3, main h4, main h5, main h6 { text-align: left; }
-    main h2 { font-size: clamp(1.3rem, 3.5vw, 1.75rem); line-height: 1.2; margin: 0 0 .6rem; }
-    main > p { max-width: 88ch; margin: 1rem auto; text-align: left; }
-    /* On archive pages the folder's own prose aligns to the section column, so the
-       page has one left edge instead of two competing ones. */
-    /* Same column as the section below it, so the page has one left edge. */
-    main > .folder-intro { max-width: var(--content-w); margin: 0 auto 1rem; text-align: left; }
-    main > .folder-intro p { margin: 0 0 .7rem; text-align: left; }
-    pre { max-width: 100%; overflow-x: auto; margin: 1rem auto; text-align: left; width: max-content; }
-    .text-viewer { max-width: 88ch; margin: 1rem auto; padding: 0; font-family: inherit; font-size: clamp(1.05rem, 2.5vw, 1.22rem); line-height: 1.8; overflow-wrap: anywhere; text-align: left; }
-    .text-viewer p, .text-viewer ul, .text-viewer ol, .text-viewer blockquote { margin: 1rem 0; }
-    /* Book pages: a plain reading column. Prose gets a printed-page indent;
-       short standalone lines (contents, chapter titles) stay flush left. */
-    /* Book pages: a long-form reading column. Wider lines, generous leading and a
-       real paragraph gap, so a book reads like a printed page instead of a list
-       of short left-aligned lines. */
-    .book-viewer { width: 100%; max-width: var(--content-w); margin: 1rem auto 2rem; padding: 0;
-      text-align: left; font-size: clamp(1.05rem, 1.4vw, 1.2rem); line-height: 1.85; }
-    .book-viewer p { margin: 0 0 1rem; text-align: left; text-indent: 0; }
-    /* Short standalone lines (contents, chapter titles) sit tight together, the way
-       a printed contents page reads, instead of one per spaced paragraph. */
-    .book-viewer p.short { margin: 0; line-height: 1.6; }
-    .book-viewer p.short + p.prose { margin-top: 1rem; }
-    /* Prose paragraphs get the printed-page indent; a first line after a heading,
-       a rule or another paragraph does not. */
-    .book-viewer p.prose { text-indent: 1.6rem; }
-    .book-viewer p.prose:first-of-type, .book-viewer hr + p.prose, .book-viewer h1 + p.prose,
-    .book-viewer h2 + p.prose, .book-viewer h3 + p.prose { text-indent: 0; }
-    /* A section break (===== or ---) gets breathing room on both sides. */
-    .book-viewer hr { width: 30%; margin: 1.8rem auto; border: 0; border-top: 1px solid var(--text); }
-    .book-viewer h1, .book-viewer h2, .book-viewer h3 { text-indent: 0; margin: 2rem 0 .8rem; text-align: center; font-weight: bold; }
-    .book-viewer blockquote { font-style: italic; }
-    /* Plain old-school lists: no numbers, no rules, no described rows. */
-    .plain-list { width: 100%; max-width: var(--content-w); margin: .4rem auto 1rem; padding: 0 0 0 1.4rem; list-style: disc; text-align: left; }
-    .plain-list li { margin: 0; line-height: 1.5; }
-    .tag-list { width: 100%; max-width: var(--content-w); margin: .4rem auto 1rem; padding: 0 0 0 1.4rem; list-style: disc; text-align: left; columns: 2 16rem; column-gap: 2.5rem; }
-    .tag-list li { margin: 0; line-height: 1.5; break-inside: avoid; }
-    /* Journal: one flowing run of entry links, descending, spaced by whitespace
-       rather than separators. Wraps naturally at the column edge. */
-    .journal-list { width: 100%; max-width: var(--content-w); margin: .5rem auto 1rem; padding: 0; list-style: none;
-      display: flex; flex-wrap: wrap; justify-content: center; gap: .3rem 1.6rem; text-align: center; }
-    .journal-list li { padding: 0; line-height: 1.6; }
-    .journal-list a { font-size: 1rem; }
-
-    /* Readings: category index in two columns; each category page keeps the
-       author's letter groups as small headings. */
-    .readings-index { width: 100%; max-width: var(--content-w); margin: .6rem auto 1rem; padding: 0; list-style: none;
-      columns: 2; column-gap: 2.5rem; text-align: left; }
-    .readings-index li { display: flex; align-items: baseline; justify-content: space-between; gap: .6rem;
-      padding: .15rem 0; break-inside: avoid; }
-    .readings-index a { font-size: 1.02rem; }
-    .readings-count { font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
-
-    .readings-category { width: 100%; max-width: var(--content-w); margin: .6rem auto 1rem; text-align: left;
-      columns: 2; column-gap: 2.5rem; }
-    .readings-letter { margin: .9rem 0 .2rem; font-size: .95rem; font-weight: bold; text-align: left; break-after: avoid; }
-    .readings-letter:first-child { margin-top: 0; }
-    .readings-list { margin: 0 0 .4rem; padding: 0 0 0 1.1rem; list-style: disc; }
-    .readings-list li { margin: .05rem 0; line-height: 1.45; break-inside: avoid; }
-    /* A bullet only appears where the author wrote one. */
-    .readings-list li.no-bullet { list-style: none; }
-    .readings-list li.no-bullet { margin-left: -1.1rem; }
-
-    @media (max-width: 46rem) {
-      .readings-index, .readings-category { columns: 1; }
-    }
-    .category-links { display: flex; width: 100%; max-width: var(--content-w); margin: 0 auto; box-sizing: border-box; flex-wrap: wrap; align-items: center; justify-content: center; gap: .35rem; padding: .75rem 1rem; border: 1px solid var(--text); }
-    .category-link { color: black; font-size: clamp(1rem, 2.5vw, 1.1rem); }
-    .bad-about-links { width: 100%; max-width: var(--content-w); margin: .8rem auto 1.2rem; text-align: center; font-size: clamp(1rem, 2.4vw, 1.15rem); font-style: italic; font-weight: bold; }
-    .bad-about-label { color: var(--text); }
-    .bad-about-separator { color: var(--text); }
-    .table-scroll { max-width: 88ch; margin: 1rem auto; overflow-x: auto; }
-    /* Text layout is one column sitewide: paragraphs fill the measure, headings
-       sit on its left edge, and alignment is opt-in per paragraph. */
-    .text-viewer, main > p, main h1, main h2, main h3, main h4, main h5, main h6,
-    .text-viewer h1, .text-viewer h2, .text-viewer h3, .text-viewer h4, .text-viewer h5, .text-viewer h6 {
-      width: 100%; max-width: var(--content-w); margin-left: auto; margin-right: auto; text-align: left; }
-    main > p, .text-viewer p { text-align: left; }
-    p.align-justify, .align-justify p { text-align: justify; }
-    p.align-center, .align-center p { text-align: center; }
-    p.align-right, .align-right p { text-align: right; }
-    p.align-justify, p.align-center, p.align-right { margin-left: auto; margin-right: auto; }
-
-    /* Rendered markdown */
-    code { font-family: 'Courier New', Courier, monospace; font-size: .92em; }
-    pre { width: 100%; max-width: var(--content-w); margin: 1rem auto; padding: .75rem 1rem; overflow-x: auto; text-align: left;
-      border: 1px solid var(--text); background: #efeade; }
-    pre code { font-size: .88em; line-height: 1.5; }
-    mark { background: #ffe97a; color: inherit; }
-    del { text-decoration: line-through; }
-    hr { border: 0; border-top: 1px dotted var(--text); width: 100%; max-width: var(--content-w); margin: 1.2rem auto; display: block; }
-    blockquote { width: 100%; max-width: var(--content-w); box-sizing: border-box; margin: 1rem auto; padding: .2rem 0 .2rem 1rem;
-      border-left: 3px solid var(--text); text-align: left; font-style: italic; }
-    blockquote.quote-2 { margin-left: auto; padding-left: 2rem; border-left: 1px dotted var(--text); }
-    blockquote.quote-3 { margin-left: auto; padding-left: 3rem; border-left: 1px dotted var(--text); }
-    .math { font-family: 'Times New Roman', Times, serif; font-style: italic; white-space: nowrap; }
-    .math-block { display: block; text-align: center; font-family: 'Times New Roman', Times, serif; font-style: italic; margin: .8rem 0; }
-    main img, .text-viewer img { max-width: 100%; height: auto; }
-    .task { list-style: none; margin-left: -1.2rem; }
-    .task input { margin-right: .4rem; }
-
-    main ul, main ol { width: 100%; max-width: var(--content-w); margin: .5rem auto 1rem; padding-left: 1.5rem; text-align: left; }
-    main li { margin: .15rem 0; }
-    main li > ul, main li > ol { margin: .2rem 0 .2rem 0; }
-
-    /* Tables size to their content and sit on the left edge of the column, the
-       way a printed table does - not stretched across the full measure. */
-    table { width: auto; max-width: var(--content-w); margin: 1rem auto 1rem 0; border-collapse: collapse; text-align: left; table-layout: auto; }
-    th, td { padding: .3rem .9rem .3rem 0; border-bottom: 1px dotted var(--text); vertical-align: top; text-align: left; }
-    th { border-bottom: 1px solid var(--text); font-weight: bold; }
-    .ta-center { text-align: center; }
-    .ta-right { text-align: right; padding-right: 0; }
-    @media (max-width: 40rem) {
-      table, thead, tbody, tr, td { display: block; width: 100%; }
-      thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-      tr { padding: .6rem 0; border-bottom: 1px dotted var(--text); }
-      td { padding: .15rem 0; border: 0; }
-      td::before { content: attr(data-label); display: block; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
-      td:empty { display: none; }
-    }
-    /* Books and the What's Bad About collection use the same two-column shape as
-       readings and music: links only, secondary text muted and inline. */
-    .two-col-list { width: 100%; max-width: var(--content-w); margin: .5rem auto 1rem; padding: 0 0 0 1.1rem; list-style: disc;
-      columns: 2; column-gap: 2.5rem; text-align: left; }
-    .two-col-list li { margin: .1rem 0; line-height: 1.5; break-inside: avoid; }
-    .two-col-list .item-note { font-size: .88rem; color: var(--muted); }
-    @media (max-width: 46rem) { .two-col-list { columns: 1; } }
-    .article-categories { max-width: 60ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
-    .article-category { padding: .8rem 0; }
-    .article-category-link { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
-    .article-category-title { font-size: 1.05rem; }
-    .article-category-count { white-space: nowrap; font-size: .9rem; }
-    .folder-list { width: 100%; max-width: var(--content-w); margin: .5rem auto 1rem; padding: 0; list-style: none; text-align: left; }
-    .folder-entry { padding: .8rem 0; }
-    .folder-entry-link { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
-    .folder-entry-title { font-size: 1.05rem; }
-    .folder-entry-kind { white-space: nowrap; font-size: .9rem; color: var(--text); }
-    .tags-page { max-width: 68ch; margin: 1rem auto; text-align: left; }
-    .tag-list { margin: 1rem auto; padding-left: 1.25rem; list-style: disc; text-align: left; }
-    .tagged-notes { margin: 1rem 0; padding: 0; list-style: none; }
-    .tag-entry, .tagged-note { padding: .8rem 0; }
-    .tag-link, .tagged-note-link { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
-    .tag-name, .tagged-note-title { font-size: 1.05rem; }
-    .tagged-note-path { white-space: nowrap; font-size: .9rem; }
-    .note-tags { max-width: 88ch; margin: 1rem auto; text-align: left; font-size: .95rem; }
-    /* Music: same column, same rhythm as the rest of the site. Two columns of
-       album links with the artist in muted type, no per-row action label. */
-    .music-page { width: 100%; max-width: var(--content-w); margin: .6rem auto 1rem; text-align: left; }
-    .music-page > p { margin: 0 0 1rem; }
-    .music-list { columns: 2; column-gap: 2.5rem; margin: .4rem 0 0; padding: 0 0 0 1.1rem; list-style: disc; }
-    .music-list li { margin: .1rem 0; line-height: 1.5; break-inside: avoid; }
-    .music-list .album-artist { font-size: .88rem; color: var(--muted); }
-    @media (max-width: 46rem) { .music-list { columns: 1; } }
-    .category-link { color: var(--text); }
-    .category-separator { margin: 0 .25rem; }
-    .skip-link { position: absolute; left: -9999px; }
-    .skip-link:focus { left: 1rem; top: 1rem; }
-    footer { padding: .75rem 1rem 1.1rem; font-size: .9rem; }
-    /* Same dotted rule as the header, at the same width, so the page closes the
-       way it opens. */
-    .footer-rule { width: 100%; max-width: var(--content-w); margin: 0 auto .9rem; border-top: 1px dotted var(--text); }
-    /* Two equal columns sized to the widest badge (160px), so every row lines up. */
-    /* Each badge sits in its own equal cell and keeps its natural size, so the two
-       rows share the same outer edges instead of one row looking narrower. */
-    /* One centred row per pair: 88px badges on top, 160px below, so both rows
-       share the same axis instead of each being left-packed. */
-    .badges { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .5rem 1.1rem; max-width: 22rem; margin: .6rem auto 0; }
-    .badges .badge { flex: 0 0 auto; }
-    .badge { display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
-    /* Badges are fixed-size pixel art: never scale or stretch them. */
-    /* Badges are fixed-size pixel art and render at their natural dimensions. */
-    .badge img { display: block; width: auto; height: auto; max-width: none; image-rendering: pixelated; }
-    .footer-meta { display: flex; justify-content: center; align-items: baseline; flex-wrap: wrap; gap: 1rem; }
-    .footer-meta p { margin: 0; }
-    .visit-counter { display: flex; align-items: center; justify-content: center; gap: .35rem; min-height: 22px; margin-top: .75rem; font-size: .85rem; line-height: 1; color: var(--muted); }
-    .visit-counter img { display: block; height: 22px; width: auto; image-rendering: pixelated; }
-
-    /* One column for every page. Sections inherit this and add nothing. */
-    .section { width: 100%; max-width: var(--content-w); margin: 0 auto .75rem; text-align: left; }
-    .collection { width: 100%; max-width: var(--content-w); margin: 0 auto .75rem; text-align: left; }
-    @media (max-width: 40rem) {
-      /* Phone: three months per row keeps the day squares about 6px, readable
-         without turning the calendar into a wall of squares. */
-      .activity-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .7rem .8rem; }
-      .activity-month-label { font-size: .58rem; letter-spacing: .06em; }
-      .entry { grid-template-columns: 1fr; gap: .3rem; }
-      .entry-date { display: flex; gap: .4rem; align-items: baseline; }
-      .entry-weekday { display: inline; margin-top: 0; }
-    }
-
-    /* -----------------------------------------------------------------------
-       Mobile: same paper, monospace and dotted rules, laid out for a phone.
-       Grouped at the end so every rule here is easy to see and adjust.
-       ---------------------------------------------------------------------- */
-    @media (max-width: 40rem) {
-      body { padding: 0; font-size: 16px; }
-      .site-shell { max-width: none; min-height: 100dvh; }
-
-      /* Header: clock and badge share the top line, wordmark fills the next. */
-      header { padding: .6rem .9rem .1rem; }
-      .masthead { grid-template-columns: 1fr auto; grid-template-areas: "clock badge" "brand brand" "est est";
-        column-gap: .5rem; row-gap: .2rem; }
-      .mast-time { font-size: .6rem; letter-spacing: .04em; gap: 0 .3rem; }
-      .mast-time .mast-sep { opacity: .4; }
-      .header-badge img { width: 66px; height: 12px; }
-      header h1 { font-size: 1.85rem; letter-spacing: .02em; }
-      .est-mark { font-size: .6rem; letter-spacing: .2em; }
-      .header-rule { margin-top: .4rem; }
-
-      /* Ticker: scroll it on mobile too, just smaller and faster so a short line
-         reads comfortably in a narrow window. */
-      .journal-ticker { margin: .4rem 0 .1rem; min-height: 1.3em; font-size: .78rem;
-        -webkit-mask-image: linear-gradient(to right, transparent 0, #000 1.2rem, #000 calc(100% - 1.2rem), transparent 100%);
-        mask-image: linear-gradient(to right, transparent 0, #000 1.2rem, #000 calc(100% - 1.2rem), transparent 100%); }
-      .journal-ticker-track { animation-duration: 40s; }
-      .journal-ticker-track > span { padding-right: 2rem; }
-
-      /* Nav: big enough to tap, spread across the width. */
-      nav ul { justify-content: center; gap: .15rem .1rem; padding: .35rem 0 .15rem; }
-      nav a { font-size: .92rem; padding: .3rem .25rem; display: inline-block; }
-
-      /* Content: comfortable measure and gutters. */
-      main { padding: 0 .9rem 1rem; }
-      main h2 { font-size: 1.25rem; }
-      .breadcrumbs { margin: .8rem 0; font-size: .8rem; text-align: left; }
-      .back-link { position: static; display: block; margin-bottom: .25rem; }
-      .text-viewer { font-size: 1rem; line-height: 1.7; }
-      .books-list, .journal-list, .article-categories, .folder-list, .tag-list { max-width: none; }
-
-      /* List rows: keep title and action on one line with room to breathe. */
-      .book-entry, .article-category-link, .folder-entry-link, .tag-link, .tagged-note-link { gap: .6rem; }
-      .read-button { padding: .45rem .8rem; }
-
-      /* Footer: two badges per row still fit, meta stacks neatly. */
-      footer { padding: .9rem .9rem 1.2rem; font-size: .85rem; }
-      .footer-meta { flex-direction: column; gap: .25rem; }
-      .badges { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem .3rem; width: auto; max-width: 21rem; }
-      .badge img { max-width: 100%; height: auto; }
-      .visit-counter { margin-top: .6rem; }
-    }
-
-    /* Very narrow phones: drop the badge beside the clock, let the wordmark lead. */
-    @media (max-width: 22rem) {
-      .masthead { grid-template-columns: 1fr; grid-template-areas: "brand" "clock" "est" "badge"; justify-items: center; }
-      .mast-time { justify-self: center; text-align: center; }
-      .header-badge { justify-self: center; }
-      .badges { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
-  </style>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
@@ -1581,6 +1600,9 @@ for (const badge of fs.readdirSync(badgesSourceDir)) {
 }
 const faviconSource = path.join(root, 'assets', 'favicon.svg');
 if (fs.existsSync(faviconSource)) fs.copyFileSync(faviconSource, path.join(outputRoot, 'favicon.svg'));
+// The stylesheet is one file for the whole site instead of 23KB of inline CSS on
+// every page, so it downloads once and is reused for every later navigation.
+fs.writeFileSync(path.join(outputRoot, 'style.css'), SITE_CSS);
 buildFolder(contentRoot);
 
 const welcomeSource = fs.existsSync(path.join(contentRoot, 'Welcome.md'))
