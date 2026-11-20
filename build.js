@@ -201,6 +201,26 @@ function layout(title, body, currentPath = '/', tags = []) {
       display: flex; flex-wrap: wrap; justify-content: center; gap: .3rem 1.6rem; text-align: center; }
     .journal-list li { padding: 0; line-height: 1.6; }
     .journal-list a { font-size: 1rem; }
+
+    /* Readings: category index in two columns; each category page keeps the
+       author's letter groups as small headings. */
+    .readings-index { width: 100%; max-width: var(--content-w); margin: .6rem auto 1rem; padding: 0; list-style: none;
+      columns: 2; column-gap: 2.5rem; text-align: left; }
+    .readings-index li { display: flex; align-items: baseline; justify-content: space-between; gap: .6rem;
+      padding: .15rem 0; break-inside: avoid; }
+    .readings-index a { font-size: 1.02rem; }
+    .readings-count { font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+    .readings-category { width: 100%; max-width: var(--content-w); margin: .6rem auto 1rem; text-align: left;
+      columns: 2; column-gap: 2.5rem; }
+    .readings-letter { margin: .9rem 0 .2rem; font-size: .95rem; font-weight: bold; text-align: left; break-after: avoid; }
+    .readings-letter:first-child { margin-top: 0; }
+    .readings-list { margin: 0 0 .4rem; padding: 0 0 0 1.1rem; list-style: disc; }
+    .readings-list li { margin: .05rem 0; line-height: 1.45; break-inside: avoid; }
+
+    @media (max-width: 46rem) {
+      .readings-index, .readings-category { columns: 1; }
+    }
     .category-links { display: flex; width: 100%; max-width: var(--content-w); margin: 0 auto; box-sizing: border-box; flex-wrap: wrap; align-items: center; justify-content: center; gap: .35rem; padding: .75rem 1rem; border: 1px solid var(--text); }
     .category-link { color: black; font-size: clamp(1rem, 2.5vw, 1.1rem); }
     .bad-about-links { width: 100%; max-width: var(--content-w); margin: .8rem auto 1.2rem; text-align: center; font-size: clamp(1rem, 2.4vw, 1.15rem); font-style: italic; font-weight: bold; }
@@ -571,6 +591,10 @@ function isArticlesPath(relativePath) {
   return firstSegment(relativePath) === 'articles';
 }
 
+function isReadingsPath(relativePath) {
+  return firstSegment(relativePath) === 'readings';
+}
+
 
 
 function isBadAboutPath(relativePath) {
@@ -579,7 +603,8 @@ function isBadAboutPath(relativePath) {
 }
 
 function isBooksPath(relativePath) {
-  return relativePath === 'books' || relativePath.startsWith(`books${path.sep}`);
+  const first = firstSegment(relativePath);
+  return first === 'books' || first === 'book';
 }
 
 function isMusicFile(fileName, relativePath) {
@@ -722,6 +747,66 @@ function renderArticlesListing(sourceDir, relativeDir) {
   if (!articles.length) return '<p>No articles yet.</p>';
   const items = articles.map((article) => `<li><a href="${article.href}">${escapeHtml(article.title)}</a></li>`).join('');
   return `<ul class="plain-list">${items}</ul>`;
+}
+
+// Readings: a category index laid out in two columns.
+//
+// Each category is one note in Content/Readings/ (People, Psychology, ...). Every
+// category page shows its readings grouped by the letter headings the author
+// already uses (`# A`, `# B`), in the order they wrote them, so manual sorting is
+// preserved rather than re-sorted by the build.
+// A readings category page: the author's own letter groups (`# A`, `# B`, ...)
+// kept as small headings, with each reading under its letter in their order.
+function renderReadingCategory(body, relativeDir) {
+  const lines = parseProperties(body).body.split(/\r?\n/);
+  const groups = [];
+  let current = { letter: '', items: [], prose: [] };
+  for (const line of lines) {
+    const heading = line.match(/^#{1,6}\s+(.+)$/);
+    const link = line.match(/^\s*(?:[-*+]\s*)?\[([^\]]+)\]\(([^)\s]+)[^)]*\)\s*$/);
+    if (heading) {
+      if (current.items.length || current.prose.length) groups.push(current);
+      current = { letter: heading[1].trim(), items: [], prose: [] };
+    } else if (link) {
+      current.items.push({ title: link[1], href: link[2] });
+    } else if (line.trim() && !/^-{3,}$/.test(line.trim())) {
+      current.prose.push(line);
+    }
+    // A `---` divider separates letters and carries no meaning of its own.
+  }
+  if (current.items.length || current.prose.length || current.letter) groups.push(current);
+
+  const total = groups.reduce((sum, group) => sum + group.items.length, 0);
+  const rendered = groups.map((group) => {
+    const prose = group.prose.length ? `<p>${inlineMarkdown(group.prose.join(' '), relativeDir)}</p>` : '';
+    if (!group.items.length) return prose;
+    const letter = group.letter && group.letter.length <= 2 ? `<h3 class="readings-letter">${escapeHtml(group.letter)}</h3>` : '';
+    const items = group.items.map((item) => `<li><a href="${escapeAttr(item.href)}">${escapeHtml(item.title)}</a></li>`).join('');
+    return `${prose}${letter}<ul class="readings-list">${items}</ul>`;
+  }).join('');
+
+  return `<div class="readings-category" data-count="${total}">${rendered}</div>`;
+}
+
+function renderReadingsListing(sourceDir, relativeDir) {
+  const entries = sortEntries(fs.readdirSync(sourceDir, { withFileTypes: true }))
+    .filter((entry) => !entry.isDirectory() && entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md');
+  if (!entries.length) return '<p>No categories yet.</p>';
+  const categories = entries.map((entry) => {
+    const relativePath = path.join(relativeDir, entry.name);
+    const sourceText = fs.readFileSync(path.join(sourceDir, entry.name), 'utf8');
+    const note = parseProperties(sourceText);
+    const readingCount = [...note.body.matchAll(/^\s*(?:[-*+]\s*)?\[([^\]]+)\]\(([^)\s]+)[^)]*\)\s*$/gm)].length;
+    return {
+      title: publicLabel(displayName(entry.name)),
+      href: urlPath(path.join(relativeDir, outputName(entry.name, relativePath))),
+      count: readingCount,
+    };
+  });
+  const items = categories
+    .map((category) => `<li><a href="${category.href}">${escapeHtml(category.title)}</a><span class="readings-count">${category.count}</span></li>`)
+    .join('');
+  return `<ul class="readings-index">${items}</ul>`;
 }
 
 function renderFolderListing(sourceDir, relativeDir) {
@@ -888,8 +973,13 @@ function isTextOutput(fileName, relativePath) {
 }
 
 function markdownTitle(value, fallback) {
+  // A single letter or digit is a grouping heading (`# A` in a readings list), not
+  // a document title, so it is skipped in favour of the fallback.
   const heading = value.match(/^#\s+(.+)$/m);
-  return heading ? heading[1].trim() : fallback;
+  if (!heading) return fallback;
+  const title = heading[1].trim();
+  if (/^[A-Za-z0-9]$/.test(title)) return fallback;
+  return title;
 }
 
 function listSortText(value) {
@@ -1395,9 +1485,11 @@ function buildFolder(sourceDir, relativeDir = '') {
       const isBookFile = isBooksPath(relativeDir) && !entry.isDirectory();
       const body = isMusicFile(entry.name, relativePath)
         ? renderMusicPage(sourceText)
-        : isBookFile
-          ? `<article class="book-viewer">${markdownToHtml(note.body, relativeDir)}</article>`
-          : markdownToHtml(isArticlesPath(relativeDir) ? sortArticleLinks(note.body) : note.body, relativeDir);
+        : isReadingsPath(relativeDir)
+          ? renderReadingCategory(note.body, relativeDir)
+          : isBookFile
+            ? `<article class="book-viewer">${markdownToHtml(note.body, relativeDir)}</article>`
+            : markdownToHtml(isArticlesPath(relativeDir) ? sortArticleLinks(note.body) : note.body, relativeDir);
       fs.writeFileSync(destinationPath, layout(title, body, urlPath(path.join(relativeDir, destinationName)), note.tags));
     }
   }
@@ -1411,6 +1503,8 @@ function buildFolder(sourceDir, relativeDir = '') {
     ? renderJournalListing(sourceDir, relativeDir)
     : isArticlesPath(relativeDir)
       ? renderArticlesListing(sourceDir, relativeDir)
+    : isReadingsPath(relativeDir)
+      ? renderReadingsListing(sourceDir, relativeDir)
     : isBooksPath(relativeDir)
       ? renderBooksListing(sourceDir, relativeDir)
     : isBadAboutPath(relativeDir)
@@ -1419,7 +1513,7 @@ function buildFolder(sourceDir, relativeDir = '') {
   const currentPath = relativeDir ? `${urlPath(relativeDir)}/` : '/';
   // Section renderers supply their own header and intro, so no outer heading is
   // added for them. Generic folders still get the plain title.
-  const sectionOwnsHeader = isArticlesPath(relativeDir) || isBadAboutPath(relativeDir) || isJournalPath(relativeDir);
+  const sectionOwnsHeader = isArticlesPath(relativeDir) || isBadAboutPath(relativeDir) || isJournalPath(relativeDir) || isReadingsPath(relativeDir);
   const pageBody = sectionOwnsHeader
     ? `${folderDescription}${listing}`
     : `${folderDescription}<h2>${escapeHtml(publicLabel(folderDisplayName(title)))}</h2>${listing}`;
