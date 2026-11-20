@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { dayFromName, formatDay } = require('./lib/daycount');
 
 const root = __dirname;
 const contentRoot = path.join(root, 'Content');
@@ -10,7 +11,12 @@ function outputName(fileName, relativePath) {
   const baseName = fileName.replace(/\.md$/i, '');
   if (fileName.toLowerCase() === 'index.md') return 'index.html';
   if (/\.(txt|html)$/i.test(baseName)) return slugify(baseName);
-  return /(^|[\\/])journal(?:ish)?([\\/]|$)/i.test(relativePath) ? `${slugify(baseName)}.txt` : `${slugify(baseName)}.html`;
+  if (/(^|[\\/])journal(?:ish)?([\\/]|$)/i.test(relativePath)) {
+    // Must match build.js: journal entries are addressed by day number.
+    const day = dayFromName(fileName);
+    return day === null ? `${slugify(baseName)}.txt` : `${formatDay(day)}.txt`;
+  }
+  return `${slugify(baseName)}.html`;
 }
 
 function slugify(value) {

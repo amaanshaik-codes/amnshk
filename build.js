@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { dayFromName } = require('./lib/daycount');
+const { dayFromName, formatDay } = require('./lib/daycount');
 
 const root = __dirname;
 const contentRoot = path.join(root, 'Content');
@@ -515,9 +515,18 @@ function renderTagLinks(tags) {
   return `<p class="note-tags" aria-label="Tags">Tags: ${links}</p>`;
 }
 
+function journalContentDir() {
+  // The vault folder may be journal/ or Journal/; accept either.
+  for (const name of ['Journal', 'journal']) {
+    const candidate = path.join(contentRoot, name);
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
 function latestJournalTicker() {
-  const journalRoot = path.join(contentRoot, 'journal');
-  if (!fs.existsSync(journalRoot)) return '';
+  const journalRoot = journalContentDir();
+  if (!journalRoot) return '';
   // Entries are named by day-of-life, so the highest number is the newest.
   const files = fs.readdirSync(journalRoot, { withFileTypes: true })
     .filter((entry) => !entry.isDirectory() && entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md')
@@ -606,7 +615,7 @@ function renderJournalListing(sourceDir, relativeDir) {
   const items = entries
     .map(({ entry, day }) => {
       const href = urlPath(path.join(relativeDir, outputName(entry.name, path.join(relativeDir, entry.name))));
-      return `<li><a href="${href}">${day}</a></li>`;
+      return `<li><a href="${href}">${formatDay(day)}</a></li>`;
     })
     .join('');
   return `<ul class="journal-list">${items}</ul>`;
@@ -857,7 +866,13 @@ function outputName(fileName, relativePath) {
   if (fileName.toLowerCase() === 'index.md') return 'index.html';
   const baseName = fileName.replace(/\.md$/i, '');
   if (/\.(txt|html)$/i.test(baseName)) return slugify(baseName);
-  return /(^|[\\/])journal(?:ish)?([\\/]|$)/i.test(relativePath) ? `${slugify(baseName)}.txt` : `${slugify(baseName)}.html`;
+  // Journal entries are addressed by day number, not by the author's date, so the
+  // URL matches the label on the page: 07768, not 17-11-2026.
+  if (/(^|[\\/])journal(?:ish)?([\\/]|$)/i.test(relativePath)) {
+    const day = dayFromName(fileName);
+    return day === null ? `${slugify(baseName)}.txt` : `${formatDay(day)}.txt`;
+  }
+  return `${slugify(baseName)}.html`;
 }
 
 function slugify(value) {
