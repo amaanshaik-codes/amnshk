@@ -184,12 +184,25 @@ function layout(title, body, currentPath = '/', tags = []) {
     .text-viewer p, .text-viewer ul, .text-viewer ol, .text-viewer blockquote { margin: 1rem 0; }
     /* Book pages: a plain reading column. Prose gets a printed-page indent;
        short standalone lines (contents, chapter titles) stay flush left. */
-    .book-viewer { width: 100%; max-width: var(--content-w); margin: 1rem auto; padding: 0; text-align: left; font-size: 1.02rem; line-height: 1.7; }
-    .book-viewer p { margin: 0 0 .6rem; text-align: left; text-indent: 0; }
-    .book-viewer p.prose { text-indent: 1.5rem; margin-bottom: .9rem; }
-    .book-viewer p:first-child, .book-viewer p:first-of-type { text-indent: 0; }
-    .book-viewer hr { margin: 1.2rem 0; }
-    .book-viewer h1, .book-viewer h2, .book-viewer h3 { text-indent: 0; margin: 1.4rem 0 .6rem; }
+    /* Book pages: a long-form reading column. Wider lines, generous leading and a
+       real paragraph gap, so a book reads like a printed page instead of a list
+       of short left-aligned lines. */
+    .book-viewer { width: 100%; max-width: var(--content-w); margin: 1rem auto 2rem; padding: 0;
+      text-align: left; font-size: clamp(1.05rem, 1.4vw, 1.2rem); line-height: 1.85; }
+    .book-viewer p { margin: 0 0 1rem; text-align: left; text-indent: 0; }
+    /* Short standalone lines (contents, chapter titles) sit tight together, the way
+       a printed contents page reads, instead of one per spaced paragraph. */
+    .book-viewer p.short { margin: 0; line-height: 1.6; }
+    .book-viewer p.short + p.prose { margin-top: 1rem; }
+    /* Prose paragraphs get the printed-page indent; a first line after a heading,
+       a rule or another paragraph does not. */
+    .book-viewer p.prose { text-indent: 1.6rem; }
+    .book-viewer p.prose:first-of-type, .book-viewer hr + p.prose, .book-viewer h1 + p.prose,
+    .book-viewer h2 + p.prose, .book-viewer h3 + p.prose { text-indent: 0; }
+    /* A section break (===== or ---) gets breathing room on both sides. */
+    .book-viewer hr { width: 30%; margin: 1.8rem auto; border: 0; border-top: 1px solid var(--text); }
+    .book-viewer h1, .book-viewer h2, .book-viewer h3 { text-indent: 0; margin: 2rem 0 .8rem; text-align: center; font-weight: bold; }
+    .book-viewer blockquote { font-style: italic; }
     /* Plain old-school lists: no numbers, no rules, no described rows. */
     .plain-list { width: 100%; max-width: var(--content-w); margin: .4rem auto 1rem; padding: 0 0 0 1.4rem; list-style: disc; text-align: left; }
     .plain-list li { margin: 0; line-height: 1.5; }
@@ -1128,7 +1141,11 @@ function renderListTree(items, relativeDir) {
   return html;
 }
 
-function markdownToHtml(value, relativeDir = '') {
+function markdownToHtml(value, relativeDir = '', options = {}) {
+  // preserveLines: treat every line break as a hard break. Plain-text books are
+  // written that way - a chapter list, a dedication, an author line on its own
+  // row - and joining those lines into one paragraph destroys the layout.
+  const preserveLines = options.preserveLines === true;
   const lines = value.split(/\r?\n/);
   const output = [];
   let paragraph = [];
@@ -1138,9 +1155,13 @@ function markdownToHtml(value, relativeDir = '') {
 
   const flushParagraph = () => {
     if (!paragraph.length) return;
-    const text = paragraph.join(' ');
-    const cls = alignment ? ` class="align-${alignment}"` : (text.length > 120 ? ' class="prose"' : '');
-    output.push(`<p${cls}>${inlineMarkdown(text, relativeDir)}</p>`);
+    const text = preserveLines ? paragraph.join('\n') : paragraph.join(' ');
+    const classes = [];
+    if (alignment) classes.push(`align-${alignment}`);
+    if (text.length > 120) classes.push('prose');
+    if (preserveLines && text.length <= 40 && !text.includes('\n')) classes.push('short');
+    const cls = classes.length ? ` class="${classes.join(' ')}"` : '';
+    output.push(`<p${cls}>${inlineMarkdown(text, relativeDir, preserveLines)}</p>`);
     paragraph = [];
     alignment = null;
   };
@@ -1278,7 +1299,7 @@ function markdownToHtml(value, relativeDir = '') {
 
 // Inline formatting. Escapes first; placeholders protect code spans so their
 // contents are never treated as markdown.
-function inlineMarkdown(value, relativeDir = '') {
+function inlineMarkdown(value, relativeDir = '', preserveLines = false) {
   const codeSpans = [];
   let text = escapeHtml(value);
 
@@ -1351,6 +1372,9 @@ function inlineMarkdown(value, relativeDir = '') {
     .replace(/&lt;\/u&gt;/gi, '</u>');
 
   text = linkifyBareUrls(text);
+
+  // In a plain-text book every source line is a deliberate line break.
+  if (preserveLines) text = text.replace(/\n/g, '<br>');
 
   // Put code spans back last so nothing above could have altered them.
   text = text.replace(/\u0000(\d+)\u0000/g, (_, index) => codeSpans[Number(index)]);
@@ -1500,7 +1524,7 @@ function buildFolder(sourceDir, relativeDir = '') {
         : isReadingsPath(relativeDir)
           ? renderReadingCategory(note.body, relativeDir)
           : isBookFile
-            ? `<article class="book-viewer">${markdownToHtml(note.body, relativeDir)}</article>`
+            ? `<article class="book-viewer">${markdownToHtml(note.body, relativeDir, { preserveLines: true })}</article>`
             : markdownToHtml(isArticlesPath(relativeDir) ? sortArticleLinks(note.body) : note.body, relativeDir);
       fs.writeFileSync(destinationPath, layout(title, body, urlPath(path.join(relativeDir, destinationName)), note.tags));
     }
