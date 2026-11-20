@@ -328,8 +328,10 @@ footer { padding: .75rem 1rem 1.1rem; font-size: .9rem; }
 .badges .badge { flex: 0 0 auto; }
 .badge { display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
 /* Badges are fixed-size pixel art: never scale or stretch them. */
-/* Badges are fixed-size pixel art and render at their natural dimensions. */
 .badge img { display: block; width: auto; height: auto; max-width: none; image-rendering: pixelated; }
+/* The 160px pair are visually heavier than the 88px pair; scale them to 128px
+   so both rows carry similar weight. Pixel art stays crisp. */
+.badge img[width="160"] { width: 128px; height: 29px; }
 .footer-meta { display: flex; justify-content: center; align-items: baseline; flex-wrap: wrap; gap: 1rem; }
 .footer-meta p { margin: 0; }
 .visit-counter { display: flex; align-items: center; justify-content: center; gap: .35rem; min-height: 22px; margin-top: .75rem; font-size: .85rem; line-height: 1; color: var(--muted); }
@@ -473,7 +475,7 @@ function layout(title, body, currentPath = '/', tags = []) {
       <span class="badge"><img src="/badges/y2k-compliant.png" width="160" height="36" alt="Y2K compliant"></span>
       <span class="badge"><img src="/badges/no-ai-human-content.png" width="160" height="36" alt="No AI human content"></span>
     </div>
-    <div class="visit-counter"><img src="/api/visitors" alt="You are visitor number" width="114" height="22" loading="lazy" decoding="async" fetchpriority="low"></div>
+    <div class="visit-counter"><img src="/api/visitors" alt="Visitor count" width="114" height="22" decoding="async" fetchpriority="low"></div>
   </footer>
   </div>
   <script>

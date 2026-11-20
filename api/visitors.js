@@ -1,36 +1,39 @@
 // Visitor counter. Serves a small SVG pill that the footer loads as an image.
 //
-// COUNTING is delegated to GoatCounter (https://www.goatcounter.com), which
-// identifies unique visits without cookies and without storing personal data:
-// it hashes IP + User-Agent + a daily salt, which cannot be reversed and changes
-// every 24h. Nothing is set on the visitor's device, so this site stays cookie
-// free and needs no consent banner.
+// NO COOKIES. Nothing is written to the visitor's device, which is what lets the
+// site carry a "100% cookie free" badge honestly.
 //
-// This function only reads the number and renders it; it writes no state of its
-// own. That is deliberate — serverless instances are recycled constantly, so any
-// in-process total would reset on cold start.
+// How a visit is counted:
+//   1. Read the client IP from the request headers.
+//   2. Hash it with a secret salt (SHA-256). The raw IP is never stored.
+//   3. Look the hash up in a store keyed by today's date.
+//   4. New hash -> increment the total; seen hash -> leave it alone.
+//   5. Hashes expire after the day rolls over, so the same person is counted
+//      once per day and yesterday's data is gone.
 //
-// SETUP (one time):
-//   1. Create a free GoatCounter account: https://www.goatcounter.com/signup
-//      The subdomain you pick is GC_SITE below.
-//   2. In GoatCounter settings enable "Allow adding visitor counts on your website"
-//      (off by default; the counter 404s without it).
-//   3. Point the site at it with either:
-//        - env var GOATCOUNTER_SITE=yourcode  (no .goatcounter.com suffix), or
-//        - GC_SITE below directly.
-//   4. For views to be recorded at all, the site must send pageviews: add the
-//      GoatCounter script tag (see renderFooter in build.js).
+// Storage: a single JSON document held in Vercel Blob, read and written with its
+// ETag as a concurrency check. If no Blob token is configured the counter keeps
+// working in memory, which is correct on a single long-lived process but resets
+// when a serverless instance is recycled.
 //
-// Without a configured site the endpoint still answers with a valid SVG showing
-// zeros, so the footer never shows a broken image.
+// Env:
+//   IP_HASH_SALT        secret used to hash IPs (any long random string)
+//   BLOB_READ_WRITE_TOKEN  Vercel Blob token (created by linking a Blob store)
+
+const crypto = require('crypto');
 
 const DEFAULT_SITE = 'amnshk';
-const TOTAL_PATH = 'TOTAL'; // GoatCounter's site-wide total, case-sensitive, no slash
-// The count changes slowly, but a long cache made new visits invisible for up to
-// 15 minutes, which reads as "the counter is broken". Keep it short and let the
-// CDN revalidate in the background.
+const TOTAL_PATH = 'TOTAL';
 const CACHE_SECONDS = 120;
 const UPSTREAM_TIMEOUT_MS = 2500;
+
+const STATE_KEY = 'visits/state.json';
+const PRESENCE_PREFIX = 'visited';
+const PRESENCE_TTL_SECONDS = 60 * 60 * 30; // a day plus slack
+
+// ---------------------------------------------------------------------------
+// Pill drawing. Unchanged look; only the number comes from another source.
+// ---------------------------------------------------------------------------
 
 const PILL_HEIGHT = 22;
 const PILL_PAD_X = 9;
@@ -39,56 +42,15 @@ const PILL_DIVIDER = 1;
 const LABEL = 'VISITORS';
 const LABEL_SIZE = 10;
 const NUMBER_SIZE = 13;
-const LABEL_CHAR_WIDTH = LABEL_SIZE * 0.62; // Courier advance width, uppercase
+const LABEL_CHAR_WIDTH = LABEL_SIZE * 0.62;
 const NUMBER_CHAR_WIDTH = NUMBER_SIZE * 0.6;
 const BLUE = '#1d3fbf';
 const BLUE_DARK = '#16329c';
-
-function siteCode(env = process.env) {
-  return String(env.GOATCOUNTER_SITE || DEFAULT_SITE).trim().replace(/\.goatcounter\.com\/?$/i, '');
-}
-
-// GoatCounter reports a formatted string ("1,234"), so strip separators and any
-// non-digit before using it as a number. The pill is a *unique visitor* counter,
-// so prefer count_unique; `count` is total pageviews and would double-count
-// anyone who reloads or browses several pages.
-function parseCount(payload) {
-  if (payload === null || payload === undefined) return null;
-  let raw;
-  if (typeof payload === 'object') raw = payload.count_unique ?? payload.count;
-  else raw = payload;
-  if (raw === null || raw === undefined) return null;
-  const digitsOnly = String(raw).replace(/[^\d]/g, '');
-  return digitsOnly ? Number(digitsOnly) : null;
-}
-
-async function fetchCount(env = process.env) {
-  const site = siteCode(env);
-  const url = `https://${encodeURIComponent(site)}.goatcounter.com/counter/${encodeURIComponent(TOTAL_PATH)}.json`;
-  // Never let a slow or hanging upstream hold the page: abort and fall back to 0.
-  const response = await fetch(url, {
-    headers: { Accept: 'application/json' },
-    signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)
-  });
-  // 404: no hits recorded yet. Legitimately zero, not a failure.
-  if (response.status === 404) return null;
-  // 403: the account exists but "allow using the visitor counter" is still off in
-  // GoatCounter settings. That is a setup step, not an outage - say so plainly
-  // instead of throwing, so the pill stays intact and the log points at the fix.
-  if (response.status === 403) {
-    console.warn('visitor counter: GoatCounter returned 403 - enable "Allow adding visitor counts on your website" in Settings');
-    return null;
-  }
-  if (!response.ok) throw new Error(`GoatCounter responded ${response.status}`);
-  return parseCount(await response.json());
-}
 
 function digits(value) {
   return String(Math.max(0, Math.floor(value))).padStart(6, '0');
 }
 
-// White label on a blue capsule, then the number on cream: one self-contained
-// image the footer can drop in regardless of page styles.
 function counterSvg(count) {
   const number = digits(count);
   const labelWidth = LABEL.length * LABEL_CHAR_WIDTH;
@@ -112,22 +74,157 @@ function counterSvg(count) {
 </svg>`;
 }
 
+// ---------------------------------------------------------------------------
+// IP hashing
+// ---------------------------------------------------------------------------
+
+function clientIp(req) {
+  const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return forwarded || String(req.headers['x-real-ip'] || '').trim() || (req.socket && req.socket.remoteAddress) || 'unknown';
+}
+
+// A salted SHA-256 of the IP. The salt makes the digest useless to anyone who
+// gets hold of it: they cannot reverse it or compare against a list of known IPs.
+function hashIp(ip, env = process.env) {
+  const salt = env.IP_HASH_SALT || 'amnshk-default-salt-change-me';
+  return crypto.createHash('sha256').update(`${salt}:${ip}`).digest('hex').slice(0, 32);
+}
+
+function todayKey(now = new Date()) {
+  return now.toISOString().slice(0, 10);
+}
+
+// ---------------------------------------------------------------------------
+// Storage backends
+// ---------------------------------------------------------------------------
+
+const memory = { day: todayKey(), seen: new Set(), total: 0 };
+
+function blobConfig(env = process.env) {
+  const token = env.BLOB_READ_WRITE_TOKEN;
+  return token ? { token } : null;
+}
+
+async function blobRead(config) {
+  const response = await fetch(`https://blob.vercel-storage.com/${STATE_KEY}`, {
+    headers: { Authorization: `Bearer ${config.token}` },
+    signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)
+  });
+  if (response.status === 404) return { state: { day: todayKey(), total: 0, seen: [] }, etag: null };
+  if (!response.ok) throw new Error(`Blob read ${response.status}`);
+  const etag = response.headers.get('etag');
+  const state = await response.json();
+  return { state, etag };
+}
+
+async function blobWrite(config, state, etag) {
+  const response = await fetch(`https://blob.vercel-storage.com/${STATE_KEY}`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${config.token}`,
+      'Content-Type': 'application/json',
+      'x-add-random-suffix': '0',
+      ...(etag ? { 'If-Match': etag } : {})
+    },
+    body: JSON.stringify(state),
+    signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)
+  });
+  if (!response.ok) throw new Error(`Blob write ${response.status}`);
+}
+
+// Counts a visit and returns the new total. Every backend follows the same shape:
+// check the daily presence set, increment only when the hash is new.
+async function countVisit(ip, env = process.env) {
+  const hash = hashIp(ip, env);
+  const day = todayKey();
+
+  const config = blobConfig(env);
+  if (config) {
+    try {
+      const { state, etag } = await blobRead(config);
+      // A new day starts a fresh presence set; yesterday's hashes are dropped.
+      const fresh = state.day === day ? state : { day, total: state.total, seen: [] };
+      if (fresh.seen.includes(hash)) return Number(state.total) || 0;
+      fresh.seen.push(hash);
+      fresh.total = (Number(fresh.total) || 0) + 1;
+      await blobWrite(config, fresh, etag);
+      return fresh.total;
+    } catch (error) {
+      console.error('visitor counter: blob unavailable, using memory', error.message);
+    }
+  }
+
+  if (memory.day !== day) {
+    memory.day = day;
+    memory.seen.clear();
+  }
+  if (memory.seen.has(hash)) return memory.total;
+  memory.seen.add(hash);
+  memory.total += 1;
+  return memory.total;
+}
+
+// Current total without counting anyone.
+async function currentTotal(env = process.env) {
+  const config = blobConfig(env);
+  if (config) {
+    try {
+      const { state } = await blobRead(config);
+      return Number(state.total) || 0;
+    } catch (error) {
+      console.error('visitor counter: blob read failed', error.message);
+    }
+  }
+  return memory.total;
+}
+
+// ---------------------------------------------------------------------------
+// Legacy GoatCounter read, kept only so the page can show a historical figure.
+// ---------------------------------------------------------------------------
+
+function siteCode(env = process.env) {
+  return String(env.GOATCOUNTER_SITE || DEFAULT_SITE).trim().replace(/\.goatcounter\.com\/?$/i, '');
+}
+
+function parseCount(payload) {
+  if (payload === null || payload === undefined) return null;
+  const raw = typeof payload === 'object' ? (payload.count_unique ?? payload.count) : payload;
+  if (raw === null || raw === undefined) return null;
+  const digitsOnly = String(raw).replace(/[^\d]/g, '');
+  return digitsOnly ? Number(digitsOnly) : null;
+}
+
+async function fetchGoatCounter(env = process.env) {
+  const site = siteCode(env);
+  const url = `https://${encodeURIComponent(site)}.goatcounter.com/counter/${encodeURIComponent(TOTAL_PATH)}.json`;
+  const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS) });
+  if (response.status === 404 || response.status === 403) return null;
+  if (!response.ok) throw new Error(`GoatCounter responded ${response.status}`);
+  return parseCount(await response.json());
+}
+
+// ---------------------------------------------------------------------------
+
 async function handler(req, res) {
   res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
-  // No Set-Cookie anywhere in this handler: the counter must not identify anyone.
+  // Never identify the visitor: this is the whole point of the hashed-IP design.
   res.setHeader('Cache-Control', `public, max-age=60, s-maxage=${CACHE_SECONDS}, stale-while-revalidate=600`);
-  res.setHeader('X-Counter-Source', `goatcounter:${siteCode()}`);
-  let count = 0;
+  res.setHeader('X-Counter-Source', blobConfig() ? 'blob:ip-hash' : 'memory:ip-hash');
+  let total = 0;
   try {
-    count = (await fetchCount()) ?? 0;
+    total = await countVisit(clientIp(req));
   } catch (error) {
     console.error('visitor counter failed', error.message);
+    total = await currentTotal();
   }
-  res.send(counterSvg(count));
+  res.send(counterSvg(total));
 }
 
 module.exports = handler;
 module.exports.counterSvg = counterSvg;
-module.exports.fetchCount = fetchCount;
+module.exports.hashIp = hashIp;
+module.exports.countVisit = countVisit;
+module.exports.fetchGoatCounter = fetchGoatCounter;
 module.exports.parseCount = parseCount;
 module.exports.siteCode = siteCode;
+module.exports._memory = memory;
