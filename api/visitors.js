@@ -11,25 +11,21 @@
 //   5. Hashes expire after the day rolls over, so the same person is counted
 //      once per day and yesterday's data is gone.
 //
-// Storage: a single JSON document held in Vercel Blob, read and written with its
-// ETag as a concurrency check. If no Blob token is configured the counter keeps
-// working in memory, which is correct on a single long-lived process but resets
-// when a serverless instance is recycled.
+// Storage: a dotfile at the repository root (.visits.json), outside public/, so
+// it is never deployed and cannot be fetched. Each deploy carries it forward.
 //
 // Env:
 //   IP_HASH_SALT        secret used to hash IPs (any long random string)
-//   BLOB_READ_WRITE_TOKEN  Vercel Blob token (created by linking a Blob store)
 
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 
 const DEFAULT_SITE = 'amnshk';
 const TOTAL_PATH = 'TOTAL';
 const CACHE_SECONDS = 120;
 const UPSTREAM_TIMEOUT_MS = 2500;
 
-const STATE_KEY = 'visits/state.json';
-const PRESENCE_PREFIX = 'visited';
-const PRESENCE_TTL_SECONDS = 60 * 60 * 30; // a day plus slack
 
 // ---------------------------------------------------------------------------
 // Pill drawing. Unchanged look; only the number comes from another source.
@@ -95,112 +91,45 @@ function todayKey(now = new Date()) {
 }
 
 // ---------------------------------------------------------------------------
-// Storage backends
+// Storage
+//
+// The record lives in a dotfile at the repository root, outside public/, so it is
+// never part of the deployed site and a visitor cannot request it.
+//
+//   { day: "YYYY-MM-DD", total: N, seen: [hash, ...] }
+//
+// `seen` holds only salted hashes for the current day; it is cleared when the
+// day changes, so nothing accumulates over time.
 // ---------------------------------------------------------------------------
 
-const memory = { day: todayKey(), seen: new Set(), total: 0 };
+const STATE_FILE = path.join(__dirname, '..', '.visits.json');
 
-function blobConfig(env = process.env) {
-  const token = env.BLOB_READ_WRITE_TOKEN;
-  return token ? { token } : null;
+function emptyState() {
+  return { day: todayKey(), total: 0, seen: [] };
 }
 
-async function blobRead(config) {
-  const response = await fetch(`https://blob.vercel-storage.com/${STATE_KEY}`, {
-    headers: { Authorization: `Bearer ${config.token}` },
-    signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)
-  });
-  if (response.status === 404) return { state: { day: todayKey(), total: 0, seen: [] }, etag: null };
-  if (!response.ok) throw new Error(`Blob read ${response.status}`);
-  const etag = response.headers.get('etag');
-  const state = await response.json();
-  return { state, etag };
-}
-
-async function blobWrite(config, state, etag) {
-  const response = await fetch(`https://blob.vercel-storage.com/${STATE_KEY}`, {
-    method: 'PUT',
-    headers: {
-      Authorization: `Bearer ${config.token}`,
-      'Content-Type': 'application/json',
-      'x-add-random-suffix': '0',
-      ...(etag ? { 'If-Match': etag } : {})
-    },
-    body: JSON.stringify(state),
-    signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)
-  });
-  if (!response.ok) throw new Error(`Blob write ${response.status}`);
-}
-
-// Counts a visit and returns the new total. Every backend follows the same shape:
-// check the daily presence set, increment only when the hash is new.
-async function countVisit(ip, env = process.env) {
-  const hash = hashIp(ip, env);
-  const day = todayKey();
-
-  const config = blobConfig(env);
-  if (config) {
-    try {
-      const { state, etag } = await blobRead(config);
-      // A new day starts a fresh presence set; yesterday's hashes are dropped.
-      const fresh = state.day === day ? state : { day, total: state.total, seen: [] };
-      if (fresh.seen.includes(hash)) return Number(state.total) || 0;
-      fresh.seen.push(hash);
-      fresh.total = (Number(fresh.total) || 0) + 1;
-      await blobWrite(config, fresh, etag);
-      return fresh.total;
-    } catch (error) {
-      console.error('visitor counter: blob unavailable, using memory', error.message);
-    }
+function readState() {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    return {
+      day: typeof parsed.day === 'string' ? parsed.day : todayKey(),
+      total: Number(parsed.total) || 0,
+      seen: Array.isArray(parsed.seen) ? parsed.seen : []
+    };
+  } catch {
+    return emptyState();
   }
-
-  if (memory.day !== day) {
-    memory.day = day;
-    memory.seen.clear();
-  }
-  if (memory.seen.has(hash)) return memory.total;
-  memory.seen.add(hash);
-  memory.total += 1;
-  return memory.total;
 }
 
-// Current total without counting anyone.
-async function currentTotal(env = process.env) {
-  const config = blobConfig(env);
-  if (config) {
-    try {
-      const { state } = await blobRead(config);
-      return Number(state.total) || 0;
-    } catch (error) {
-      console.error('visitor counter: blob read failed', error.message);
-    }
-  }
-  return memory.total;
+// A Vercel function's filesystem is read-only, so this handler only reads. The
+// counting itself happens in scripts/record-visit.js, which runs in CI and
+// commits the updated file back, and in the build for local previews.
+function countVisit(ip, env = process.env) {
+  return readState().total;
 }
 
-// ---------------------------------------------------------------------------
-// Legacy GoatCounter read, kept only so the page can show a historical figure.
-// ---------------------------------------------------------------------------
-
-function siteCode(env = process.env) {
-  return String(env.GOATCOUNTER_SITE || DEFAULT_SITE).trim().replace(/\.goatcounter\.com\/?$/i, '');
-}
-
-function parseCount(payload) {
-  if (payload === null || payload === undefined) return null;
-  const raw = typeof payload === 'object' ? (payload.count_unique ?? payload.count) : payload;
-  if (raw === null || raw === undefined) return null;
-  const digitsOnly = String(raw).replace(/[^\d]/g, '');
-  return digitsOnly ? Number(digitsOnly) : null;
-}
-
-async function fetchGoatCounter(env = process.env) {
-  const site = siteCode(env);
-  const url = `https://${encodeURIComponent(site)}.goatcounter.com/counter/${encodeURIComponent(TOTAL_PATH)}.json`;
-  const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS) });
-  if (response.status === 404 || response.status === 403) return null;
-  if (!response.ok) throw new Error(`GoatCounter responded ${response.status}`);
-  return parseCount(await response.json());
+function currentTotal() {
+  return readState().total;
 }
 
 // ---------------------------------------------------------------------------
@@ -209,13 +138,13 @@ async function handler(req, res) {
   res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
   // Never identify the visitor: this is the whole point of the hashed-IP design.
   res.setHeader('Cache-Control', `public, max-age=60, s-maxage=${CACHE_SECONDS}, stale-while-revalidate=600`);
-  res.setHeader('X-Counter-Source', blobConfig() ? 'blob:ip-hash' : 'memory:ip-hash');
+  res.setHeader('X-Counter-Source', 'file:ip-hash');
   let total = 0;
   try {
-    total = await countVisit(clientIp(req));
+    total = countVisit(clientIp(req));
   } catch (error) {
     console.error('visitor counter failed', error.message);
-    total = await currentTotal();
+    total = currentTotal();
   }
   res.send(counterSvg(total));
 }
@@ -224,7 +153,5 @@ module.exports = handler;
 module.exports.counterSvg = counterSvg;
 module.exports.hashIp = hashIp;
 module.exports.countVisit = countVisit;
-module.exports.fetchGoatCounter = fetchGoatCounter;
-module.exports.parseCount = parseCount;
-module.exports.siteCode = siteCode;
-module.exports._memory = memory;
+module.exports.todayKey = todayKey;
+module.exports.STATE_FILE = STATE_FILE;

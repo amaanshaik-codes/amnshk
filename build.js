@@ -41,32 +41,6 @@ const navigation = [
 const availableNavigation = navigation.filter((item) => !item.source || fs.existsSync(path.join(contentRoot, item.source)));
 
 // GoatCounter's pageview script. It is what makes the visitor count real: the
-// footer pill only reads the total, this records the visit. GoatCounter identifies
-// unique visits with a salted hash of IP + User-Agent and sets no cookies.
-const GOATCOUNTER_SITE = (process.env.GOATCOUNTER_SITE || 'amnshk').trim().replace(/\.goatcounter\.com\/?$/i, '');
-
-// GoatCounter's pageview script records the visit. It is loaded after the page is
-// idle instead of during it: the script is a third-party round trip (~150-500ms)
-// and nothing on the page waits for it, so holding up navigation for it only made
-// every link feel slow.
-function goatcounterScript() {
-  return `<script>
-  (function () {
-    function load() {
-      var s = document.createElement('script');
-      s.async = true;
-      s.src = 'https://gc.zgo.at/count.js';
-      s.setAttribute('data-goatcounter', 'https://${GOATCOUNTER_SITE}.goatcounter.com/count');
-      document.body.appendChild(s);
-    }
-    // After everything the reader can see has settled. requestIdleCallback is not
-    // in Safari, so fall back to a timeout.
-    if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout: 2500 });
-    else window.addEventListener('load', function () { setTimeout(load, 400); });
-  })();
-  </script>`;
-}
-
 function escapeHtml(value) {
   return value
     .replaceAll('&', '&amp;')
@@ -441,6 +415,8 @@ function layout(title, body, currentPath = '/', tags = []) {
   <meta property="og:type" content="website">
   <title>${escapeHtml(title)} · AMNSHK</title>
   <link rel="stylesheet" href="/style.css">
+  <style>/* Critical: paint text in the right face and colour before style.css lands. */
+    html{background:#fbf9f3}body{margin:0;background:#fbf9f3;color:#111;font-family:"Times New Roman",Times,Georgia,serif;font-size:17px;line-height:1.45}a{color:blue}</style>
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
@@ -526,7 +502,6 @@ function layout(title, body, currentPath = '/', tags = []) {
       track.style.animationDelay = '-' + elapsed.toFixed(2) + 's';
     })();
   </script>
-  ${goatcounterScript()}
 </body>
 </html>
 `;
