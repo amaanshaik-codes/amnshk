@@ -3,11 +3,11 @@
 
 ---
 # H 
-- [Hypnagogia](https://en.wikipedia.org/wiki/Hypnagogia)
+[Hypnagogia](https://en.wikipedia.org/wiki/Hypnagogia)
 
 ---
 # R 
-- [Rosenzweig](https://de.wikipedia.org/wiki/Rosenzweig_PF)
-- [Rorschach Test](https://en.wikipedia.org/wiki/Rorschach_test)
+[Rosenzweig](https://de.wikipedia.org/wiki/Rosenzweig_PF)
+[Rorschach Test](https://en.wikipedia.org/wiki/Rorschach_test)
 
 

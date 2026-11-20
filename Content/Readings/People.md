@@ -7,6 +7,10 @@
 [Bonnie and Clyde](https://en.wikipedia.org/wiki/Bonnie_and_Clyde)
 
 ---
+# D
+[Dorothea Lange](https://en.wikipedia.org/wiki/Dorothea_Lange)
+
+---
 # E
 [Ed Gein](https://en.wikipedia.org/wiki/Ed_Gein)
 
