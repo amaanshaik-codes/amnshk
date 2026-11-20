@@ -217,6 +217,9 @@ function layout(title, body, currentPath = '/', tags = []) {
     .readings-letter:first-child { margin-top: 0; }
     .readings-list { margin: 0 0 .4rem; padding: 0 0 0 1.1rem; list-style: disc; }
     .readings-list li { margin: .05rem 0; line-height: 1.45; break-inside: avoid; }
+    /* A bullet only appears where the author wrote one. */
+    .readings-list li.no-bullet { list-style: none; }
+    .readings-list li.no-bullet { margin-left: -1.1rem; }
 
     @media (max-width: 46rem) {
       .readings-index, .readings-category { columns: 1; }
@@ -303,13 +306,14 @@ function layout(title, body, currentPath = '/', tags = []) {
     .tag-name, .tagged-note-title { font-size: 1.05rem; }
     .tagged-note-path { white-space: nowrap; font-size: .9rem; }
     .note-tags { max-width: 88ch; margin: 1rem auto; text-align: left; font-size: .95rem; }
-    .music-page { max-width: 62ch; margin: 1rem auto; text-align: left; }
-    .album-list { display: grid; gap: .75rem; margin: 1rem 0; padding: 0; list-style: none; }
-    .album-card { padding: .25rem 0; }
-    .album-link { display: grid; grid-template-columns: 1fr auto; gap: .25rem 1rem; align-items: center; padding: .85rem 1rem; }
-    .album-name { font-size: 1.1rem; }
-    .album-artist { grid-column: 1; font-size: .9rem; color: var(--text); }
-    .album-action { grid-column: 2; grid-row: 1 / span 2; }
+    /* Music: same column, same rhythm as the rest of the site. Two columns of
+       album links with the artist in muted type, no per-row action label. */
+    .music-page { width: 100%; max-width: var(--content-w); margin: .6rem auto 1rem; text-align: left; }
+    .music-page > p { margin: 0 0 1rem; }
+    .music-list { columns: 2; column-gap: 2.5rem; margin: .4rem 0 0; padding: 0 0 0 1.1rem; list-style: disc; }
+    .music-list li { margin: .1rem 0; line-height: 1.5; break-inside: avoid; }
+    .music-list .album-artist { font-size: .88rem; color: var(--muted); }
+    @media (max-width: 46rem) { .music-list { columns: 1; } }
     .category-link { color: var(--text); }
     .category-separator { margin: 0 .25rem; }
     .skip-link { position: absolute; left: -9999px; }
@@ -648,24 +652,26 @@ function renderJournalListing(sourceDir, relativeDir) {
 
 function renderMusicPage(sourceText) {
   sourceText = parseProperties(sourceText).body;
+  // "- [Album](link) - Artist". The author's order is kept; bullets stay because
+  // the note is written as a bulleted list.
   const albumPattern = /^\s*[-*+]\s*\[([^\]]+)\]\(([^)]+)\)(?:\s+-\s+(.+))?\s*$/gm;
-  const albums = [...sourceText.matchAll(albumPattern)]
-    .map((match) => {
-      const separator = match[1].lastIndexOf(' - ');
-      return {
-        name: separator === -1 ? match[1].trim() : match[1].slice(0, separator).trim(),
-        artist: match[3]?.trim() || (separator === -1 ? '' : match[1].slice(separator + 3).trim()),
-        href: match[2]
-      };
-    })
-    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  const albums = [...sourceText.matchAll(albumPattern)].map((match) => {
+    const separator = match[1].lastIndexOf(' - ');
+    return {
+      name: separator === -1 ? match[1].trim() : match[1].slice(0, separator).trim(),
+      artist: match[3]?.trim() || (separator === -1 ? '' : match[1].slice(separator + 3).trim()),
+      href: match[2]
+    };
+  });
   const description = sourceText.split(/\r?\n/)
     .map((line) => line.trim())
     .filter((line) => line && !/^[-*+]\s*$/.test(line) && !/^[-*+]\s*\[[^\]]+\]\([^)]+\)/.test(line))
     .join(' ');
   if (!albums.length) return `<section class="music-page">${description ? `<p>${inlineMarkdown(description)}</p>` : '<p>No albums yet.</p>'}</section>`;
-  const items = albums.map((album) => `<li class="album-card"><a class="album-link" href="${escapeHtml(album.href)}" target="_blank" rel="noopener noreferrer"><span class="album-name">${escapeHtml(album.name)}</span>${album.artist ? `<span class="album-artist">${escapeHtml(album.artist)}</span>` : ''}<span class="album-action">Open album ↗</span></a></li>`).join('');
-  return `<section class="music-page">${description ? `<p>${inlineMarkdown(description)}</p>` : ''}<ul class="album-list">${items}</ul></section>`;
+  const items = albums
+    .map((album) => `<li><a href="${escapeHtml(album.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(album.name)}</a>${album.artist ? ` <span class="album-artist">${escapeHtml(album.artist)}</span>` : ''}</li>`)
+    .join('');
+  return `<section class="music-page">${description ? `<p>${inlineMarkdown(description)}</p>` : ''}<ul class="music-list">${items}</ul></section>`;
 }
 
 function renderBooksListing(sourceDir, relativeDir) {
@@ -763,12 +769,16 @@ function renderReadingCategory(body, relativeDir) {
   let current = { letter: '', items: [], prose: [] };
   for (const line of lines) {
     const heading = line.match(/^#{1,6}\s+(.+)$/);
-    const link = line.match(/^\s*(?:[-*+]\s*)?\[([^\]]+)\]\(([^)\s]+)[^)]*\)\s*$/);
+    // Track whether the author actually wrote a bullet: only then print one.
+    const bullet = line.match(/^\s*[-*+]\s+\[([^\]]+)\]\(([^)\s]+)[^)]*\)\s*$/);
+    const bare = line.match(/^\s*\[([^\]]+)\]\(([^)\s]+)[^)]*\)\s*$/);
     if (heading) {
       if (current.items.length || current.prose.length) groups.push(current);
       current = { letter: heading[1].trim(), items: [], prose: [] };
-    } else if (link) {
-      current.items.push({ title: link[1], href: link[2] });
+    } else if (bullet) {
+      current.items.push({ title: bullet[1], href: bullet[2], bulleted: true });
+    } else if (bare) {
+      current.items.push({ title: bare[1], href: bare[2], bulleted: false });
     } else if (line.trim() && !/^-{3,}$/.test(line.trim())) {
       current.prose.push(line);
     }
@@ -781,7 +791,7 @@ function renderReadingCategory(body, relativeDir) {
     const prose = group.prose.length ? `<p>${inlineMarkdown(group.prose.join(' '), relativeDir)}</p>` : '';
     if (!group.items.length) return prose;
     const letter = group.letter && group.letter.length <= 2 ? `<h3 class="readings-letter">${escapeHtml(group.letter)}</h3>` : '';
-    const items = group.items.map((item) => `<li><a href="${escapeAttr(item.href)}">${escapeHtml(item.title)}</a></li>`).join('');
+    const items = group.items.map((item) => `<li class="${item.bulleted ? 'has-bullet' : 'no-bullet'}"><a href="${escapeAttr(item.href)}">${escapeHtml(item.title)}</a></li>`).join('');
     return `${prose}${letter}<ul class="readings-list">${items}</ul>`;
   }).join('');
 
@@ -1513,10 +1523,10 @@ function buildFolder(sourceDir, relativeDir = '') {
   const currentPath = relativeDir ? `${urlPath(relativeDir)}/` : '/';
   // Section renderers supply their own header and intro, so no outer heading is
   // added for them. Generic folders still get the plain title.
-  const sectionOwnsHeader = isArticlesPath(relativeDir) || isBadAboutPath(relativeDir) || isJournalPath(relativeDir) || isReadingsPath(relativeDir);
-  const pageBody = sectionOwnsHeader
-    ? `${folderDescription}${listing}`
-    : `${folderDescription}<h2>${escapeHtml(publicLabel(folderDisplayName(title)))}</h2>${listing}`;
+  // No folder-name heading on any page: the breadcrumb already names it, and a
+  // generated <h2> would be a label the author never wrote. index.md content
+  // comes first, then the listing.
+  const pageBody = `${folderDescription}${listing}`;
   fs.writeFileSync(path.join(outputDir, 'index.html'), layout(publicLabel(title), pageBody, currentPath));
 }
 
