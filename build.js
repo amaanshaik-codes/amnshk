@@ -278,16 +278,13 @@ function layout(title, body, currentPath = '/', tags = []) {
       td::before { content: attr(data-label); display: block; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
       td:empty { display: none; }
     }
-    .books-list { width: 100%; max-width: var(--content-w); margin: .5rem auto 1rem; padding: 0; list-style: none; text-align: left; }
-    .books-list li { padding: .75rem 0; }
-    .book-entry { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-    .book-info { min-width: 0; }
-    .books-list a { font-size: 1.05rem; }
-    .read-button { display: none; }
-    .book-entry:hover .book-title { text-decoration-line: underline; text-decoration-style: dotted; }
-    .books-list .DIR:hover { background-color: var(--hover); }
-    .book-title, .book-author { display: block; }
-    .book-author { margin-top: .25rem; font-size: .9rem; }
+    /* Books and the What's Bad About collection use the same two-column shape as
+       readings and music: links only, secondary text muted and inline. */
+    .two-col-list { width: 100%; max-width: var(--content-w); margin: .5rem auto 1rem; padding: 0 0 0 1.1rem; list-style: disc;
+      columns: 2; column-gap: 2.5rem; text-align: left; }
+    .two-col-list li { margin: .1rem 0; line-height: 1.5; break-inside: avoid; }
+    .two-col-list .item-note { font-size: .88rem; color: var(--muted); }
+    @media (max-width: 46rem) { .two-col-list { columns: 1; } }
     .article-categories { max-width: 60ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
     .article-category { padding: .8rem 0; }
     .article-category-link { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
@@ -331,6 +328,7 @@ function layout(title, body, currentPath = '/', tags = []) {
     .badges .badge { flex: 0 0 auto; }
     .badge { display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
     /* Badges are fixed-size pixel art: never scale or stretch them. */
+    /* Badges are fixed-size pixel art and render at their natural dimensions. */
     .badge img { display: block; width: auto; height: auto; max-width: none; image-rendering: pixelated; }
     .footer-meta { display: flex; justify-content: center; align-items: baseline; flex-wrap: wrap; gap: 1rem; }
     .footer-meta p { margin: 0; }
@@ -678,9 +676,13 @@ function renderBooksListing(sourceDir, relativeDir) {
   const entries = sortEntries(fs.readdirSync(sourceDir, { withFileTypes: true }))
     .filter((entry) => entry.isDirectory() || (entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md' && !isHiddenContent(path.join(relativeDir, entry.name))));
   if (!entries.length) return '<p>No books yet.</p>';
+  // Same shape as the readings and music pages: a two-column list of links, with
+  // secondary information kept in muted type on the same line.
   const items = entries.map((entry) => {
     const relativePath = path.join(relativeDir, entry.name);
-    if (entry.isDirectory()) return `<li><a class="DIR" href="${urlPath(relativePath)}/">${escapeHtml(publicLabel(folderDisplayName(entry.name)))}</a></li>`;
+    if (entry.isDirectory()) {
+      return `<li><a href="${urlPath(relativePath)}/">${escapeHtml(publicLabel(folderDisplayName(entry.name)))}</a></li>`;
+    }
     const destinationName = outputName(entry.name, relativePath);
     const linkPath = isTextOutput(entry.name, relativePath) ? `${path.join(relativeDir, `${destinationName}.html`)}` : path.join(relativeDir, destinationName);
     const sourceText = fs.readFileSync(path.join(sourceDir, entry.name), 'utf8');
@@ -689,9 +691,9 @@ function renderBooksListing(sourceDir, relativeDir) {
     const title = markdownTitle(note.body, publicLabel(displayName(entry.name)));
     const authorLine = sourceLines.find((line) => /^by\s+/i.test(line));
     const author = authorLine ? authorLine.replace(/^by\s+/i, '') : '';
-    return `<li class="book-entry"><div class="book-info"><a class="book-title" href="${urlPath(linkPath)}">${escapeHtml(title)}</a>${author ? `<span class="book-author">${escapeHtml(author)}</span>` : ''}</div></li>`;
-  });
-  return `<ul class="books-list">${items.join('')}</ul>`;
+    return `<li><a href="${urlPath(linkPath)}">${escapeHtml(title)}</a>${author ? ` <span class="item-note">${escapeHtml(author)}</span>` : ''}</li>`;
+  }).join('');
+  return `<ul class="two-col-list">${items}</ul>`;
 }
 
 function countArticleLinks(sourceText) {
@@ -861,7 +863,7 @@ function renderBadAboutCollection(sourceDir, relativeDir) {
   const entries = badAboutEntries(sourceDir, relativeDir);
   if (!entries.length) return '<p>No entries yet.</p>';
   const rows = entries.map((entry) => `<li><a href="${entry.href}">${escapeHtml(entry.label)}</a></li>`).join('');
-  return `<ul class="plain-list">${rows}</ul>`;
+  return `<ul class="two-col-list">${rows}</ul>`;
 }
 
 function collectTaggedEntries(directory = contentRoot, relativeDir = '') {
