@@ -1,6 +1,6 @@
 list of all the albums i'd buy in vinyl
 
-- [Currents](https://music.apple.com/in/album/currents/1440838039) - Tame Impala  If my life is a movie, this must be the sound track and end credits**. It just describes my life so accurately.
+- [Currents](https://music.apple.com/in/album/currents/1440838039) - Tame Impala  If my life is a movie, this must be the sound track and end credits. It just describes my life so accurately.
 - [The Slow Rush](https://music.apple.com/in/album/the-slow-rush/1497230760) - Tame Impala
 - [Clancy](https://music.apple.com/in/album/clancy/1733370881) - Twenty One Pilots  My first introduction to them was Ride. Then I discovered this album. 
 - [After Hours](https://music.apple.com/in/album/after-hours/1499378108) - The Weeknd  This is kind of nostalgic now, used to hear this in the covid days. 
