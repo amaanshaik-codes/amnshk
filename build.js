@@ -134,7 +134,12 @@ main a:hover, nav a:hover, .breadcrumbs a:hover, .journal-list a:hover,
 .back-link:hover { color: black !important; }
 .back-link:hover { color: black !important; }
 a:link, a:visited { color: var(--link); text-decoration: none; }
-a:hover { color: black !important; text-decoration-line: underline; text-decoration-style: dotted; background-color: var(--hover); }
+/* The highlight should sit tight around the words. Charter's tall line box makes a
+   plain background on <a> extend well past the glyphs, so the vertical spread is
+   trimmed with an inline background sized to the text. */
+a:hover { color: black !important; text-decoration-line: underline; text-decoration-style: dotted;
+  background-color: var(--hover); box-shadow: 0 -0.12em 0 0 var(--hover) inset, 0 0.12em 0 0 var(--hover) inset;
+  padding: 0 .06em; margin: 0 -.06em; }
 .DIR { color: var(--link) !important; }
 .EXEC { color: var(--exec) !important; }
 main { min-height: 0; text-align: left; }
@@ -147,14 +152,14 @@ main h3 { font-size: 1.33rem; margin: 1.4rem 0 .4rem; }
 main h4 { font-size: 1.1rem; margin: 1.2rem 0 .3rem; }
 main h5 { font-size: 1rem; margin: 1rem 0 .3rem; }
 main h6 { font-size: .92rem; margin: 1rem 0 .3rem; letter-spacing: .04em; text-transform: uppercase; }
-main > p { max-width: 88ch; margin: 1rem auto; text-align: left; }
+main > p { width: 100%; max-width: var(--content-w); margin: 1rem auto; text-align: left; }
 /* On archive pages the folder's own prose aligns to the section column, so the
    page has one left edge instead of two competing ones. */
 /* Same column as the section below it, so the page has one left edge. */
 main > .folder-intro { max-width: var(--content-w); margin: 0 auto 1rem; text-align: left; }
 main > .folder-intro p { margin: 0 0 .7rem; text-align: left; }
 pre { max-width: 100%; overflow-x: auto; margin: 1rem auto; text-align: left; width: max-content; }
-.text-viewer { max-width: 88ch; margin: 1rem auto; padding: 0; font-family: inherit; font-size: clamp(1.05rem, 2.5vw, 1.22rem); line-height: 1.8; overflow-wrap: anywhere; text-align: left; }
+.text-viewer { width: 100%; max-width: var(--content-w); margin: 1rem auto; padding: 0; font-family: inherit; font-size: clamp(1.05rem, 2.5vw, 1.22rem); line-height: 1.8; overflow-wrap: anywhere; text-align: left; }
 .text-viewer p, .text-viewer ul, .text-viewer ol, .text-viewer blockquote { margin: 1rem 0; }
 /* Book pages: a plain reading column. Prose gets a printed-page indent;
    short standalone lines (contents, chapter titles) stay flush left. */
@@ -211,12 +216,17 @@ pre { max-width: 100%; overflow-x: auto; margin: 1rem auto; text-align: left; wi
 @media (max-width: 46rem) {
   .readings-index, .readings-category { columns: 1; }
 }
-.category-links { display: flex; width: 100%; max-width: var(--content-w); margin: 0 auto; box-sizing: border-box; flex-wrap: wrap; align-items: center; justify-content: center; gap: .35rem; padding: .75rem 1rem; border: 1px solid var(--text); }
-.category-link { color: black; font-size: clamp(1rem, 2.5vw, 1.1rem); }
+/* Browse box: padding is set in the same rhythm as the text, and the links
+   inherit the body face and scale instead of carrying their own clamp(), which
+   left them visually off-centre inside the border after the font change. */
+.category-links { display: flex; width: 100%; max-width: var(--content-w); margin: 0 auto; box-sizing: border-box;
+  flex-wrap: wrap; align-items: center; justify-content: center; gap: 0; padding: .6rem .9rem; border: 1px solid var(--text); }
+.category-link { color: var(--link); font-size: 1.05rem; line-height: 1.4; padding: .1rem 0; }
+.category-separator { margin: 0 .5rem; opacity: .4; }
 .bad-about-links { width: 100%; max-width: var(--content-w); margin: .8rem auto 1.2rem; text-align: center; font-size: clamp(1rem, 2.4vw, 1.15rem); font-style: italic; font-weight: bold; }
 .bad-about-label { color: var(--text); }
 .bad-about-separator { color: var(--text); }
-.table-scroll { max-width: 88ch; margin: 1rem auto; overflow-x: auto; }
+.table-scroll { width: 100%; max-width: var(--content-w); margin: 1rem auto; overflow-x: auto; }
 /* Text layout is one column sitewide: paragraphs fill the measure, headings
    sit on its left edge, and alignment is opt-in per paragraph. */
 .text-viewer, main > p, main h1, main h2, main h3, main h4, main h5, main h6,
@@ -272,7 +282,7 @@ th { border-bottom: 1px solid var(--text); font-weight: bold; }
 .two-col-list li { margin: .1rem 0; line-height: 1.5; break-inside: avoid; }
 .two-col-list .item-note { font-size: .88rem; color: var(--muted); }
 @media (max-width: 46rem) { .two-col-list { columns: 1; } }
-.article-categories { max-width: 60ch; margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
+.article-categories { width: 100%; max-width: var(--content-w); margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
 .article-category { padding: .8rem 0; }
 .article-category-link { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
 .article-category-title { font-size: 1.05rem; }
@@ -282,14 +292,14 @@ th { border-bottom: 1px solid var(--text); font-weight: bold; }
 .folder-entry-link { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
 .folder-entry-title { font-size: 1.05rem; }
 .folder-entry-kind { white-space: nowrap; font-size: .9rem; color: var(--text); }
-.tags-page { max-width: 68ch; margin: 1rem auto; text-align: left; }
+.tags-page { width: 100%; max-width: var(--content-w); margin: 1rem auto; text-align: left; }
 .tag-list { margin: 1rem auto; padding-left: 1.25rem; list-style: disc; text-align: left; }
 .tagged-notes { margin: 1rem 0; padding: 0; list-style: none; }
 .tag-entry, .tagged-note { padding: .8rem 0; }
 .tag-link, .tagged-note-link { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
 .tag-name, .tagged-note-title { font-size: 1.05rem; }
 .tagged-note-path { white-space: nowrap; font-size: .9rem; }
-.note-tags { max-width: 88ch; margin: 1rem auto; text-align: left; font-size: .95rem; }
+.note-tags { width: 100%; max-width: var(--content-w); margin: 1rem auto; text-align: left; font-size: .95rem; }
 /* Music: same column, same rhythm as the rest of the site. Two columns of
    album links with the artist in muted type, no per-row action label. */
 .music-page { width: 100%; max-width: var(--content-w); margin: .6rem auto 1rem; text-align: left; }
@@ -298,7 +308,7 @@ th { border-bottom: 1px solid var(--text); font-weight: bold; }
 .music-list li { margin: .1rem 0; line-height: 1.5; break-inside: avoid; }
 .music-list .album-artist { font-size: .88rem; color: var(--muted); }
 @media (max-width: 46rem) { .music-list { columns: 1; } }
-.category-link { color: var(--text); }
+.category-link { color: var(--link); }
 .category-separator { margin: 0 .25rem; }
 .skip-link { position: absolute; left: -9999px; }
 .skip-link:focus { left: 1rem; top: 1rem; }
