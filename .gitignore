@@ -3,3 +3,6 @@ node_modules/
 .obsidian/
 .vercel
 .andromity/
+
+# macOS Finder metadata
+.DS_Store
