@@ -8,9 +8,9 @@ history of devices i (my dad) owned
 
 [CMF Phone 1 By Nothing](https://intl.nothing.tech/products/cmf-phone-1?) 2024-2026
 
-Windows PC with an [i3 4th Generation Processor](https://versus.com/en/intel-core-i3-4130-vs-samsung-exynos-3475) and 8GB RAM
+Windows PC with an [i3 4th Generation Processor](https://versus.com/en/intel-core-i3-4130-vs-samsung-exynos-3475) and 8GB RAM 2020 -2022
 
-HP Laptop with an [i3 11th Generation Processor](https://versus.com/en/intel-core-i3-1115g4-vs-intel-core-i3-4130) & 16GB RAM
+HP Laptop with an [i3 11th Generation Processor](https://versus.com/en/intel-core-i3-1115g4-vs-intel-core-i3-4130) & 16GB RAM 2022-2026
 
 Currently I have a [MacBook Pro M1 Pro](https://support.apple.com/en-us/111902) with 32GB RAM (fuck off Sam Altman) and a [Nokia 2660](https://www.hmd.com/en_int/nokia-2660-flip) Dumb Phone
 
