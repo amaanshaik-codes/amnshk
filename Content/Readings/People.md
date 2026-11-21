@@ -1,6 +1,7 @@
 # A
-[Anne Boleyn](https://en.wikipedia.org/wiki/Anne_Boleyn)
 [Aaron Swartz](https://en.wikipedia.org/wiki/Aaron_Swartz)
+[Anne Boleyn](https://en.wikipedia.org/wiki/Anne_Boleyn)
+[Al Capone](https://en.wikipedia.org/wiki/Al_Capone)
 
 ---
 # B
@@ -13,6 +14,7 @@
 ---
 # E
 [Ed Gein](https://en.wikipedia.org/wiki/Ed_Gein)
+[Everleigh Sisters](https://en.wikipedia.org/wiki/Ada_and_Minna_Everleigh)
 
 ---
 # F
