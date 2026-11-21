@@ -54,7 +54,13 @@ function urlPath(relativePath) {
   return '/' + relativePath.split(path.sep).map(encodeURIComponent).join('/');
 }
 
-const SITE_CSS = `:root { color-scheme: light; --page-bg: #fbf9f3; --surface: #fbf9f3; --text: #111; --link: blue; --exec: #111; --hover: yellow; --border: transparent; --muted: #333; }
+const SITE_CSS = `/* Charter, self-hosted. Four faces, ~60KB total; preloaded in <head> so text
+   paints in the final typeface rather than swapping after first render. */
+@font-face { font-family: 'Charter'; src: url('/fonts/charter_regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Charter'; src: url('/fonts/charter_italic.woff2') format('woff2'); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Charter'; src: url('/fonts/charter_bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Charter'; src: url('/fonts/charter_bold_italic.woff2') format('woff2'); font-weight: 700; font-style: italic; font-display: swap; }
+:root { color-scheme: light; --page-bg: #fbf9f3; --surface: #fbf9f3; --text: #111; --link: blue; --exec: #111; --hover: yellow; --border: transparent; --muted: #333; --font-serif: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif; --font-mono: 'Courier New', Courier, monospace; }
 /* One column width shared by the masthead, the rule and the ticker, so nothing
    can drift outside the site's content edge. */
 /* One column width shared by masthead, rules and ticker. A fixed rem length,
@@ -62,7 +68,7 @@ const SITE_CSS = `:root { color-scheme: light; --page-bg: #fbf9f3; --surface: #f
    footer rules came out at different widths. */
 :root { --content-w: 52rem; }
 *, *::before, *::after { box-sizing: border-box; }
-body { font-family: "Times New Roman", Times, Georgia, serif; font-size: 17px; line-height: 1.45; color: var(--text); background: var(--surface); margin: 0; padding: 0; }
+body { font-family: var(--font-serif); font-size: 18px; line-height: 1.5; color: var(--text); background: var(--surface); margin: 0; padding: 0; }
 /* Faint paper grain: hairlines of slightly darker cream, no image file. */
 body { background-image: repeating-linear-gradient(0deg, rgba(0,0,0,.012) 0 1px, transparent 1px 3px); }
 .site-shell { width: auto; max-width: 1100px; min-height: 100dvh; margin: 0 auto; background: var(--surface); }
@@ -73,7 +79,7 @@ header, footer { text-align: center; padding: 1.25rem 1.5rem; }
 header, footer { padding-left: 1rem; padding-right: 1rem; }
 header { padding-top: .5rem; padding-bottom: .35rem; }
 main { padding: 0 1.5rem 1rem; text-align: left; }
-header h1 { margin: 0; font-family: "Times New Roman", Times, Georgia, serif; font-size: clamp(1.7rem, 5vw, 2.5rem); font-weight: bold; line-height: 1.1; }
+header h1 { margin: 0; font-family: var(--font-serif); font-size: clamp(1.75rem, 5vw, 2.5rem); font-weight: 700; line-height: 1.1; letter-spacing: .01em; }
 header h1 a { color: #111 !important; text-decoration: none !important; background: none !important; }
 .masthead { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: "clock clock badge" "brand brand brand" "est est est"; align-items: center; row-gap: .45rem; width: 100%; max-width: var(--content-w); margin: 0 auto .15rem; }
 .masthead-brand { grid-area: brand; justify-self: center; }
@@ -132,8 +138,15 @@ a:hover { color: black !important; text-decoration-line: underline; text-decorat
 .DIR { color: var(--link) !important; }
 .EXEC { color: var(--exec) !important; }
 main { min-height: 0; text-align: left; }
-main h1, main h2, main h3, main h4, main h5, main h6 { text-align: left; }
-main h2 { font-size: clamp(1.3rem, 3.5vw, 1.75rem); line-height: 1.2; margin: 0 0 .6rem; }
+main h1, main h2, main h3, main h4, main h5, main h6 { text-align: left; font-family: var(--font-serif); font-weight: 700; line-height: 1.2; }
+/* A single modular scale (1.333) keeps every heading step consistent and grid
+   aligned, instead of the ad-hoc sizes that accumulated per section. */
+main h1 { font-size: 2.2rem; }
+main h2 { font-size: clamp(1.4rem, 3.2vw, 1.78rem); margin: 0 0 .6rem; }
+main h3 { font-size: 1.33rem; margin: 1.4rem 0 .4rem; }
+main h4 { font-size: 1.1rem; margin: 1.2rem 0 .3rem; }
+main h5 { font-size: 1rem; margin: 1rem 0 .3rem; }
+main h6 { font-size: .92rem; margin: 1rem 0 .3rem; letter-spacing: .04em; text-transform: uppercase; }
 main > p { max-width: 88ch; margin: 1rem auto; text-align: left; }
 /* On archive pages the folder's own prose aligns to the section column, so the
    page has one left edge instead of two competing ones. */
@@ -227,8 +240,8 @@ blockquote { width: 100%; max-width: var(--content-w); box-sizing: border-box; m
   border-left: 3px solid var(--text); text-align: left; font-style: italic; }
 blockquote.quote-2 { margin-left: auto; padding-left: 2rem; border-left: 1px dotted var(--text); }
 blockquote.quote-3 { margin-left: auto; padding-left: 3rem; border-left: 1px dotted var(--text); }
-.math { font-family: 'Times New Roman', Times, serif; font-style: italic; white-space: nowrap; }
-.math-block { display: block; text-align: center; font-family: 'Times New Roman', Times, serif; font-style: italic; margin: .8rem 0; }
+.math { font-family: var(--font-serif); font-style: italic; white-space: nowrap; }
+.math-block { display: block; text-align: center; font-family: var(--font-serif); font-style: italic; margin: .8rem 0; }
 main img, .text-viewer img { max-width: 100%; height: auto; }
 .task { list-style: none; margin-left: -1.2rem; }
 .task input { margin-right: .4rem; }
@@ -414,9 +427,11 @@ function layout(title, body, currentPath = '/', tags = []) {
   <meta property="og:description" content="${description}">
   <meta property="og:type" content="website">
   <title>${escapeHtml(title)} · AMNSHK</title>
+  <link rel="preload" href="/fonts/charter_regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/charter_italic.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/style.css">
   <style>/* Critical: paint text in the right face and colour before style.css lands. */
-    html{background:#fbf9f3}body{margin:0;background:#fbf9f3;color:#111;font-family:"Times New Roman",Times,Georgia,serif;font-size:17px;line-height:1.45}a{color:blue}</style>
+    html{background:#fbf9f3}body{margin:0;background:#fbf9f3;color:#111;font-family:Charter,"Bitstream Charter","Sitka Text",Cambria,Georgia,serif;font-size:18px;line-height:1.5}a{color:blue}</style>
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
@@ -1457,8 +1472,24 @@ function formatSize(bytes) {
 
 // ASCII tree branches match tree 1.8.0's -A output style.
 function renderTree(sourceDir, relativeDir = '', indent = '') {
-  const entries = sortEntries(fs.readdirSync(sourceDir, { withFileTypes: true }))
+  const inJournal = isJournalPath(relativeDir);
+  let entries = sortEntries(fs.readdirSync(sourceDir, { withFileTypes: true }))
     .filter((entry) => entry.isDirectory() || (entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md' && !isHiddenContent(path.join(relativeDir, entry.name))));
+  // Journal entries are named by day number, not by date, so plain A-Z puts 0955
+  // before 412 and reads as random. Newest-first is the only useful order.
+  if (inJournal) {
+    // Files are named DD-MM-YYYY, so sort by the day number they resolve to, not
+    // by the filename text. Newest first.
+    entries = entries.slice().sort((a, b) => {
+      if (a.isDirectory() !== b.isDirectory()) return a.isDirectory() ? -1 : 1;
+      const an = dayFromName(a.name);
+      const bn = dayFromName(b.name);
+      if (an !== null && bn !== null) return bn - an;
+      if (an !== null) return -1;
+      if (bn !== null) return 1;
+      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    });
+  }
   const lines = [];
 
   entries.forEach((entry, index) => {
@@ -1577,6 +1608,16 @@ for (const badge of fs.readdirSync(badgesSourceDir)) {
 }
 const faviconSource = path.join(root, 'assets', 'favicon.svg');
 if (fs.existsSync(faviconSource)) fs.copyFileSync(faviconSource, path.join(outputRoot, 'favicon.svg'));
+// Charter, self-hosted so every device gets the same face. Bitstream's grant
+// permits redistribution provided the notice travels with the files.
+const fontsSourceDir = path.join(root, 'assets', 'fonts');
+const fontsOutputDir = path.join(outputRoot, 'fonts');
+if (fs.existsSync(fontsSourceDir)) {
+  fs.mkdirSync(fontsOutputDir, { recursive: true });
+  for (const file of fs.readdirSync(fontsSourceDir)) {
+    fs.copyFileSync(path.join(fontsSourceDir, file), path.join(fontsOutputDir, file));
+  }
+}
 // The stylesheet is one file for the whole site instead of 23KB of inline CSS on
 // every page, so it downloads once and is reused for every later navigation.
 fs.writeFileSync(path.join(outputRoot, 'style.css'), SITE_CSS);
