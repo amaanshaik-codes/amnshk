@@ -6,6 +6,5 @@ If Buying isn't Owning then Pirating isn't Stealing
 
 [DistroWatch](https://distrowatch.com/) - the OG catalogue of all the linux distributions.
 
-[Distro Watch](https://distro.watch/) - a better and user user friendly alternative to distro-watch. 
-
 [Internet Archive](https://archive.org/) - non-profit library of millions of free texts, movies, software, music, websites, and more.
+

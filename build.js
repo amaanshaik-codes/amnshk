@@ -213,8 +213,15 @@ pre { max-width: 100%; overflow-x: auto; margin: 1rem auto; text-align: left; wi
 .readings-list li.no-bullet { list-style: none; }
 .readings-list li.no-bullet { margin-left: -1.1rem; }
 
+/* A letter heading (# A) with its list: the list flows in two columns. */
+.letter-section { width: 100%; max-width: var(--content-w); margin: .2rem auto .8rem; text-align: left; }
+.letter-section > h1, .letter-section > h2 { margin: .9rem 0 .25rem; }
+.letter-section > ul { columns: 2; column-gap: 2.5rem; margin: .2rem 0 .6rem; padding-left: 1.2rem; }
+.letter-section > ul > li { break-inside: avoid; line-height: 1.5; }
+
 @media (max-width: 46rem) {
   .readings-index, .readings-category { columns: 1; }
+  .letter-section > ul { columns: 1; }
 }
 /* Browse box: padding is set in the same rhythm as the text, and the links
    inherit the body face and scale instead of carrying their own clamp(), which
@@ -1199,6 +1206,15 @@ function markdownToHtml(value, relativeDir = '', options = {}) {
     flushList();
   };
 
+  // Two-column letters: a `# A` style letter heading opens a section whose list
+  // lays out in two columns. The section closes at the next heading or block.
+  let inLetterSection = false;
+  const closeLetterSection = () => {
+    if (!inLetterSection) return;
+    output.push('</div>');
+    inLetterSection = false;
+  };
+
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i];
     const next = lines[i + 1] || '';
@@ -1207,6 +1223,7 @@ function markdownToHtml(value, relativeDir = '', options = {}) {
     const fence = codeFence(line);
     if (fence) {
       flushAll();
+      closeLetterSection();
       const body = [];
       let j = i + 1;
       while (j < lines.length && !new RegExp(`^\\s*${fence.fence[0]}{${fence.fence.length},}\\s*$`).test(lines[j])) {
@@ -1224,6 +1241,7 @@ function markdownToHtml(value, relativeDir = '', options = {}) {
     const inlineWrap = line.match(/^\s*<(justify|center|centre|right)>([\s\S]*?)<\/\1>\s*$/i);
     if (inlineWrap) {
       flushAll();
+      closeLetterSection();
       const kind = inlineWrap[1].toLowerCase() === 'centre' ? 'center' : inlineWrap[1].toLowerCase();
       output.push(`<p class="align-${kind}">${inlineMarkdown(inlineWrap[2].trim(), relativeDir)}</p>`);
       continue;
@@ -1231,12 +1249,14 @@ function markdownToHtml(value, relativeDir = '', options = {}) {
     const alignMatch = line.trim().match(ALIGN_OPEN);
     if (alignMatch) {
       flushAll();
+      closeLetterSection();
       const kind = alignMatch[1].toLowerCase();
       alignment = kind === 'centre' ? 'center' : kind;
       continue;
     }
     if (ALIGN_CLOSE.test(line.trim())) {
       flushAll();
+      closeLetterSection();
       alignment = null;
       continue;
     }
@@ -1244,6 +1264,7 @@ function markdownToHtml(value, relativeDir = '', options = {}) {
     // Thematic break (and a plain-text rule of ===, which books use as a divider).
     if (/^\s{0,3}([-*_])(?:\s*\1){2,}\s*$/.test(line) || /^\s*=+\s*$/.test(line)) {
       flushAll();
+      closeLetterSection();
       output.push('<hr>');
       continue;
     }
@@ -1251,6 +1272,7 @@ function markdownToHtml(value, relativeDir = '', options = {}) {
     // Table: a row followed by a divider row.
     if (isTableRow(line) && isTableDivider(next)) {
       flushAll();
+      closeLetterSection();
       alignment = null;
       const header = tableCells(line);
       const aligns = tableAlignments(next);
@@ -1280,8 +1302,17 @@ function markdownToHtml(value, relativeDir = '', options = {}) {
     const heading = line.match(/^(#{1,6})\s+(.+?)\s*#*\s*$/);
     if (heading) {
       flushAll();
+      closeLetterSection();
       const level = heading[1].length;
-      output.push(`<h${level}>${inlineMarkdown(heading[2], relativeDir)}</h${level}>`);
+      const text = heading[2].trim();
+      const html = `<h${level}>${inlineMarkdown(text, relativeDir)}</h${level}>`;
+      // A single-letter heading opens a two-column section.
+      if (level <= 2 && /^[A-Z]$/i.test(text)) {
+        output.push(`<div class="letter-section">${html}`);
+        inLetterSection = true;
+      } else {
+        output.push(html);
+      }
       continue;
     }
 
@@ -1289,6 +1320,7 @@ function markdownToHtml(value, relativeDir = '', options = {}) {
     const quote = line.match(/^\s*(>{1,})\s?(.*)$/);
     if (quote) {
       flushAll();
+      closeLetterSection();
       const depth = quote[1].length;
       output.push(`<blockquote${depth > 1 ? ` class="quote-${Math.min(depth, 3)}"` : ''}>${inlineMarkdown(quote[2], relativeDir)}</blockquote>`);
       continue;
@@ -1300,6 +1332,14 @@ function markdownToHtml(value, relativeDir = '', options = {}) {
       flushParagraph();
       inList = true;
       listBuffer.push(item);
+      continue;
+    }
+
+    // Inside a letter section, a bare link line is a list entry.
+    if (inLetterSection && /^\s*\[[^\]]+\]\([^)\s]+[^)]*\)\s*$/.test(line)) {
+      flushParagraph();
+      inList = true;
+      listBuffer.push({ depth: 0, ordered: false, text: line.trim(), checked: null });
       continue;
     }
 
@@ -1315,6 +1355,7 @@ function markdownToHtml(value, relativeDir = '', options = {}) {
   }
 
   flushAll();
+  closeLetterSection();
   return output.join('\n');
 }
 
