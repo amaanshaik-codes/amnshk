@@ -323,14 +323,15 @@ th { border-bottom: 1px solid var(--text); font-weight: bold; }
   column-gap: 2.6rem; margin: 1.4rem auto 0; align-items: start; }
 .album-column { min-width: 0; }
 .album-column { min-width: 0; }
-.album-group { break-inside: avoid; margin: 0 0 1.15rem; }
-/* The letter is a quiet cap, not a rule: the album separators already provide
-   lines, and a second rule under every letter read as noise. */
-.album-letter { margin: 0 0 .1rem; font-size: .7rem; font-weight: bold;
+.album-group { break-inside: avoid; margin: 0; padding: .55rem 0 .1rem; }
+/* The letter heads its group; no rule beneath it. */
+.album-letter { margin: 0 0 .25rem; font-size: .7rem; font-weight: bold;
   letter-spacing: .18em; color: var(--muted); }
+/* One rule between one letter's albums and the next letter's. Nothing separates
+   individual albums, so the only lines on the page are these group breaks. */
+.album-rule { width: 100%; margin: .15rem 0 .5rem; border: 0; border-top: 1px solid var(--text); }
 .album-list { margin: 0; padding: 0; list-style: none; }
-.album-list > li { padding: .3rem 0 .34rem; border-bottom: 1px dotted var(--text); }
-.album-list > li:last-child { border-bottom: 0; }
+.album-list > li { padding: .38rem 0; }
 
 .album-name { display: block; font-size: 1rem; line-height: 1.3; }
 .album-artist { display: block; font-size: .85rem; line-height: 1.3; color: var(--muted); }
@@ -731,7 +732,8 @@ function renderMusicPage(sourceText) {
   for (const raw of lines) {
     const line = raw.trim();
     if (!line) continue;
-    // `---` under a letter heading is that heading's rule, not a separator.
+    // `---` lines carry the author's own grouping; the catalogue draws one divider
+    // between letter groups regardless, so they are dropped here.
     if (/^-{3,}$/.test(line)) continue;
 
     const heading = line.match(/^#{1,6}\s+(.+)$/);
@@ -827,7 +829,13 @@ function renderMusicPage(sourceText) {
     return `<div class="album-group"><h3 class="album-letter">${escapeHtml(group.letter)}</h3><ul class="album-list">${items}</ul></div>`;
   };
 
-  return `<section class="music-page">${introHtml}<div class="album-index"><div class="album-column">${letterGroups.slice(0, split).map(renderGroup).join('')}</div><div class="album-column">${letterGroups.slice(split).map(renderGroup).join('')}</div></div></section>`;
+  // A rule between one letter's albums and the next letter's, never under the
+  // last group in a column where it would have nothing to separate.
+  const renderColumn = (groups) => groups
+    .map((group, index) => (index ? '<hr class="album-rule">' : '') + renderGroup(group))
+    .join('');
+
+  return `<section class="music-page">${introHtml}<div class="album-index"><div class="album-column">${renderColumn(letterGroups.slice(0, split))}</div><div class="album-column">${renderColumn(letterGroups.slice(split))}</div></div></section>`;
 }
 
 function renderBooksListing(sourceDir, relativeDir) {
