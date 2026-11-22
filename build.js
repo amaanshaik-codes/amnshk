@@ -313,10 +313,29 @@ th { border-bottom: 1px solid var(--text); font-weight: bold; }
    album links with the artist in muted type, no per-row action label. */
 .music-page { width: 100%; max-width: var(--content-w); margin: .6rem auto 1rem; text-align: left; }
 .music-page > p { margin: 0 0 1rem; }
-.music-list { columns: 2; column-gap: 2.5rem; margin: .4rem 0 0; padding: 0 0 0 1.1rem; list-style: disc; }
-.music-list li { margin: .1rem 0; line-height: 1.5; break-inside: avoid; }
-.music-list .album-artist { font-size: .88rem; color: var(--muted); }
-@media (max-width: 46rem) { .music-list { columns: 1; } }
+.music-intro p { margin: 0 0 .9rem; text-align: left; }
+
+/* Album catalogue: one unbreakable block per letter, balanced into two columns. */
+/* Album catalogue: two explicit columns, split for balance. Each letter block
+   stays whole, so its albums never break across the column edge. */
+.album-index { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 2.6rem; margin: 1.4rem auto 0; align-items: start; }
+.album-column { min-width: 0; }
+.album-column { min-width: 0; }
+.album-group { break-inside: avoid; margin: 0 0 1.15rem; }
+/* The letter is a quiet cap, not a rule: the album separators already provide
+   lines, and a second rule under every letter read as noise. */
+.album-letter { margin: 0 0 .1rem; font-size: .7rem; font-weight: bold;
+  letter-spacing: .18em; color: var(--muted); }
+.album-list { margin: 0; padding: 0; list-style: none; }
+.album-list > li { padding: .3rem 0 .34rem; border-bottom: 1px dotted var(--text); }
+.album-list > li:last-child { border-bottom: 0; }
+
+.album-name { display: block; font-size: 1rem; line-height: 1.3; }
+.album-artist { display: block; font-size: .85rem; line-height: 1.3; color: var(--muted); }
+.album-note { display: block; margin-top: .12rem; font-size: .85rem; line-height: 1.45; color: var(--muted); }
+
+@media (max-width: 46rem) { .album-index { grid-template-columns: minmax(0, 1fr); } }
 .category-link { color: var(--link); }
 .category-separator { margin: 0 .25rem; }
 .skip-link { position: absolute; left: -9999px; }
@@ -691,28 +710,118 @@ function renderJournalListing(sourceDir, relativeDir) {
   return `<ul class="journal-list">${items}</ul>`;
 }
 
+// Music: an album catalogue.
+//
+// The note is written as loose groups: `# A` / `---` letter headings, then lines
+// of the shape `[Album](link) - Artist  optional note`. Albums are collected into
+// one alphabetical run and each carries its letter as a small marker, the same
+// shape the games page uses. Prose before the first heading is the intro.
 function renderMusicPage(sourceText) {
-  sourceText = parseProperties(sourceText).body;
-  // "- [Album](link) - Artist". The author's order is kept; bullets stay because
-  // the note is written as a bulleted list.
-  const albumPattern = /^\s*[-*+]\s*\[([^\]]+)\]\(([^)]+)\)(?:\s+-\s+(.+))?\s*$/gm;
-  const albums = [...sourceText.matchAll(albumPattern)].map((match) => {
-    const separator = match[1].lastIndexOf(' - ');
-    return {
-      name: separator === -1 ? match[1].trim() : match[1].slice(0, separator).trim(),
-      artist: match[3]?.trim() || (separator === -1 ? '' : match[1].slice(separator + 3).trim()),
-      href: match[2]
-    };
-  });
-  const description = sourceText.split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line && !/^[-*+]\s*$/.test(line) && !/^[-*+]\s*\[[^\]]+\]\([^)]+\)/.test(line))
-    .join(' ');
-  if (!albums.length) return `<section class="music-page">${description ? `<p>${inlineMarkdown(description)}</p>` : '<p>No albums yet.</p>'}</section>`;
-  const items = albums
-    .map((album) => `<li><a href="${escapeHtml(album.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(album.name)}</a>${album.artist ? ` <span class="album-artist">${escapeHtml(album.artist)}</span>` : ''}</li>`)
-    .join('');
-  return `<section class="music-page">${description ? `<p>${inlineMarkdown(description)}</p>` : ''}<ul class="music-list">${items}</ul></section>`;
+  const lines = parseProperties(sourceText).body.split(/\r?\n/);
+  const intro = [];
+  const albums = [];
+  let letter = null;
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+    // `---` under a letter heading is that heading's rule, not a separator.
+    if (/^-{3,}$/.test(line)) continue;
+
+    const heading = line.match(/^#{1,6}\s+(.+)$/);
+    if (heading) {
+      const text = heading[1].trim();
+      if (/^[A-Z0-9]$/i.test(text)) {
+        letter = text.toUpperCase();
+        continue;
+      }
+      // Anything else is a full heading inside the prose: keep it as an album-name
+      // boundary but not as catalogue structure.
+      continue;
+    }
+
+    const isAlbum = line.match(/^\[([^\]]+)\]\(([^)\s]+)[^)]*\)\s*(?:-\s*(.+))?$/);
+    if (isAlbum) {
+      const name = isAlbum[1].trim();
+      const href = isAlbum[2];
+      // "Artist  note" - the artist runs to a double space or the first sentence
+      // break; whatever follows is the author's note.
+      let artist = '';
+      let note = '';
+      const tail = (isAlbum[3] || '').trim();
+      if (tail) {
+        const split = tail.split(/\s{2,}/);
+        artist = split[0].trim();
+        note = split.slice(1).join(' ').trim();
+      }
+      albums.push({
+        name,
+        href,
+        artist,
+        note,
+        letter: letter || name.charAt(0).toUpperCase()
+      });
+      continue;
+    }
+
+    // Prose only counts before the catalogue starts.
+    if (!albums.length) intro.push(line);
+  }
+
+  // Alphabetical by album, with the letter taken from the title itself so the
+  // grouping always matches what is displayed (a note's heading may be stale).
+  albums.forEach((album) => { album.letter = album.name.charAt(0).toUpperCase(); });
+  albums.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+
+  const introHtml = intro.length
+    ? `<div class="music-intro">${intro.map((para) => `<p>${inlineMarkdown(para, '')}</p>`).join('')}</div>`
+    : '';
+  if (!albums.length) return `<section class="music-page">${introHtml}<p>No albums yet.</p></section>`;
+
+  // Two columns, split at whichever letter boundary gives the closest balance.
+  // Letters stay in alphabetical order down the left column and continue down the
+  // right, so the sequence still reads 2, A, B, C, D, F, G ...
+  const letterGroups = [];
+  for (const album of albums) {
+    const last = letterGroups[letterGroups.length - 1];
+    if (last && last.letter === album.letter) last.albums.push(album);
+    else letterGroups.push({ letter: album.letter, albums: [album] });
+  }
+
+  // Let CSS balance the columns: it measures the real rendered heights rather than
+  // my estimate. Each group is unbreakable, so a letter never splits across
+  // columns, and the browser keeps the alphabetical order intact.
+  // Split the letters into two columns at the boundary that balances them best.
+  // Weights are in pixels, calibrated against the rendered heights of this layout
+  // (letter heading + one line per album + artist/note lines). Order stays
+  // alphabetical down the left column and continues down the right.
+  const weightOf = (groups) => groups.reduce((sum, group) => {
+    const lines = group.albums.reduce((inner, album) => {
+      let px = 62;                                   // title line + row padding
+      if (album.artist) px += 20;                    // artist line
+      if (album.note) px += 20 * Math.max(1, Math.ceil(album.note.length / 46)); // wrapped note
+      return inner + px;
+    }, 0);
+    return sum + lines + 21;                         // letter heading + group gap
+  }, 0);
+
+  let split = letterGroups.length;
+  let best = Infinity;
+  for (let k = 1; k <= letterGroups.length; k += 1) {
+    const delta = Math.abs(weightOf(letterGroups.slice(0, k)) - weightOf(letterGroups.slice(k)));
+    if (delta < best) { best = delta; split = k; }
+  }
+
+  const renderGroup = (group) => {
+    const items = group.albums.map((album) => {
+      const artist = album.artist ? `<span class="album-artist">${escapeHtml(album.artist)}</span>` : '';
+      const note = album.note ? `<span class="album-note">${escapeHtml(album.note)}</span>` : '';
+      return `<li><a class="album-name" href="${escapeAttr(album.href)}">${escapeHtml(album.name)}</a>${artist}${note}</li>`;
+    }).join('');
+    return `<div class="album-group"><h3 class="album-letter">${escapeHtml(group.letter)}</h3><ul class="album-list">${items}</ul></div>`;
+  };
+
+  return `<section class="music-page">${introHtml}<div class="album-index"><div class="album-column">${letterGroups.slice(0, split).map(renderGroup).join('')}</div><div class="album-column">${letterGroups.slice(split).map(renderGroup).join('')}</div></div></section>`;
 }
 
 function renderBooksListing(sourceDir, relativeDir) {
