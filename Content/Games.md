@@ -116,7 +116,7 @@ Never completed the game but I loved the world and the music. Sometimes when I'm
 # X
 ---
 [X-Plane 11](https://store.steampowered.com/app/269950/XPlane_11/)
-Better than Microsoft Flight Simulator X 
+Better than Microsoft Flight Simulator (2004) 
 
 [X-Plane 12](https://store.steampowered.com/app/2014780/XPlane_12/)
 Better than Microsoft Flight Simulator 2024 lol. Okay we can debate on the graphics, but xplane wins in the realism and physics of it. MSFS is kinda arcade, but Xplane is pure simulation. I played the demo version of it on my mac, the graphics are very good. 
