@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { dayFromName, formatDay } = require('./lib/daycount');
 
 const root = __dirname;
@@ -435,6 +436,11 @@ footer { padding: .75rem 1rem 1.1rem; font-size: .9rem; }
 }
 `;
 
+// The stylesheet name carries a hash of its contents. When the CSS changes the URL
+// changes, so browsers fetch the new file immediately instead of serving a cached
+// copy - while an unchanged stylesheet still caches forever.
+const CSS_HASH = crypto.createHash('sha256').update(SITE_CSS).digest('hex').slice(0, 10);
+
 function layout(title, body, currentPath = '/', tags = []) {
   const description = 'AMNSHK, Amaan Shaik\'s personal site, journals, lists, and books.';
   const navLink = ({ label, href, path }) => `<li><a href="${href}"${currentPath === path || (path !== '/' && currentPath.startsWith(path)) ? ' aria-current="page"' : ''}>${label}</a></li>`;
@@ -467,7 +473,7 @@ function layout(title, body, currentPath = '/', tags = []) {
   <title>${escapeHtml(title)} · AMNSHK</title>
   <link rel="preload" href="/fonts/charter_regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/fonts/charter_italic.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/style.${CSS_HASH}.css">
   <style>/* Critical: paint text in the right face and colour before style.css lands. */
     html{background:#fbf9f3}body{margin:0;background:#fbf9f3;color:#111;font-family:Charter,"Bitstream Charter","Sitka Text",Cambria,Georgia,serif;font-size:18px;line-height:1.5}a{color:blue}</style>
 </head>
@@ -1797,6 +1803,8 @@ if (fs.existsSync(fontsSourceDir)) {
 }
 // The stylesheet is one file for the whole site instead of 23KB of inline CSS on
 // every page, so it downloads once and is reused for every later navigation.
+fs.writeFileSync(path.join(outputRoot, `style.${CSS_HASH}.css`), SITE_CSS);
+// Keep the old plain name working so anything that bookmarked it does not 404.
 fs.writeFileSync(path.join(outputRoot, 'style.css'), SITE_CSS);
 buildFolder(contentRoot);
 
