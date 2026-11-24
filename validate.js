@@ -14,9 +14,15 @@ function outputName(fileName, relativePath) {
   if (/(^|[\\/])journal(?:ish)?([\\/]|$)/i.test(relativePath)) {
     // Must match build.js: journal entries are addressed by day number.
     const day = dayFromName(fileName);
-    return day === null ? `${slugify(baseName)}.txt` : `${formatDay(day)}.txt`;
+    return day === null ? `${slugify(baseName)}.html` : `${formatDay(day)}.html`;
   }
   return `${slugify(baseName)}.html`;
+}
+
+// Journal entries are pages, but they also publish a plain-text file alongside,
+// which the file tree links to.
+function isJournalPath(relativePath) {
+  return /(^|[\\/])journal(?:ish)?([\\/]|$)/i.test(relativePath);
 }
 
 function slugify(value) {
@@ -39,7 +45,9 @@ for (const sourcePath of walk(contentRoot).filter((filePath) => filePath.endsWit
   if (relativePath.toLowerCase() === 'about-me.md') continue;
   const outputPath = path.join(outputRoot, path.dirname(relativePath), outputName(path.basename(relativePath), relativePath));
   if (!fs.existsSync(outputPath)) failures.push(`Missing output: ${relativePath}`);
-  if (outputPath.endsWith('.txt') && !fs.existsSync(`${outputPath}.html`)) failures.push(`Missing text reader: ${relativePath}`);
+  if (isJournalPath(relativePath) && !fs.existsSync(outputPath.replace(/\.html$/i, '.txt'))) {
+    failures.push(`Missing journal text file: ${relativePath}`);
+  }
   if (outputPath.endsWith('.txt') && fs.existsSync(outputPath) && /[^\x00-\x7F]/.test(fs.readFileSync(outputPath, 'ascii'))) {
     failures.push(`Not US-ASCII: ${relativePath}`);
   }

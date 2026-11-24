@@ -1133,7 +1133,7 @@ function outputName(fileName, relativePath) {
   // URL matches the label on the page: 07768, not 17-11-2026.
   if (/(^|[\\/])journal(?:ish)?([\\/]|$)/i.test(relativePath)) {
     const day = dayFromName(fileName);
-    return day === null ? `${slugify(baseName)}.txt` : `${formatDay(day)}.txt`;
+    return day === null ? `${slugify(baseName)}.html` : `${formatDay(day)}.html`;
   }
   return `${slugify(baseName)}.html`;
 }
@@ -1701,7 +1701,11 @@ function renderTree(sourceDir, relativeDir = '', indent = '') {
       const publicPath = path.join(relativeDir, destinationName);
       const outputPath = path.join(outputRoot, publicPath);
       const size = fs.existsSync(outputPath) ? fs.statSync(outputPath).size : 0;
-      const linkPath = isTextOutput(entry.name, relativePath) ? `${publicPath}.html` : publicPath;
+      // The tree is a source listing: journal entries link to their plain-text
+      // file, everything else to its page.
+      const linkPath = isJournalPath(relativeDir)
+        ? publicPath.replace(/\.html$/i, '.txt')
+        : publicPath;
       lines.push(`${indent}${branch}<a class="EXEC" href="${urlPath(linkPath)}">${escapeHtml(publicLabel(displayName(destinationName)))}</a>`);
     }
   });
@@ -1743,8 +1747,16 @@ function buildFolder(sourceDir, relativeDir = '') {
           ? renderReadingCategory(note.body, relativeDir)
           : isBookFile
             ? `<article class="book-viewer">${markdownToHtml(note.body, relativeDir, { preserveLines: true })}</article>`
-            : markdownToHtml(isArticlesPath(relativeDir) ? sortArticleLinks(note.body) : note.body, relativeDir);
+            // Journal entries open as pages, in the same reading column the old
+            // text reader used.
+            : isJournalPath(relativeDir)
+              ? `<article class="text-viewer">${markdownToHtml(note.body, relativeDir)}</article>`
+              : markdownToHtml(isArticlesPath(relativeDir) ? sortArticleLinks(note.body) : note.body, relativeDir);
       fs.writeFileSync(destinationPath, layout(title, body, urlPath(path.join(relativeDir, destinationName)), note.tags));
+      // The plain-text file is still published, and is what the file tree links to.
+      if (isJournalPath(relativeDir)) {
+        fs.writeFileSync(path.join(outputDir, `${formatDay(dayFromName(entry.name))}.txt`), toUsAscii(note.body), 'ascii');
+      }
     }
   }
 
