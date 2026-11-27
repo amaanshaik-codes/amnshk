@@ -12,9 +12,9 @@
 
 const fs = require('fs');
 const path = require('path');
-const { dayOfLife, dayToDate, dayFromName } = require('../lib/daycount');
+const { dayFromName, dayToDate, formatDay } = require('../lib/daycount');
 
-const journalDir = path.join(__dirname, '..', 'Content', 'journal');
+const journalDir = path.join(__dirname, '..', 'Content', 'Journal Entries');
 const args = process.argv.slice(2);
 const write = args.includes('--write');
 const check = args.includes('--check');
@@ -38,9 +38,9 @@ for (const name of files) {
   const weekday = date.toUTCString().slice(0, 3);
   const base = name.replace(/\.md$/i, '');
   const alreadyNumeric = /^\d+$/.test(base);
-  const target = `${day}.md`;
+  const target = `${formatDay(day)}.md`;
 
-  if (alreadyNumeric && base === String(day)) {
+  if (alreadyNumeric && base === formatDay(day)) {
     if (check) console.log(`ok    ${name.padEnd(28)} day ${day} = ${iso} (${weekday})`);
     continue;
   }
@@ -69,4 +69,6 @@ for (const item of plan) {
   if (write) fs.renameSync(from, to);
 }
 
-if (!write) console.log('\nDry run. Re-run with --write to apply.');
+if (!write && !check) {
+  console.log('Dry run - nothing is renamed');
+}

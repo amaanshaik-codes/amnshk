@@ -1,20 +1,14 @@
 // Visitor counter. Serves a small SVG pill that the footer loads as an image.
 //
-// NO COOKIES. Nothing is written to the visitor's device, which is what lets the
-// site carry a "100% cookie free" badge honestly.
+// Each request that reaches this handler counts as one visit from the address
+// that made it, and only the first visit from an address is counted - see
+// lib/visits.js for the storage and the privacy rules (no cookies, no stored IP).
 //
-// Every view of the badge counts. There is no deduplication and no visitor
-// identity of any kind is read, derived or stored - the handler never looks at
-// the IP address, so it cannot.
-//
-// Storage: a dotfile at the repository root (.visits.json) holding the running
-// total. It sits outside public/, so it is never deployed and cannot be fetched.
+// The response is never cached, by us or by the browser, so the number a reader
+// sees is the total including their own visit, effectively the moment they load
+// the page.
 
-const fs = require('fs');
-const path = require('path');
-
-const CACHE_SECONDS = 30;
-
+const { hasStore, clientIp, recordVisit } = require('../lib/visits');
 
 // ---------------------------------------------------------------------------
 // Pill drawing. Unchanged look; only the number comes from another source.
@@ -60,51 +54,26 @@ function counterSvg(count) {
 }
 
 // ---------------------------------------------------------------------------
-// Storage
-//
-// The record lives in a dotfile at the repository root, outside public/, so it is
-// never part of the deployed site and a visitor cannot request it.
-//
-//   { total: N }
-//
-// A Vercel function's filesystem is read-only, so the handler below only reads.
-// The increment happens in scripts/record-visit.js, which the local preview calls
-// for each badge request and which is committed back into the repo.
-// ---------------------------------------------------------------------------
-
-const STATE_FILE = path.join(__dirname, '..', '.visits.json');
-
-function currentTotal() {
-  try {
-    const parsed = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
-    return Number(parsed.total) || 0;
-  } catch {
-    return 0;
-  }
-}
-
-function countVisit() {
-  const total = currentTotal() + 1;
-  fs.writeFileSync(STATE_FILE, `${JSON.stringify({ total }, null, 1)}\n`);
-  return total;
-}
-
-// ---------------------------------------------------------------------------
 
 async function handler(req, res) {
   res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
-  // Cache for well under a minute so a push shows the new number almost at once.
-  res.setHeader('Cache-Control', `public, max-age=60, s-maxage=${CACHE_SECONDS}, stale-while-revalidate=600`);
-  res.setHeader('X-Counter-Source', 'file:total');
+  // No shared or browser cache: one visitor's request must never hand its total
+  // to everyone else, and a reload has to reflect the live number.
+  res.setHeader('Cache-Control', 'no-store, max-age=0');
   let total = 0;
-  try {
-    total = currentTotal();
-  } catch (error) {
-    console.error('visitor counter failed', error.message);
-    total = 0;
+  if (hasStore()) {
+    try {
+      total = await recordVisit(clientIp(req));
+    } catch (error) {
+      console.error('visitor counter failed', error.message);
+      total = 0;
+    }
+  } else {
+    // No store (local preview, a fork): the badge still renders.
+    console.warn('visitor counter has no store configured');
   }
+  res.setHeader('X-Counter-Source', 'redis:visitor-total');
   res.send(counterSvg(total));
 }
 
 module.exports = handler;
-module.exports.countVisit = countVisit;

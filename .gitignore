@@ -6,3 +6,7 @@ node_modules/
 
 # macOS Finder metadata
 .DS_Store
+# Vercel's dry-run config, rewritten by `vercel build`
+.vercel/output/
+.vercel/.env.*.local
+.env*
