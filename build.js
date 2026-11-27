@@ -102,7 +102,7 @@ header h1 a { color: #111 !important; text-decoration: none !important; backgrou
    (-50% of the track) loops seamlessly, in track-width units rather than
    viewport units, so it is already moving on the first frame. */
 .journal-ticker-track { display: flex; width: max-content;
-  animation: ticker-scroll var(--ticker-duration, 60s) linear infinite;
+  animation: ticker-scroll var(--ticker-duration, 180s) linear infinite;
   animation-delay: var(--ticker-delay, 0s); will-change: transform; }
 .journal-ticker-track > span { white-space: nowrap; padding-right: 3rem; }
 .journal-ticker:hover .journal-ticker-track { animation-play-state: paused; }
@@ -190,12 +190,15 @@ pre { max-width: 100%; overflow-x: auto; margin: 1rem auto; text-align: left; wi
 .tag-list li { margin: 0; line-height: 1.5; break-inside: avoid; }
 /* Journal: one flowing run of entry links, descending, spaced by whitespace
    rather than separators. Wraps naturally at the column edge. */
-.journal-list { width: 100%; max-width: 100%; margin: .5rem auto 1rem; padding: 0; list-style: none;
-  display: flex; flex-wrap: wrap; justify-content: center; gap: .3rem 1.6rem; text-align: center; }
+.journal-list { width: 100%; max-width: var(--content-w); margin: .5rem auto 1rem; padding: 0 0 0 1.4rem; list-style: none;
+  /* Day numbers line up with the header/footer rule edge: the same 1.4rem left
+     inset as the plain lists, so the first column starts on the content edge
+     rather than centring a grid narrower than --content-w. */
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: .3rem 1.2rem; text-align: left; }
 /* A long section name in the breadcrumb widens the grid column past the viewport.
    Let the wrapped list shrink to fit instead of pushing the numbers out of view. */
 .journal-list, .journal-list li { min-width: 0; }
-.journal-list li { padding: 0; line-height: 1.6; }
+.journal-list li { padding: 0; line-height: 1.6; text-align: left; }
 .journal-list a { font-size: 1rem; }
 
 /* Readings: category index in two columns; each category page keeps the
@@ -404,7 +407,7 @@ footer { padding: .75rem 1rem 1.1rem; font-size: .9rem; }
   .journal-ticker { margin: .4rem 0 .1rem; min-height: 1.3em; font-size: .78rem;
     -webkit-mask-image: linear-gradient(to right, transparent 0, #000 1.2rem, #000 calc(100% - 1.2rem), transparent 100%);
     mask-image: linear-gradient(to right, transparent 0, #000 1.2rem, #000 calc(100% - 1.2rem), transparent 100%); }
-  .journal-ticker-track { animation-duration: 40s; }
+  .journal-ticker-track { animation-duration: 200s; }
   .journal-ticker-track > span { padding-right: 2rem; }
 
   /* Nav: big enough to tap, spread across the width. */
@@ -524,6 +527,13 @@ function layout(title, body, currentPath = '/', tags = []) {
       var dayEl = document.querySelector('[data-clock="day"]');
       var dateEl = document.querySelector('[data-clock="date"]');
       var timeEl = document.querySelector('[data-clock="time"]');
+      // The counter is a cached SVG; refresh it once so the total is current.
+      var visitImg = document.querySelector('.visit-counter img');
+      if (visitImg) {
+        var refreshVisit = function () { visitImg.src = '/api/visitors?v=' + Date.now(); };
+        if (document.readyState === 'complete') refreshVisit();
+        else window.addEventListener('load', refreshVisit, { once: true });
+      }
       if (!dayEl || !dateEl || !timeEl) return;
       var pad = function (n) { return String(n).padStart(2, '0'); };
       function tick() {
@@ -548,8 +558,7 @@ function layout(title, body, currentPath = '/', tags = []) {
       var track = document.querySelector('.journal-ticker-track');
       if (!track) return;
       var KEY = 'ticker-anchor';
-      var DURATION = 60; // seconds; keep in step with --ticker-duration
-      var KEY = 'ticker-anchor';
+      var DURATION = 180; // seconds; keep in step with --ticker-duration
       var anchor = 0;
       try { anchor = Number(sessionStorage.getItem(KEY)) || 0; } catch (e) { anchor = 0; }
       var elapsed;

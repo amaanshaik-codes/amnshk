@@ -3,28 +3,17 @@
 // NO COOKIES. Nothing is written to the visitor's device, which is what lets the
 // site carry a "100% cookie free" badge honestly.
 //
-// How a visit is counted:
-//   1. Read the client IP from the request headers.
-//   2. Hash it with a secret salt (SHA-256). The raw IP is never stored.
-//   3. Look the hash up in a store keyed by today's date.
-//   4. New hash -> increment the total; seen hash -> leave it alone.
-//   5. Hashes expire after the day rolls over, so the same person is counted
-//      once per day and yesterday's data is gone.
+// Every view of the badge counts. There is no deduplication and no visitor
+// identity of any kind is read, derived or stored - the handler never looks at
+// the IP address, so it cannot.
 //
-// Storage: a dotfile at the repository root (.visits.json), outside public/, so
-// it is never deployed and cannot be fetched. Each deploy carries it forward.
-//
-// Env:
-//   IP_HASH_SALT        secret used to hash IPs (any long random string)
+// Storage: a dotfile at the repository root (.visits.json) holding the running
+// total. It sits outside public/, so it is never deployed and cannot be fetched.
 
-const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-const DEFAULT_SITE = 'amnshk';
-const TOTAL_PATH = 'TOTAL';
-const CACHE_SECONDS = 120;
-const UPSTREAM_TIMEOUT_MS = 2500;
+const CACHE_SECONDS = 30;
 
 
 // ---------------------------------------------------------------------------
@@ -70,25 +59,7 @@ function counterSvg(count) {
 </svg>`;
 }
 
-// ---------------------------------------------------------------------------
-// IP hashing
-// ---------------------------------------------------------------------------
 
-function clientIp(req) {
-  const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-  return forwarded || String(req.headers['x-real-ip'] || '').trim() || (req.socket && req.socket.remoteAddress) || 'unknown';
-}
-
-// A salted SHA-256 of the IP. The salt makes the digest useless to anyone who
-// gets hold of it: they cannot reverse it or compare against a list of known IPs.
-function hashIp(ip, env = process.env) {
-  const salt = env.IP_HASH_SALT || 'amnshk-default-salt-change-me';
-  return crypto.createHash('sha256').update(`${salt}:${ip}`).digest('hex').slice(0, 32);
-}
-
-function todayKey(now = new Date()) {
-  return now.toISOString().slice(0, 10);
-}
 
 // ---------------------------------------------------------------------------
 // Storage
@@ -96,62 +67,56 @@ function todayKey(now = new Date()) {
 // The record lives in a dotfile at the repository root, outside public/, so it is
 // never part of the deployed site and a visitor cannot request it.
 //
-//   { day: "YYYY-MM-DD", total: N, seen: [hash, ...] }
-//
-// `seen` holds only salted hashes for the current day; it is cleared when the
-// day changes, so nothing accumulates over time.
+//   { total: N }
 // ---------------------------------------------------------------------------
 
 const STATE_FILE = path.join(__dirname, '..', '.visits.json');
 
-function emptyState() {
-  return { day: todayKey(), total: 0, seen: [] };
-}
-
 function readState() {
   try {
     const parsed = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
-    return {
-      day: typeof parsed.day === 'string' ? parsed.day : todayKey(),
-      total: Number(parsed.total) || 0,
-      seen: Array.isArray(parsed.seen) ? parsed.seen : []
-    };
+    return { total: Number(parsed.total) || 0 };
   } catch {
-    return emptyState();
+    return { total: 0 };
   }
 }
 
-// A Vercel function's filesystem is read-only, so this handler only reads. The
-// counting itself happens in scripts/record-visit.js, which runs in CI and
-// commits the updated file back, and in the build for local previews.
-function countVisit(ip, env = process.env) {
+function writeState(total) {
+  fs.writeFileSync(STATE_FILE, `${JSON.stringify({ total }, null, 1)}\n`);
+}
+
+// A Vercel function's filesystem is read-only, so the handler below only reads.
+// The increment happens in scripts/record-visit.js, which the local preview calls
+// for each badge request and which is committed back into the repo.
+function currentTotal() {
   return readState().total;
 }
 
-function currentTotal() {
-  return readState().total;
+function countVisit() {
+  const total = readState().total + 1;
+  writeState(total);
+  return total;
 }
 
 // ---------------------------------------------------------------------------
 
 async function handler(req, res) {
   res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
-  // Never identify the visitor: this is the whole point of the hashed-IP design.
+  // Cache for well under a minute so a push shows the new number almost at once.
   res.setHeader('Cache-Control', `public, max-age=60, s-maxage=${CACHE_SECONDS}, stale-while-revalidate=600`);
-  res.setHeader('X-Counter-Source', 'file:ip-hash');
+  res.setHeader('X-Counter-Source', 'file:total');
   let total = 0;
   try {
-    total = countVisit(clientIp(req));
+    total = currentTotal();
   } catch (error) {
     console.error('visitor counter failed', error.message);
-    total = currentTotal();
+    total = 0;
   }
   res.send(counterSvg(total));
 }
 
 module.exports = handler;
 module.exports.counterSvg = counterSvg;
-module.exports.hashIp = hashIp;
 module.exports.countVisit = countVisit;
-module.exports.todayKey = todayKey;
+module.exports.currentTotal = currentTotal;
 module.exports.STATE_FILE = STATE_FILE;
