@@ -329,31 +329,18 @@ footer { padding: .75rem 1rem 1.1rem; font-size: .9rem; }
 /* Same dotted rule as the header, at the same width, so the page closes the
    way it opens. */
 .footer-rule { width: 100%; max-width: var(--content-w); margin: 0 auto .9rem; border-top: 1px dotted var(--text); }
-/* Web badges: one centred row of five on desktop. The two .badge-line wrappers
-   exist only so the phone layout can put three badges above two; here they are
-   removed from the box tree entirely, so the grid sees five plain children. */
-.badge-line { display: contents; }
-.badges { display: grid; grid-template-columns: repeat(5, auto); justify-content: center;
-  align-items: center; gap: .45rem .7rem; margin: .6rem 0 0; width: max-content; max-width: 100%; }
-.badge { display: flex; align-items: center; justify-content: center; }
-/* Badges are fixed-size pixel art: drawn at their own size, never stretched. */
-.badge img { display: block; width: auto; height: auto; image-rendering: pixelated; }
-/* The two 160px badges are visually heavier than the 88px pair; scale them down
-   so every badge in the row carries similar weight. Pixel art stays crisp. */
+/* Each badge sits in its own equal cell and keeps its natural size, so the two
+   rows share the same outer edges instead of one row looking narrower. */
+/* One centred row per pair: 88px badges on top, 160px below, so both rows
+   share the same axis instead of each being left-packed. */
+.badges { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .5rem 1.1rem; max-width: 22rem; margin: .6rem auto 0; }
+.badges .badge { flex: 0 0 auto; }
+.badge { display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+/* Badges are fixed-size pixel art: never scale or stretch them. */
+.badge img { display: block; width: auto; height: auto; max-width: none; image-rendering: pixelated; }
+/* The 160px pair are visually heavier than the 88px pair; scale them to 128px
+   so both rows carry similar weight. Pixel art stays crisp. */
 .badge img[width="160"] { width: 128px; height: 29px; }
-/* Website Carbon badge.
-   The loader injects its own <style> *inside* #wcb and then fills it with a pill
-   that sizes itself. So #wcb must stay a plain block - making it a flex or grid
-   container turns the injected <style> into a flex item and the pill's markup
-   spills out of the badge as loose text. The cell reserves the height and
-   centres whatever the loader draws. */
-.carbon-cell { min-height: 24px; display: flex; align-items: center; justify-content: center; }
-.carbonbadge#wcb { min-height: 24px; line-height: 1.15; }
-/* Before the loader runs (or if it is blocked), the cell shows this plain label. */
-#wcb > #wcb_f { font-family: var(--font-mono); font-size: .7rem; color: var(--text); }
-/* Keep the footer's own link styling from repainting the pill. */
-.carbonbadge a { color: inherit; text-decoration: none; }
-.carbonbadge a:hover { color: inherit !important; background: none; box-shadow: none; padding: 0; margin: 0; }
 .footer-meta { display: flex; justify-content: center; align-items: baseline; flex-wrap: wrap; gap: 1rem; }
 .footer-meta p { margin: 0; }
 .visit-counter { display: flex; align-items: center; justify-content: center; gap: .35rem; min-height: 22px; margin-top: .75rem; font-size: .85rem; line-height: 1; color: var(--muted); }
@@ -401,41 +388,12 @@ footer { padding: .75rem 1rem 1.1rem; font-size: .9rem; }
   /* List rows: keep title and action on one line with room to breathe. */
   .folder-entry-link { gap: .6rem; }
 
-  /* Footer: on a phone the footer is docked to the bottom of the screen instead
-     of waiting below the fold, so the badges and the visitor count are visible
-     the moment the site opens, however long the page is. Two rows of three keep
-     the badges near their natural size while staying compact.
-     NOTE: the reserved space below must match the footer's height; the build
-     measures it and prints a warning if the two drift apart. */
-  footer { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
-    padding: .3rem .5rem calc(.3rem + env(safe-area-inset-bottom)); font-size: .8rem;
-    background: var(--surface); box-shadow: 0 -1px 0 rgba(0,0,0,.14); }
-  .footer-spacer { height: calc(var(--footer-h, 112px) + env(safe-area-inset-bottom)); }
-  .footer-rule { display: none; }
-  .footer-meta { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 0 .5rem; font-size: .7rem; line-height: 1.25; }
-  /* Five badges over two rows: three, then two. Two equal halves of the row
-     (three sixths, then two, explicitly) keep the second row centred under the
-     first; without placing the last cell it would flow back into the first free
-     slot and sit under the badges instead of in its own row. */
-  /* Two centred rows - three badges, then two. Plain flex rows rather than a
-     grid: the carbon pill sets its own width, and a grid column stretched to fit
-     it pushed the whole row off the screen. */
-  .badges { display: flex; flex-direction: column; align-items: center; gap: .3rem;
-    width: 100%; max-width: 100%; margin: .35rem 0 0; }
-  /* flex-wrap so the widest row (a badge plus the carbon pill) folds onto a
-     second line on a 320px screen instead of running off the edge. */
-  .badge-line { display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
-    gap: .25rem .5rem; max-width: 100%; min-width: 0; }
-  /* The carbon pill is the widest thing in the footer; letting this cell shrink
-     keeps the second row inside the screen on a 320px phone. */
-  .badge-line > .badge { min-width: 0; }
-  .carbon-cell { min-width: 0; overflow: hidden; }
-  /* Pixel badges keep their own aspect ratio; only the taller 160x36 pair is
-     trimmed, and its width follows so the artwork is never squashed. */
-  .badge img { height: 26px; width: auto; }
-  .badge img[width="160"] { width: 96px; height: 22px; }
-  .visit-counter { margin-top: .2rem; min-height: 20px; }
-  .visit-counter img { height: 20px; }
+  /* Footer: two badges per row still fit, meta stacks neatly. */
+  footer { padding: .9rem .9rem 1.2rem; font-size: .85rem; }
+  .footer-meta { flex-direction: column; gap: .25rem; }
+  .badges { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem .3rem; width: auto; max-width: 21rem; }
+  .badge img { max-width: 100%; height: auto; }
+  .visit-counter { margin-top: .6rem; }
 }
 
 /* Very narrow phones: drop the badge beside the clock, let the wordmark lead. */
@@ -443,6 +401,7 @@ footer { padding: .75rem 1rem 1.1rem; font-size: .9rem; }
   .masthead { grid-template-columns: 1fr; grid-template-areas: "brand" "clock" "est" "badge"; justify-items: center; }
   .mast-time { justify-self: center; text-align: center; }
   .header-badge { justify-self: center; }
+  .badges { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 `;
 
@@ -470,26 +429,6 @@ function layout(title, body, currentPath = '/', tags = []) {
     const href = `/${parts.slice(0, index + 1).join('/')}${isLast && !currentPath.endsWith('/') ? '' : '/'}`;
     return isLast ? ` <span aria-hidden="true">/</span> ${escapeHtml(label)}` : ` <span aria-hidden="true">/</span> <a href="${href}">${escapeHtml(label)}</a>`;
   }).join('')}</nav>`;
-  // On a phone the footer is docked to the bottom of the screen, so the page needs
-  // a gap of exactly its height or the last line of every page hides behind it.
-  // The height depends on how the browser lays out the badges and the carbon pill,
-  // which the build cannot know - so the page measures the footer once and
-  // publishes it, and .footer-spacer reads it. The sizes in the mobile CSS are a
-  // close fallback for the frame before the script runs.
-  const fitFooter = `
-    (function () {
-      var footer = document.querySelector('footer');
-      if (!footer) return;
-      var fit = function () {
-        document.documentElement.style.setProperty('--footer-h', footer.offsetHeight + 'px');
-      };
-      fit();
-      window.addEventListener('resize', fit);
-      // The carbon badge loads after first paint and can change the height.
-      window.addEventListener('load', fit);
-      if (window.ResizeObserver) new ResizeObserver(fit).observe(footer);
-    })();
-  `;
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -528,7 +467,6 @@ function layout(title, body, currentPath = '/', tags = []) {
     <div class="header-rule" aria-hidden="true"></div>
   </header>
   <main id="main-content">${breadcrumbs}${renderTagLinks(tags)}${body}</main>
-  <div class="footer-spacer" aria-hidden="true"></div>
   <footer>
     <div class="footer-rule" aria-hidden="true"></div>
     <div class="footer-meta">
@@ -536,15 +474,10 @@ function layout(title, body, currentPath = '/', tags = []) {
       <p>Last updated: ${builtAt}</p>
     </div>
     <div class="badges" aria-label="Web badges">
-      <div class="badge-line">
-        <span class="badge"><img src="/badges/bestvieweddesktop.gif" width="88" height="31" alt="Best viewed on desktop"></span>
-        <span class="badge"><img src="/badges/cookie-free.png" width="88" height="31" alt="This site is certified 100% cookie free"></span>
-        <span class="badge"><img src="/badges/y2k-compliant.png" width="160" height="36" alt="Y2K compliant"></span>
-      </div>
-      <div class="badge-line">
-        <span class="badge"><img src="/badges/no-ai-human-content.png" width="160" height="36" alt="No AI human content"></span>
-        <span class="badge carbon-cell"><div id="wcb" class="carbonbadge"><span id="wcb_f">Carbon</span></div></span>
-      </div>
+      <span class="badge"><img src="/badges/bestvieweddesktop.gif" width="88" height="31" alt="Best viewed on desktop"></span>
+      <span class="badge"><img src="/badges/cookie-free.png" width="88" height="31" alt="This site is certified 100% cookie free"></span>
+      <span class="badge"><img src="/badges/y2k-compliant.png" width="160" height="36" alt="Y2K compliant"></span>
+      <span class="badge"><img src="/badges/no-ai-human-content.png" width="160" height="36" alt="No AI human content"></span>
     </div>
     <div class="visit-counter"><img src="/api/visitors" alt="Visitor count" width="114" height="22" decoding="async" fetchpriority="low"></div>
   </footer>
@@ -603,12 +536,10 @@ function layout(title, body, currentPath = '/', tags = []) {
       // instead of sitting still for the first fraction of a cycle.
       track.style.animationDelay = '-' + elapsed.toFixed(2) + 's';
     })();
-__FIT_FOOTER__
   </script>
-  <script src="https://unpkg.com/website-carbon-badges@1.1.3/b.min.js" defer></script>
 </body>
 </html>
-`.replace('__FIT_FOOTER__', fitFooter);
+`;
 }
 
 function displayName(fileName) {
