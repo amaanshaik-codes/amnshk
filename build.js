@@ -190,8 +190,11 @@ pre { max-width: 100%; overflow-x: auto; margin: 1rem auto; text-align: left; wi
 .tag-list li { margin: 0; line-height: 1.5; break-inside: avoid; }
 /* Journal: one flowing run of entry links, descending, spaced by whitespace
    rather than separators. Wraps naturally at the column edge. */
-.journal-list { width: 100%; max-width: var(--content-w); margin: .5rem auto 1rem; padding: 0; list-style: none;
+.journal-list { width: 100%; max-width: 100%; margin: .5rem auto 1rem; padding: 0; list-style: none;
   display: flex; flex-wrap: wrap; justify-content: center; gap: .3rem 1.6rem; text-align: center; }
+/* A long section name in the breadcrumb widens the grid column past the viewport.
+   Let the wrapped list shrink to fit instead of pushing the numbers out of view. */
+.journal-list, .journal-list li { min-width: 0; }
 .journal-list li { padding: 0; line-height: 1.6; }
 .journal-list a { font-size: 1rem; }
 
@@ -607,10 +610,9 @@ function renderTagLinks(tags) {
 }
 
 function journalContentDir() {
-  // The vault folder may be journal/ or Journal/; accept either.
-  for (const name of ['Journal', 'journal']) {
-    const candidate = path.join(contentRoot, name);
-    if (fs.existsSync(candidate)) return candidate;
+  // Find the journal folder by name, whatever its spacing or capitalisation.
+  for (const entry of fs.readdirSync(contentRoot, { withFileTypes: true })) {
+    if (entry.isDirectory() && isJournalPath(entry.name)) return path.join(contentRoot, entry.name);
   }
   return null;
 }
@@ -655,7 +657,12 @@ function firstSegment(relativePath) {
 }
 
 function isJournalPath(relativePath) {
-  return ['journal', 'journalish'].includes(firstSegment(relativePath));
+  // Matches journal, journalish, "journal entries", "journal-entries" and any
+  // other spacing of the same name, so renaming the vault folder does not drop
+  // the section back to a plain file listing.
+  const name = firstSegment(relativePath);
+  const compact = name.replace(/[\s_-]+/g, '');
+  return compact === 'journal' || compact === 'journalish' || compact === 'journalentries';
 }
 
 function isArticlesPath(relativePath) {
@@ -1131,7 +1138,7 @@ function outputName(fileName, relativePath) {
   if (/\.(txt|html)$/i.test(baseName)) return slugify(baseName);
   // Journal entries are addressed by day number, not by the author's date, so the
   // URL matches the label on the page: 07768, not 17-11-2026.
-  if (/(^|[\\/])journal(?:ish)?([\\/]|$)/i.test(relativePath)) {
+  if (isJournalPath(relativePath)) {
     const day = dayFromName(fileName);
     return day === null ? `${slugify(baseName)}.html` : `${formatDay(day)}.html`;
   }
