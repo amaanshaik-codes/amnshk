@@ -70,6 +70,8 @@ body { font-family: var(--font-serif); font-size: 18px; line-height: 1.5; color:
 body { background-image: repeating-linear-gradient(0deg, rgba(0,0,0,.012) 0 1px, transparent 1px 3px); }
 .site-shell { width: auto; max-width: 1100px; min-height: 100dvh; margin: 0 auto; background: var(--surface); }
 /* Outer vertical borders removed from .site-shell. */
+/* Centre the Welcome and Browse headings on the landing page only. */
+.home-page > h1, .home-page > h2 { text-align: center; }
 /* Header and footer share the same horizontal padding, so a full-width rule
    inside either ends at the same x on both sides. */
 header, footer { text-align: center; padding: 1.25rem 1rem; }
@@ -1782,7 +1784,7 @@ const welcomeSource = fs.existsSync(path.join(contentRoot, 'Welcome.md'))
   : '';
 const welcomeNote = parseProperties(welcomeSource);
 const welcomeHeading = markdownTitle(welcomeNote.body, '');
-const homeBody = `${welcomeHeading ? '' : '<h2>Welcome</h2>'}${markdownToHtml(welcomeNote.body, '')}${renderHomeCategories()}`;
+const homeBody = `<div class="home-page">${welcomeHeading ? '' : '<h2>Welcome</h2>'}${markdownToHtml(welcomeNote.body, '')}${renderHomeCategories()}</div>`;
 fs.writeFileSync(path.join(outputRoot, 'index.html'), layout('Home', homeBody, '/', welcomeNote.tags));
 
 const taggedEntries = collectTaggedEntries();
