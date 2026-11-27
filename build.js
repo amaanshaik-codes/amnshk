@@ -69,7 +69,7 @@ body { font-family: var(--font-serif); font-size: 18px; line-height: 1.5; color:
 /* Faint paper grain: hairlines of slightly darker cream, no image file. */
 body { background-image: repeating-linear-gradient(0deg, rgba(0,0,0,.012) 0 1px, transparent 1px 3px); }
 .site-shell { width: auto; max-width: 1100px; min-height: 100dvh; margin: 0 auto; background: var(--surface); }
-@media (min-width: 1101px) { .site-shell { border-left: 1px solid #d9d3c4; border-right: 1px solid #d9d3c4; } }
+/* Outer vertical borders removed from .site-shell. */
 /* Header and footer share the same horizontal padding, so a full-width rule
    inside either ends at the same x on both sides. */
 header, footer { text-align: center; padding: 1.25rem 1rem; }
