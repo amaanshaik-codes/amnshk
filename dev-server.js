@@ -71,7 +71,6 @@ const server = http.createServer((req, res) => {
     }
     res.status = (code) => { res.statusCode = code; return res; };
     res.send = (body) => res.end(body);
-    res.json = (body) => { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(body)); };
     // Same shape of request Vercel hands a function: headers already flattened.
     // A rejection here would otherwise crash the process and kill the preview.
     Promise.resolve()

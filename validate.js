@@ -11,7 +11,7 @@ function outputName(fileName, relativePath) {
   const baseName = fileName.replace(/\.md$/i, '');
   if (fileName.toLowerCase() === 'index.md') return 'index.html';
   if (/\.(txt|html)$/i.test(baseName)) return slugify(baseName);
-  if (/(^|[\\/])journal(?:ish)?([\\/]|$)/i.test(relativePath)) {
+  if (isJournalPath(relativePath)) {
     // Must match build.js: journal entries are addressed by day number.
     const day = dayFromName(fileName);
     return day === null ? `${slugify(baseName)}.html` : `${formatDay(day)}.html`;
@@ -19,10 +19,12 @@ function outputName(fileName, relativePath) {
   return `${slugify(baseName)}.html`;
 }
 
-// Journal entries are pages, but they also publish a plain-text file alongside,
-// which the file tree links to.
+// Must match build.js isJournalPath(): journal, journalish, "journal entries"
+// and any other spacing of the same folder name.
 function isJournalPath(relativePath) {
-  return /(^|[\\/])journal(?:ish)?([\\/]|$)/i.test(relativePath);
+  const first = relativePath.split(/[\\/]/).filter(Boolean)[0]?.toLowerCase() || '';
+  const compact = first.replace(/[\s_-]+/g, '');
+  return compact === 'journal' || compact === 'journalish' || compact === 'journalentries';
 }
 
 function slugify(value) {

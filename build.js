@@ -39,9 +39,7 @@ const navigation = [
   { label: 'File Tree', href: '/file-tree/', path: '/file-tree/' },
   { label: 'Tags', href: '/tags/', path: '/tags/' },
 ];
-const availableNavigation = navigation.filter((item) => !item.source || fs.existsSync(path.join(contentRoot, item.source)));
 
-// GoatCounter's pageview script. It is what makes the visitor count real: the
 function escapeHtml(value) {
   return value
     .replaceAll('&', '&amp;')
@@ -61,9 +59,7 @@ const SITE_CSS = `/* Charter, self-hosted. Four faces, ~60KB total; preloaded in
 @font-face { font-family: 'Charter'; src: url('/fonts/charter_italic.woff2') format('woff2'); font-weight: 400; font-style: italic; font-display: swap; }
 @font-face { font-family: 'Charter'; src: url('/fonts/charter_bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Charter'; src: url('/fonts/charter_bold_italic.woff2') format('woff2'); font-weight: 700; font-style: italic; font-display: swap; }
-:root { color-scheme: light; --page-bg: #fbf9f3; --surface: #fbf9f3; --text: #111; --link: blue; --exec: #111; --hover: yellow; --border: transparent; --muted: #333; --font-serif: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif; --font-mono: 'Courier New', Courier, monospace; }
-/* One column width shared by the masthead, the rule and the ticker, so nothing
-   can drift outside the site's content edge. */
+:root { color-scheme: light; --surface: #fbf9f3; --text: #111; --link: blue; --exec: #111; --hover: yellow; --muted: #333; --font-serif: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif; }
 /* One column width shared by masthead, rules and ticker. A fixed rem length,
    not ch: ch resolves against each element's own font-size, so the header and
    footer rules came out at different widths. */
@@ -74,10 +70,9 @@ body { font-family: var(--font-serif); font-size: 18px; line-height: 1.5; color:
 body { background-image: repeating-linear-gradient(0deg, rgba(0,0,0,.012) 0 1px, transparent 1px 3px); }
 .site-shell { width: auto; max-width: 1100px; min-height: 100dvh; margin: 0 auto; background: var(--surface); }
 @media (min-width: 1101px) { .site-shell { border-left: 1px solid #d9d3c4; border-right: 1px solid #d9d3c4; } }
-header, footer { text-align: center; padding: 1.25rem 1.5rem; }
 /* Header and footer share the same horizontal padding, so a full-width rule
    inside either ends at the same x on both sides. */
-header, footer { padding-left: 1rem; padding-right: 1rem; }
+header, footer { text-align: center; padding: 1.25rem 1rem; }
 header { padding-top: .5rem; padding-bottom: .35rem; }
 main { padding: 0 1.5rem 1rem; text-align: left; }
 header h1 { margin: 0; font-family: var(--font-serif); font-size: clamp(1.75rem, 5vw, 2.5rem); font-weight: 700; line-height: 1.1; letter-spacing: .01em; }
@@ -116,23 +111,20 @@ header h1 a { color: #111 !important; text-decoration: none !important; backgrou
   /* Without motion, show the line statically but keep it readable. */
   .journal-ticker { -webkit-mask-image: none; mask-image: none; }
 }
-.journal-ticker-static { display: none; }
 nav a { font-size: 1rem; }
 nav ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 1.1rem; padding: .15rem 0; margin: 0 auto; list-style: none; max-width: var(--content-w); }
 nav li::after { content: none; }
 nav a[aria-current="page"] { font-weight: bold; }
-hr { display: none; }
 /* Trail centred, Back pinned to the left edge of the content column. */
 .breadcrumbs { position: relative; margin: 1.25rem auto; max-width: var(--content-w); text-align: center; font-size: .85rem;
   letter-spacing: .04em; }
 .back-link { position: absolute; left: 0; top: 0; white-space: nowrap; color: var(--link) !important; }
 /* Every link is hypertext blue: internal, external, back, nav, lists. */
 main a, main a:link, main a:visited, nav a, .breadcrumbs a, .footer-meta a,
-.journal-list a, .plain-list a, .tag-list a, .books-list a, .folder-list a,
-.collection a, .back-link { color: var(--link); }
+.journal-list a, .plain-list a, .tag-list a, .folder-list a,
+.back-link { color: var(--link); }
 main a:hover, nav a:hover, .breadcrumbs a:hover, .journal-list a:hover,
-.plain-list a:hover, .tag-list a:hover, .books-list a:hover, .folder-list a:hover,
-.back-link:hover { color: black !important; }
+.plain-list a:hover, .tag-list a:hover, .folder-list a:hover,
 .back-link:hover { color: black !important; }
 a:link, a:visited { color: var(--link); text-decoration: none; }
 /* The highlight should sit tight around the words. Charter's tall line box makes a
@@ -162,8 +154,6 @@ main > .folder-intro p { margin: 0 0 .7rem; text-align: left; }
 pre { max-width: 100%; overflow-x: auto; margin: 1rem auto; text-align: left; width: max-content; }
 .text-viewer { width: 100%; max-width: var(--content-w); margin: 1rem auto; padding: 0; font-family: inherit; font-size: clamp(1.05rem, 2.5vw, 1.22rem); line-height: 1.8; overflow-wrap: anywhere; text-align: left; }
 .text-viewer p, .text-viewer ul, .text-viewer ol, .text-viewer blockquote { margin: 1rem 0; }
-/* Book pages: a plain reading column. Prose gets a printed-page indent;
-   short standalone lines (contents, chapter titles) stay flush left. */
 /* Book pages: a long-form reading column. Wider lines, generous leading and a
    real paragraph gap, so a book reads like a printed page instead of a list
    of short left-aligned lines. */
@@ -226,7 +216,6 @@ pre { max-width: 100%; overflow-x: auto; margin: 1rem auto; text-align: left; wi
   columns: 2; column-gap: 2.8rem; }
 .letter-index > li { break-inside: avoid; padding: .3rem 0; line-height: 1.5; font-size: .98rem; }
 .letter-index .letter-mark { display: inline-block; min-width: 1.35rem; margin-right: .45rem; color: var(--muted); font-size: .78rem; font-weight: bold; }
-.letter-index .entry-note { display: block; color: var(--muted); font-size: .9rem; }
 
 @media (max-width: 46rem) {
   .readings-index, .readings-category { columns: 1; }
@@ -239,10 +228,6 @@ pre { max-width: 100%; overflow-x: auto; margin: 1rem auto; text-align: left; wi
   flex-wrap: wrap; align-items: center; justify-content: center; gap: 0; padding: .6rem .9rem; border: 1px solid var(--text); }
 .category-link { color: var(--link); font-size: 1.05rem; line-height: 1.4; padding: .1rem 0; }
 .category-separator { margin: 0 .5rem; opacity: .4; }
-.bad-about-links { width: 100%; max-width: var(--content-w); margin: .8rem auto 1.2rem; text-align: center; font-size: clamp(1rem, 2.4vw, 1.15rem); font-style: italic; font-weight: bold; }
-.bad-about-label { color: var(--text); }
-.bad-about-separator { color: var(--text); }
-.table-scroll { width: 100%; max-width: var(--content-w); margin: 1rem auto; overflow-x: auto; }
 /* Text layout is one column sitewide: paragraphs fill the measure, headings
    sit on its left edge, and alignment is opt-in per paragraph. */
 .text-viewer, main > p, main h1, main h2, main h3, main h4, main h5, main h6,
@@ -298,11 +283,6 @@ th { border-bottom: 1px solid var(--text); font-weight: bold; }
 .two-col-list li { margin: .1rem 0; line-height: 1.5; break-inside: avoid; }
 .two-col-list .item-note { font-size: .88rem; color: var(--muted); }
 @media (max-width: 46rem) { .two-col-list { columns: 1; } }
-.article-categories { width: 100%; max-width: var(--content-w); margin: 1rem auto; padding: 0; list-style: none; text-align: left; }
-.article-category { padding: .8rem 0; }
-.article-category-link { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
-.article-category-title { font-size: 1.05rem; }
-.article-category-count { white-space: nowrap; font-size: .9rem; }
 .folder-list { width: 100%; max-width: var(--content-w); margin: .5rem auto 1rem; padding: 0; list-style: none; text-align: left; }
 .folder-entry { padding: .8rem 0; }
 .folder-entry-link { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
@@ -328,7 +308,6 @@ th { border-bottom: 1px solid var(--text); font-weight: bold; }
 .album-index { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   column-gap: 2.6rem; margin: 1.4rem auto 0; align-items: start; }
 .album-column { min-width: 0; }
-.album-column { min-width: 0; }
 .album-group { break-inside: avoid; margin: 0; padding: .55rem 0 .1rem; }
 /* The letter heads its group; no rule beneath it. */
 .album-letter { margin: 0 0 .25rem; font-size: .7rem; font-weight: bold;
@@ -344,8 +323,6 @@ th { border-bottom: 1px solid var(--text); font-weight: bold; }
 .album-note { display: block; margin-top: .12rem; font-size: .85rem; line-height: 1.45; color: var(--muted); }
 
 @media (max-width: 46rem) { .album-index { grid-template-columns: minmax(0, 1fr); } }
-.category-link { color: var(--link); }
-.category-separator { margin: 0 .25rem; }
 .skip-link { position: absolute; left: -9999px; }
 .skip-link:focus { left: 1rem; top: 1rem; }
 footer { padding: .75rem 1rem 1.1rem; font-size: .9rem; }
@@ -369,19 +346,6 @@ footer { padding: .75rem 1rem 1.1rem; font-size: .9rem; }
 .footer-meta p { margin: 0; }
 .visit-counter { display: flex; align-items: center; justify-content: center; gap: .35rem; min-height: 22px; margin-top: .75rem; font-size: .85rem; line-height: 1; color: var(--muted); }
 .visit-counter img { display: block; height: 22px; width: auto; image-rendering: pixelated; }
-
-/* One column for every page. Sections inherit this and add nothing. */
-.section { width: 100%; max-width: var(--content-w); margin: 0 auto .75rem; text-align: left; }
-.collection { width: 100%; max-width: var(--content-w); margin: 0 auto .75rem; text-align: left; }
-@media (max-width: 40rem) {
-  /* Phone: three months per row keeps the day squares about 6px, readable
-     without turning the calendar into a wall of squares. */
-  .activity-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .7rem .8rem; }
-  .activity-month-label { font-size: .58rem; letter-spacing: .06em; }
-  .entry { grid-template-columns: 1fr; gap: .3rem; }
-  .entry-date { display: flex; gap: .4rem; align-items: baseline; }
-  .entry-weekday { display: inline; margin-top: 0; }
-}
 
 /* -----------------------------------------------------------------------
    Mobile: same paper, monospace and dotted rules, laid out for a phone.
@@ -420,11 +384,10 @@ footer { padding: .75rem 1rem 1.1rem; font-size: .9rem; }
   .breadcrumbs { margin: .8rem 0; font-size: .8rem; text-align: left; }
   .back-link { position: static; display: block; margin-bottom: .25rem; }
   .text-viewer { font-size: 1rem; line-height: 1.7; }
-  .books-list, .journal-list, .article-categories, .folder-list, .tag-list { max-width: none; }
+  .journal-list, .folder-list, .tag-list { max-width: none; }
 
   /* List rows: keep title and action on one line with room to breathe. */
-  .book-entry, .article-category-link, .folder-entry-link, .tag-link, .tagged-note-link { gap: .6rem; }
-  .read-button { padding: .45rem .8rem; }
+  .folder-entry-link { gap: .6rem; }
 
   /* Footer: two badges per row still fit, meta stacks neatly. */
   footer { padding: .9rem .9rem 1.2rem; font-size: .85rem; }
@@ -499,7 +462,7 @@ function layout(title, body, currentPath = '/', tags = []) {
     ${latestJournalTicker()}
     <nav aria-label="Primary navigation">
       <ul>
-        ${availableNavigation.map(navLink).join('\n        ')}
+        ${navigation.map(navLink).join('\n        ')}
       </ul>
     </nav>
     <div class="header-rule" aria-hidden="true"></div>
@@ -580,7 +543,7 @@ function layout(title, body, currentPath = '/', tags = []) {
 }
 
 function displayName(fileName) {
-  return fileName.replace(/\.(md|txt|html)$/i, '').replace(/\.html$/i, '');
+  return fileName.replace(/\.(md|txt|html)$/i, '');
 }
 
 function parseProperties(sourceText) {
@@ -878,10 +841,6 @@ function renderBooksListing(sourceDir, relativeDir) {
   return `<ul class="two-col-list">${items}</ul>`;
 }
 
-function countArticleLinks(sourceText) {
-  return (sourceText.match(/\[[^\]]+\]\([^)]+\)/g) || []).length;
-}
-
 function sortArticleLinks(sourceText) {
   const lines = sourceText.split(/\r?\n/);
   const nonEmptyLines = lines.map((line) => line.trim()).filter(Boolean);
@@ -902,31 +861,21 @@ function collectArticles(sourceDir, relativeDir) {
     const relativePath = path.join(relativeDir, entry.name);
     if (isHiddenContent(relativePath) || entry.name.toLowerCase() === 'index.md') continue;
     if (entry.isDirectory()) {
-      const inner = fs.readdirSync(path.join(sourceDir, entry.name), { withFileTypes: true })
-        .filter((child) => child.name.toLowerCase().endsWith('.md') && child.name.toLowerCase() !== 'index.md');
-      const categoryText = inner.map((child) => fs.readFileSync(path.join(sourceDir, entry.name, child.name), 'utf8')).join('\n');
       articles.push({
         title: publicLabel(folderDisplayName(entry.name)),
-        category: 'Collection',
-        description: `${inner.length} ${inner.length === 1 ? 'article' : 'articles'}`,
         href: `${urlPath(relativePath)}/`,
-        words: categoryText.split(/\s+/).filter(Boolean).length,
       });
       continue;
     }
     if (!entry.name.toLowerCase().endsWith('.md')) continue;
-    const sourceText = fs.readFileSync(path.join(sourceDir, entry.name), 'utf8');
-    const note = parseProperties(sourceText);
+    const note = parseProperties(fs.readFileSync(path.join(sourceDir, entry.name), 'utf8'));
     const destinationName = outputName(entry.name, relativePath);
-    const linkPath = isTextOutput(entry.name, relativePath) ? `${path.join(relativeDir, destinationName)}` : path.join(relativeDir, destinationName);
-    const linkCount = countArticleLinks(note.body);
-    const bodyText = note.body.replace(/\[[^\]]*\]\([^)]*\)/g, '').replace(/[#*_`>]/g, '').replace(/\s+/g, ' ').trim();
+    // isTextOutput() and this branch both resolve to the same destination, so no
+    // separate .html variant is needed here.
+    const linkPath = path.join(relativeDir, destinationName);
     articles.push({
       title: publicLabel(displayName(entry.name)),
-      category: 'Reading list',
-      description: linkCount ? `${linkCount} linked ${linkCount === 1 ? 'reading' : 'readings'}` : (bodyText.slice(0, 90) || 'No description'),
       href: urlPath(linkPath),
-      words: note.body.split(/\s+/).filter(Boolean).length,
     });
   }
   return articles;
@@ -1070,7 +1019,6 @@ function collectTaggedEntries(directory = contentRoot, relativeDir = '') {
       href: urlPath(linkPath),
       tags: note.tags,
       date: entryDate(relativePath, entry.name),
-      section: topSection(relativePath),
     });
   }
   return entries;
@@ -1084,15 +1032,6 @@ function entryDate(relativePath, fileName) {
   const yearDir = relativePath.split(path.sep).find((part) => /^\d{4}$/.test(part));
   return yearDir ? `${yearDir}-01-01` : '';
 }
-
-// The top-level folder a note lives in, used as the section label on tag pages.
-function topSection(relativePath) {
-  const parts = relativePath.split(path.sep);
-  if (parts.length < 2) return 'Page';
-  return publicLabel(parts[0]);
-}
-
-
 
 function renderTagIndex(entries) {
   const tags = new Map();
@@ -1178,12 +1117,6 @@ function markdownTitle(value, fallback) {
 
 function listSortText(value) {
   return value.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[*_`>#]/g, '').replace(/\s+/g, ' ').trim().toLocaleLowerCase();
-}
-
-function listDateValue(value) {
-  const match = value.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b|^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b/);
-  if (!match) return null;
-  return match[1] ? `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}` : `${match[6]}-${match[5].padStart(2, '0')}-${match[4].padStart(2, '0')}`;
 }
 
 function sortListItems(items, listType) {

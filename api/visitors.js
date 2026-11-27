@@ -59,8 +59,6 @@ function counterSvg(count) {
 </svg>`;
 }
 
-
-
 // ---------------------------------------------------------------------------
 // Storage
 //
@@ -68,33 +66,26 @@ function counterSvg(count) {
 // never part of the deployed site and a visitor cannot request it.
 //
 //   { total: N }
+//
+// A Vercel function's filesystem is read-only, so the handler below only reads.
+// The increment happens in scripts/record-visit.js, which the local preview calls
+// for each badge request and which is committed back into the repo.
 // ---------------------------------------------------------------------------
 
 const STATE_FILE = path.join(__dirname, '..', '.visits.json');
 
-function readState() {
+function currentTotal() {
   try {
     const parsed = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
-    return { total: Number(parsed.total) || 0 };
+    return Number(parsed.total) || 0;
   } catch {
-    return { total: 0 };
+    return 0;
   }
 }
 
-function writeState(total) {
-  fs.writeFileSync(STATE_FILE, `${JSON.stringify({ total }, null, 1)}\n`);
-}
-
-// A Vercel function's filesystem is read-only, so the handler below only reads.
-// The increment happens in scripts/record-visit.js, which the local preview calls
-// for each badge request and which is committed back into the repo.
-function currentTotal() {
-  return readState().total;
-}
-
 function countVisit() {
-  const total = readState().total + 1;
-  writeState(total);
+  const total = currentTotal() + 1;
+  fs.writeFileSync(STATE_FILE, `${JSON.stringify({ total }, null, 1)}\n`);
   return total;
 }
 
@@ -116,7 +107,4 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-module.exports.counterSvg = counterSvg;
 module.exports.countVisit = countVisit;
-module.exports.currentTotal = currentTotal;
-module.exports.STATE_FILE = STATE_FILE;
