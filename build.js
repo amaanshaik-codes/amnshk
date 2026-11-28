@@ -156,28 +156,22 @@ main h3 { font-size: 1.33rem; font-weight: var(--w-subhead); margin: 1.4rem 0 .4
 main h4 { font-size: 1.1rem; font-weight: var(--w-subhead); margin: 1.2rem 0 .3rem; }
 main h5 { font-size: 1rem; font-weight: var(--w-subhead); margin: 1rem 0 .3rem; }
 main h6 { font-size: .92rem; font-weight: var(--w-subhead); margin: 1rem 0 .3rem; letter-spacing: .04em; text-transform: uppercase; }
-/* The author's own prose: 22px Lora at weight 400, with the leading Lora needs
-   at that size. --prose is the one place that size is set, so every reading
-   surface below inherits the same measure. */
-:root { --prose: 22px; }
-main > p { width: 100%; max-width: var(--content-w); margin: 1rem auto; text-align: left; font-size: var(--prose); line-height: 1.65; }
+/* The author's own prose is set in --prose; the rest of the page keeps the
+   original 18px body scale. */
+main > p { width: 100%; max-width: var(--content-w); margin: 1rem auto; text-align: left; }
 /* On archive pages the folder's own prose aligns to the section column, so the
    page has one left edge instead of two competing ones. */
 /* Same column as the section below it, so the page has one left edge. */
 main > .folder-intro { max-width: var(--content-w); margin: 0 auto 1rem; text-align: left; }
 main > .folder-intro p { margin: 0 0 .7rem; text-align: left; }
 pre { max-width: 100%; overflow-x: auto; margin: 1rem auto; text-align: left; width: max-content; }
-.text-viewer { width: 100%; max-width: var(--content-w); margin: 1rem auto; padding: 0; font-family: inherit; font-size: var(--prose); font-weight: var(--w-body); line-height: 1.7; overflow-wrap: anywhere; text-align: left; }
+.text-viewer { width: 100%; max-width: var(--content-w); margin: 1rem auto; padding: 0; font-family: inherit; font-size: clamp(1.05rem, 2.5vw, 1.22rem); font-weight: var(--w-body); line-height: 1.8; overflow-wrap: anywhere; text-align: left; }
 .text-viewer p, .text-viewer ul, .text-viewer ol, .text-viewer blockquote { margin: 1rem 0; }
 /* Book pages: a long-form reading column. Wider lines, generous leading and a
    real paragraph gap, so a book reads like a printed page instead of a list
    of short left-aligned lines. */
 .book-viewer { width: 100%; max-width: var(--content-w); margin: 1rem auto 2rem; padding: 0;
-  text-align: left; font-size: var(--prose); font-weight: var(--w-body); line-height: 1.75;
-  /* At 22px a long unbroken URL is wider than a phone column, and prose has no
-     spaces for the browser to break on: let the line break inside a word as a
-     last resort rather than pushing the page sideways. */
-  overflow-wrap: break-word; }
+  text-align: left; font-size: clamp(1.05rem, 1.4vw, 1.2rem); font-weight: var(--w-body); line-height: 1.85; }
 .book-viewer p { margin: 0 0 1rem; text-align: left; text-indent: 0; }
 /* Short standalone lines (contents, chapter titles) sit tight together, the way
    a printed contents page reads, instead of one per spaced paragraph. */
@@ -370,7 +364,7 @@ footer { padding: .75rem var(--gutter) 1.1rem; font-size: .9rem; }
 .home-page { display: grid; justify-items: center; row-gap: .15rem; width: 100%; max-width: var(--content-w); margin: 0 auto; }
 .home-page > * { width: 100%; max-width: var(--content-w); }
 .home-page > h2 { text-align: center; margin: .3rem 0 .6rem; }
-.home-page > p { margin: .45rem 0; text-align: center; font-size: var(--prose); font-weight: var(--w-body); line-height: 1.65; }
+.home-page > p { margin: .45rem 0; text-align: center; }
 .home-page > .category-links { margin-top: .5rem; }
 
 /* -----------------------------------------------------------------------
@@ -413,9 +407,7 @@ footer { padding: .75rem var(--gutter) 1.1rem; font-size: .9rem; }
   main h2 { font-size: 1.25rem; }
   .breadcrumbs { margin: .8rem 0; font-size: .8rem; text-align: left; }
   .back-link { position: static; display: block; margin-bottom: .25rem; }
-  /* The prose keeps its 22px on a phone too; only the leading tightens, so a
-     long entry does not lose a line of text to the narrower column. */
-  .text-viewer { line-height: 1.65; }
+  .text-viewer { font-size: 1rem; line-height: 1.7; }
   .journal-list, .folder-list, .tag-list { max-width: none; }
 
   /* List rows: keep title and action on one line with room to breathe. */
