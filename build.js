@@ -13,10 +13,7 @@ const builtAt = `${new Intl.DateTimeFormat('en-IN', {
   timeZone: 'Asia/Kolkata'
 }).format(builtAtDate)} IST`;
 
-// Masthead stamp: rendered at build time like everything else on this static site.
-const builtDay = new Intl.DateTimeFormat('en-GB', { weekday: 'long', timeZone: 'Asia/Kolkata' }).format(builtAtDate);
-const builtDate = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }).format(builtAtDate);
-const builtClock = `${new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' }).format(builtAtDate)} IST`;
+
 
 // External links open in a new tab; internal ones stay in place. Applied to every
 // <a> that leaves the site (markdown links, bare URLs, catalogue rows), so the
@@ -60,37 +57,41 @@ const SITE_CSS = `/* Charter, self-hosted. Four faces, ~60KB total; preloaded in
 @font-face { font-family: 'Charter'; src: url('/fonts/charter_bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Charter'; src: url('/fonts/charter_bold_italic.woff2') format('woff2'); font-weight: 700; font-style: italic; font-display: swap; }
 :root { color-scheme: light; --surface: #fbf9f3; --text: #111; --link: blue; --exec: #111; --hover: yellow; --muted: #333; --font-serif: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif; }
-/* One column width shared by masthead, rules and ticker. A fixed rem length,
-   not ch: ch resolves against each element's own font-size, so the header and
-   footer rules came out at different widths. */
+/* One column width shared by the masthead, rules, ticker and body text. A fixed
+   rem length, not ch: ch resolves against each element's own font-size, so the
+   header and footer rules came out at different widths. */
 :root { --content-w: 52rem; }
+/* The gutter every band (header, main, footer) uses on its narrow side. Header,
+   main and footer all share it, so no text can ever reach further out than the
+   dotted rules that close the header and footer. */
+:root { --gutter: 1.5rem; }
 *, *::before, *::after { box-sizing: border-box; }
 body { font-family: var(--font-serif); font-size: 18px; line-height: 1.5; color: var(--text); background: var(--surface); margin: 0; padding: 0; }
 /* Faint paper grain: hairlines of slightly darker cream, no image file. */
 body { background-image: repeating-linear-gradient(0deg, rgba(0,0,0,.012) 0 1px, transparent 1px 3px); }
 .site-shell { width: auto; max-width: 1100px; min-height: 100dvh; margin: 0 auto; background: var(--surface); }
 /* Outer vertical borders removed from .site-shell. */
-/* Centre the Welcome and Browse headings on the landing page only. */
-.home-page > h1, .home-page > h2 { text-align: center; }
 /* Header and footer share the same horizontal padding, so a full-width rule
    inside either ends at the same x on both sides. */
-header, footer { text-align: center; padding: 1.25rem 1rem; }
+header, footer { text-align: center; padding: 1.25rem var(--gutter); }
 header { padding-top: .5rem; padding-bottom: .35rem; }
-main { padding: 0 1.5rem 1rem; text-align: left; }
+main { padding: 0 var(--gutter) 1rem; text-align: left; }
+/* The body text never outgrows the rule that closes the header and footer. */
+main > * { box-sizing: border-box; min-width: 0; }
 header h1 { margin: 0; font-family: var(--font-serif); font-size: clamp(1.75rem, 5vw, 2.5rem); font-weight: 700; line-height: 1.1; letter-spacing: .01em; }
 header h1 a { color: #111 !important; text-decoration: none !important; background: none !important; }
-.masthead { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: "clock clock badge" "brand brand brand" "est est est"; align-items: center; row-gap: .45rem; width: 100%; max-width: var(--content-w); margin: 0 auto .15rem; }
-.masthead-brand { grid-area: brand; justify-self: center; }
-.mast-time { grid-area: clock; justify-self: start; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .5rem; margin: 0; font-size: .68rem; line-height: 1.35; letter-spacing: .1em; text-transform: uppercase; color: var(--text); }
-.mast-time .mast-day { font-weight: bold; }
-.mast-time .mast-sep { opacity: .5; }
-.est-mark { grid-area: est; justify-self: center; text-align: center; font-size: .7rem; line-height: 1; letter-spacing: .26em; text-transform: uppercase; white-space: nowrap; color: var(--text); }
-.header-badge { grid-area: badge; justify-self: end; margin: 0; line-height: 0; }
-.header-badge img { display: block; width: 80px; height: 15px; }
-.header-rule { width: 100%; max-width: var(--content-w); margin: .35rem auto 0; border-top: 1px dotted var(--text); }
+/* Masthead: three tight rows on one grid - wordmark, then the build date and
+   Est. 2005 as an aligned pair. No clock stamp in the corner. */
+.masthead { display: grid; justify-items: center; row-gap: .3rem; width: 100%; max-width: var(--content-w); margin: 0 auto .1rem; }
+.masthead-brand { justify-self: center; }
+.mast-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: .75rem; align-self: stretch; min-height: 1.1em; }
+.mast-row > :first-child { justify-self: start; }
+.mast-row > :last-child { justify-self: end; }
+.est-mark { text-align: center; font-size: .66rem; line-height: 1; letter-spacing: .26em; text-transform: uppercase; white-space: nowrap; color: var(--text); }
+.header-rule { width: 100%; max-width: var(--content-w); margin: .4rem auto 0; border-top: 1px dotted var(--text); }
 /* Edge fade so text dissolves at the boundaries instead of being hard-cut mid-glyph. */
-.journal-ticker { max-width: var(--content-w); margin: .5rem auto .35rem; overflow: hidden; text-align: left;
-  position: relative;
+.journal-ticker { width: 100%; max-width: var(--content-w); margin: .45rem auto .3rem; overflow: hidden; text-align: left;
+  position: relative; min-width: 0;
   -webkit-mask-image: linear-gradient(to right, transparent 0, #000 2.5rem, #000 calc(100% - 2.5rem), transparent 100%);
   mask-image: linear-gradient(to right, transparent 0, #000 2.5rem, #000 calc(100% - 2.5rem), transparent 100%);
   /* Reserve the line height so the header never jumps while the ticker runs. */
@@ -114,7 +115,7 @@ header h1 a { color: #111 !important; text-decoration: none !important; backgrou
   .journal-ticker { -webkit-mask-image: none; mask-image: none; }
 }
 nav a { font-size: 1rem; }
-nav ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 1.1rem; padding: .15rem 0; margin: 0 auto; list-style: none; max-width: var(--content-w); }
+nav ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 1.1rem; padding: .15rem 0; margin: 0 auto; list-style: none; width: fit-content; max-width: var(--content-w); }
 nav li::after { content: none; }
 nav a[aria-current="page"] { font-weight: bold; }
 /* Trail centred, Back pinned to the left edge of the content column. */
@@ -327,26 +328,34 @@ th { border-bottom: 1px solid var(--text); font-weight: bold; }
 @media (max-width: 46rem) { .album-index { grid-template-columns: minmax(0, 1fr); } }
 .skip-link { position: absolute; left: -9999px; }
 .skip-link:focus { left: 1rem; top: 1rem; }
-footer { padding: .75rem 1rem 1.1rem; font-size: .9rem; }
+footer { padding: .75rem var(--gutter) 1.1rem; font-size: .9rem; }
 /* Same dotted rule as the header, at the same width, so the page closes the
    way it opens. */
 .footer-rule { width: 100%; max-width: var(--content-w); margin: 0 auto .9rem; border-top: 1px dotted var(--text); }
-/* Each badge sits in its own equal cell and keeps its natural size, so the two
-   rows share the same outer edges instead of one row looking narrower. */
-/* One centred row per pair: 88px badges on top, 160px below, so both rows
-   share the same axis instead of each being left-packed. */
-.badges { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .5rem 1.1rem; max-width: 22rem; margin: .6rem auto 0; }
-.badges .badge { flex: 0 0 auto; }
+/* The footer is one grid: contact line, badges, counter, each centred on the
+   same column the header rule sits on. */
+.footer-inner { display: grid; justify-items: center; row-gap: .55rem; width: 100%; max-width: var(--content-w); margin: 0 auto; }
+.footer-meta { display: flex; justify-content: center; align-items: baseline; flex-wrap: wrap; gap: .2rem 1rem; }
+.footer-meta p { margin: 0; }
+/* Badges: a wrapping row of equal cells, so every badge keeps its pixel size
+   and the whole strip stays on one line wherever it fits. */
+.badges { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .45rem .9rem; width: 100%; margin: 0; }
 .badge { display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
 /* Badges are fixed-size pixel art: never scale or stretch them. */
 .badge img { display: block; width: auto; height: auto; max-width: none; image-rendering: pixelated; }
 /* The 160px pair are visually heavier than the 88px pair; scale them to 128px
-   so both rows carry similar weight. Pixel art stays crisp. */
+   so the row carries similar weight. Pixel art stays crisp. */
 .badge img[width="160"] { width: 128px; height: 29px; }
-.footer-meta { display: flex; justify-content: center; align-items: baseline; flex-wrap: wrap; gap: 1rem; }
-.footer-meta p { margin: 0; }
-.visit-counter { display: flex; align-items: center; justify-content: center; gap: .35rem; min-height: 22px; margin-top: .75rem; font-size: .85rem; line-height: 1; color: var(--muted); }
+.visit-counter { display: flex; align-items: center; justify-content: center; gap: .35rem; min-height: 22px; margin: 0; font-size: .85rem; line-height: 1; color: var(--muted); }
 .visit-counter img { display: block; height: 22px; width: auto; image-rendering: pixelated; }
+
+/* Landing page: a small aligned grid. The welcome prose centres in the column
+   and the Browse strip closes it, both on the same left and right edge. */
+.home-page { display: grid; justify-items: center; row-gap: .15rem; width: 100%; max-width: var(--content-w); margin: 0 auto; }
+.home-page > * { width: 100%; max-width: var(--content-w); }
+.home-page > h2 { text-align: center; margin: .3rem 0 .6rem; }
+.home-page > p { margin: .45rem 0; text-align: center; }
+.home-page > .category-links { margin-top: .5rem; }
 
 /* -----------------------------------------------------------------------
    Mobile: same paper, monospace and dotted rules, laid out for a phone.
@@ -356,15 +365,16 @@ footer { padding: .75rem 1rem 1.1rem; font-size: .9rem; }
   body { padding: 0; font-size: 16px; }
   .site-shell { max-width: none; min-height: 100dvh; }
 
-  /* Header: clock and badge share the top line, wordmark fills the next. */
-  header { padding: .6rem .9rem .1rem; }
-  .masthead { grid-template-columns: 1fr auto; grid-template-areas: "clock badge" "brand brand" "est est";
-    column-gap: .5rem; row-gap: .2rem; }
-  .mast-time { font-size: .6rem; letter-spacing: .04em; gap: 0 .3rem; }
-  .mast-time .mast-sep { opacity: .4; }
-  .header-badge img { width: 66px; height: 12px; }
+  /* One narrower gutter for every band, so header rule, body text and footer
+     rule still line up on a phone. */
+  :root { --gutter: .9rem; }
+
+  /* Header: wordmark, then date and Est. 2005 on one tight row. */
+  header { padding: .6rem var(--gutter) .1rem; }
+  .masthead { row-gap: .2rem; }
+  .mast-row { column-gap: .4rem; }
   header h1 { font-size: 1.85rem; letter-spacing: .02em; }
-  .est-mark { font-size: .6rem; letter-spacing: .2em; }
+  .est-mark { font-size: .6rem; letter-spacing: .16em; }
   .header-rule { margin-top: .4rem; }
 
   /* Ticker: scroll it on mobile too, just smaller and faster so a short line
@@ -380,7 +390,8 @@ footer { padding: .75rem 1rem 1.1rem; font-size: .9rem; }
   nav a { font-size: .92rem; padding: .3rem .25rem; display: inline-block; }
 
   /* Content: comfortable measure and gutters. */
-  main { padding: 0 .9rem 1rem; }
+  main { padding: 0 var(--gutter) 1rem; }
+  .home-page > p { text-align: left; }
   main h2 { font-size: 1.25rem; }
   .breadcrumbs { margin: .8rem 0; font-size: .8rem; text-align: left; }
   .back-link { position: static; display: block; margin-bottom: .25rem; }
@@ -390,20 +401,18 @@ footer { padding: .75rem 1rem 1.1rem; font-size: .9rem; }
   /* List rows: keep title and action on one line with room to breathe. */
   .folder-entry-link { gap: .6rem; }
 
-  /* Footer: two badges per row still fit, meta stacks neatly. */
-  footer { padding: .9rem .9rem 1.2rem; font-size: .85rem; }
-  .footer-meta { flex-direction: column; gap: .25rem; }
-  .badges { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem .3rem; width: auto; max-width: 21rem; }
-  .badge img { max-width: 100%; height: auto; }
-  .visit-counter { margin-top: .6rem; }
+  /* Footer: meta stacks neatly, badges wrap two-to-a-row without shrinking. */
+  footer { padding: .9rem var(--gutter) 1.2rem; font-size: .85rem; }
+  .footer-meta { flex-direction: column; gap: .2rem; }
+  .badges { gap: .4rem .5rem; max-width: 15rem; }
+  .visit-counter { margin-top: .1rem; }
 }
 
-/* Very narrow phones: drop the badge beside the clock, let the wordmark lead. */
+/* Very narrow phones: the date line wraps under itself, nothing squeezed. */
 @media (max-width: 22rem) {
-  .masthead { grid-template-columns: 1fr; grid-template-areas: "brand" "clock" "est" "badge"; justify-items: center; }
-  .mast-time { justify-self: center; text-align: center; }
-  .header-badge { justify-self: center; }
-  .badges { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mast-row { grid-template-columns: 1fr; row-gap: .15rem; }
+  .mast-row > :first-child, .mast-row > :last-child { justify-self: center; }
+  .badges { max-width: none; }
 }
 `;
 
@@ -453,12 +462,12 @@ function layout(title, body, currentPath = '/', tags = []) {
   <div class="site-shell">
   <header>
     <div class="masthead">
-      <p class="mast-time" aria-label="Local time">
-        <span class="mast-day" data-clock="day">${builtDay}</span><span class="mast-sep" aria-hidden="true">·</span><span data-clock="date">${builtDate}</span><span class="mast-sep" aria-hidden="true">·</span><span data-clock="time">${builtClock}</span>
-      </p>
       <h1 class="masthead-brand"><a href="/">AMNSHK</a></h1>
-      <span class="est-mark">Est. 2005</span>
-      <div class="header-badge"><img src="/badges/free-speech.png" width="80" height="15" alt="Free speech"></div>
+      <div class="mast-row">
+        <span></span>
+        <span class="est-mark">Est. 2005</span>
+        <span></span>
+      </div>
     </div>
     ${latestJournalTicker()}
     <nav aria-label="Primary navigation">
@@ -471,72 +480,65 @@ function layout(title, body, currentPath = '/', tags = []) {
   <main id="main-content">${breadcrumbs}${renderTagLinks(tags)}${body}</main>
   <footer>
     <div class="footer-rule" aria-hidden="true"></div>
-    <div class="footer-meta">
-      <p>Email: <a href="mailto:amaanshaik.work@gmail.com">amaanshaik.work@gmail.com</a></p>
-      <p>Last updated: ${builtAt}</p>
+    <div class="footer-inner">
+      <div class="footer-meta">
+        <p>Email: <a href="mailto:amaanshaik.work@gmail.com">amaanshaik.work@gmail.com</a></p>
+        <p>Last updated: ${builtAt}</p>
+      </div>
+      <div class="badges" aria-label="Web badges">
+        <span class="badge"><img src="/badges/free-speech.png" width="80" height="15" alt="Free speech"></span>
+        <span class="badge"><img src="/badges/bestvieweddesktop.gif" width="88" height="31" alt="Best viewed on desktop"></span>
+        <span class="badge"><img src="/badges/cookie-free.png" width="88" height="31" alt="This site is certified 100% cookie free"></span>
+        <span class="badge"><img src="/badges/y2k-compliant.png" width="160" height="36" alt="Y2K compliant"></span>
+        <span class="badge"><img src="/badges/no-ai-human-content.png" width="160" height="36" alt="No AI human content"></span>
+      </div>
+      <div class="visit-counter"><img src="/api/visitors" alt="Visitor count" width="114" height="22" decoding="async" fetchpriority="low"></div>
     </div>
-    <div class="badges" aria-label="Web badges">
-      <span class="badge"><img src="/badges/bestvieweddesktop.gif" width="88" height="31" alt="Best viewed on desktop"></span>
-      <span class="badge"><img src="/badges/cookie-free.png" width="88" height="31" alt="This site is certified 100% cookie free"></span>
-      <span class="badge"><img src="/badges/y2k-compliant.png" width="160" height="36" alt="Y2K compliant"></span>
-      <span class="badge"><img src="/badges/no-ai-human-content.png" width="160" height="36" alt="No AI human content"></span>
-    </div>
-    <div class="visit-counter"><img src="/api/visitors" alt="Visitor count" width="114" height="22" decoding="async" fetchpriority="low"></div>
   </footer>
   </div>
   <script>
-    // The masthead clock is printed at build time; keep it honest in the reader's
-    // own timezone. Without JS the build-time IST stamp above remains readable.
     // The counter is served with no-store, so opening the page is what counts the
     // visit and the image already shows the new total. One request per page view.
     (function () {
-      var dayEl = document.querySelector('[data-clock="day"]');
-      var dateEl = document.querySelector('[data-clock="date"]');
-      var timeEl = document.querySelector('[data-clock="time"]');
       var visitImg = document.querySelector('.visit-counter img');
-      if (visitImg) {
-        var refreshVisit = function () { visitImg.src = '/api/visitors?v=' + Date.now(); };
-        if (document.readyState === 'complete') refreshVisit();
-        else window.addEventListener('load', refreshVisit, { once: true });
-      }
-      if (!dayEl || !dateEl || !timeEl) return;
-      var pad = function (n) { return String(n).padStart(2, '0'); };
-      function tick() {
-        var now = new Date();
-        dayEl.textContent = new Intl.DateTimeFormat(undefined, { weekday: 'long' }).format(now);
-        dateEl.textContent = new Intl.DateTimeFormat(undefined, { day: '2-digit', month: 'short', year: 'numeric' }).format(now);
-        var offset = -now.getTimezoneOffset();
-        var sign = offset >= 0 ? '+' : '-';
-        var hours = Math.floor(Math.abs(offset) / 60);
-        var zone = 'UTC' + sign + pad(hours) + (Math.abs(offset) % 60 ? ':' + pad(Math.abs(offset) % 60) : '');
-        timeEl.textContent = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ' ' + zone;
-        dayEl.dateTime = now.toISOString();
-      }
-      tick();
-      setInterval(tick, 20000);
+      if (!visitImg) return;
+      var refreshVisit = function () { visitImg.src = '/api/visitors?v=' + Date.now(); };
+      if (document.readyState === 'complete') refreshVisit();
+      else window.addEventListener('load', refreshVisit, { once: true });
     })();
 
-    // Keep the journal ticker running across page loads: the CSS animation restarts
-    // at 0 on every navigation, so resume from where the last page left off.
+    // Keep the journal ticker running across page loads. On a full navigation the
+    // CSS animation restarts at 0, so seek it forward by however long the page has
+    // been open instead of by anything written to the device.
+    //
+    // No storage of any kind is touched here: no cookies, no sessionStorage, no
+    // localStorage. Ticker state is derived from the document that is already in
+    // memory and from performance.now(), so the site stays certifiably cookie
+    // free, and a reader who blocks storage still gets a moving line.
+    //
     // This must not wait on anything else - it runs inline right after the markup.
     (function () {
       var track = document.querySelector('.journal-ticker-track');
       if (!track) return;
-      var KEY = 'ticker-anchor';
       var DURATION = 180; // seconds; keep in step with --ticker-duration
-      var anchor = 0;
-      try { anchor = Number(sessionStorage.getItem(KEY)) || 0; } catch (e) { anchor = 0; }
-      var elapsed;
-      if (anchor) {
-        elapsed = ((Date.now() - anchor) / 1000) % DURATION;
-      } else {
-        // First visit: jump a little way in so the line is already travelling.
-        elapsed = DURATION * 0.15;
-        try { sessionStorage.setItem(KEY, String(Date.now() - elapsed * 1000)); } catch (e) { /* private mode */ }
-      }
+      // Where this page picked up in the loop. On the first page it starts a
+      // little way in so the line is already travelling; pages reached from it
+      // (browser back/forward cache, same tab) carry the offset along.
+      var elapsed = track.dataset.tickerOffset
+        ? Number(track.dataset.tickerOffset)
+        : DURATION * 0.15;
+      elapsed = (elapsed + performance.now() / 1000) % DURATION;
       // A negative delay seeks forward into the loop, so it is moving immediately
       // instead of sitting still for the first fraction of a cycle.
       track.style.animationDelay = '-' + elapsed.toFixed(2) + 's';
+      var startedAt = performance.now();
+      window.addEventListener('pagehide', function () {
+        track.dataset.tickerOffset = String((elapsed + (performance.now() - startedAt) / 1000) % DURATION);
+      });
+      window.addEventListener('pageshow', function (event) {
+        if (!event.persisted) return;
+        track.style.animationDelay = '-' + (((elapsed + (performance.now() - startedAt) / 1000) % DURATION)).toFixed(2) + 's';
+      });
     })();
   </script>
 </body>
