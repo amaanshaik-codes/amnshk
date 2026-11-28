@@ -30,9 +30,11 @@ function escapeAttr(value) {
   return escapeHtml(String(value)).replaceAll('`', '&#96;');
 }
 
-// Add future header buttons here. Each item becomes one link in the header.
+// Utility links in the masthead. Each item becomes one link beside the wordmark.
+// The Home link is gone: the wordmark itself is the way back to the front page.
+// File Tree and Tags are also listed in the Browse grid on the landing page, so
+// the front page is the one place that reaches every part of the site.
 const navigation = [
-  { label: 'Home', href: '/', path: '/' },
   { label: 'File Tree', href: '/file-tree/', path: '/file-tree/' },
   { label: 'Tags', href: '/tags/', path: '/tags/' },
 ];
@@ -60,49 +62,55 @@ const SITE_CSS = `/* Charter, self-hosted. Four faces, ~60KB total; preloaded in
 /* One column width shared by the masthead, rules, ticker and body text. A fixed
    rem length, not ch: ch resolves against each element's own font-size, so the
    header and footer rules came out at different widths. */
-:root { --content-w: 52rem; }
+:root { --content-w: 54rem; }
 /* The gutter every band (header, main, footer) uses on its narrow side. Header,
    main and footer all share it, so no text can ever reach further out than the
    dotted rules that close the header and footer. */
 :root { --gutter: 1.5rem; }
 *, *::before, *::after { box-sizing: border-box; }
-body { font-family: var(--font-serif); font-size: 18px; line-height: 1.5; color: var(--text); background: var(--surface); margin: 0; padding: 0; }
+/* A slightly larger, firmer body: 18px at weight 450 lets Charter's contrast
+   and its old-style serifs read as a book face instead of a default serif. */
+body { font-family: var(--font-serif); font-size: 19px; font-weight: 450; line-height: 1.55; color: var(--text); background: var(--surface); margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
 /* Faint paper grain: hairlines of slightly darker cream, no image file. */
 body { background-image: repeating-linear-gradient(0deg, rgba(0,0,0,.012) 0 1px, transparent 1px 3px); }
 .site-shell { width: auto; max-width: 1100px; min-height: 100dvh; margin: 0 auto; background: var(--surface); }
 /* Outer vertical borders removed from .site-shell. */
 /* Header and footer share the same horizontal padding, so a full-width rule
    inside either ends at the same x on both sides. */
-header, footer { text-align: center; padding: 1.25rem var(--gutter); }
-header { padding-top: .5rem; padding-bottom: .35rem; }
-main { padding: 0 var(--gutter) 1rem; text-align: left; }
+header, footer { padding: 0 var(--gutter); }
+footer { text-align: left; }
+main { padding: 0 var(--gutter) 1.5rem; text-align: left; }
 /* The body text never outgrows the rule that closes the header and footer. */
 main > * { box-sizing: border-box; min-width: 0; }
-header h1 { margin: 0; font-family: var(--font-serif); font-size: clamp(1.75rem, 5vw, 2.5rem); font-weight: 700; line-height: 1.1; letter-spacing: .01em; }
+/* Masthead: wordmark and primary links on ONE baseline row. The wordmark sits
+   at the far right of the header rule's span, the links at its left, so the
+   header closes on a single compact line instead of three stacked rows. */
+/* align-items: flex-end, not baseline: a baseline-aligned wordmark makes the
+   header - and so this stacked header container - much taller than its text. */
+.masthead { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; width: 100%; max-width: var(--content-w); margin: 0 auto; padding: .45rem 0 .2rem; text-align: left; }
+header h1 { order: 2; margin: 0; font-family: var(--font-serif); font-size: clamp(1.45rem, 3vw, 1.8rem); font-weight: 700; line-height: 1; letter-spacing: .01em; white-space: nowrap; }
 header h1 a { color: #111 !important; text-decoration: none !important; background: none !important; }
-/* Masthead: three tight rows on one grid - wordmark, then the build date and
-   Est. 2005 as an aligned pair. No clock stamp in the corner. */
-.masthead { display: grid; justify-items: center; row-gap: .3rem; width: 100%; max-width: var(--content-w); margin: 0 auto .1rem; }
-.masthead-brand { justify-self: center; }
-.mast-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: .75rem; align-self: stretch; min-height: 1.1em; }
-.mast-row > :first-child { justify-self: start; }
-.mast-row > :last-child { justify-self: end; }
-.est-mark { text-align: center; font-size: .66rem; line-height: 1; letter-spacing: .26em; text-transform: uppercase; white-space: nowrap; color: var(--text); }
-.header-rule { width: 100%; max-width: var(--content-w); margin: .4rem auto 0; border-top: 1px dotted var(--text); }
-/* Edge fade so text dissolves at the boundaries instead of being hard-cut mid-glyph. */
-.journal-ticker { width: 100%; max-width: var(--content-w); margin: .45rem auto .3rem; overflow: hidden; text-align: left;
+.header-rule { width: 100%; max-width: var(--content-w); margin: .1rem auto 0; border-top: 1px dotted var(--text); }
+/* The ticker must give its own height back to the flow: as a clipped flex line
+   whose text is set larger than the box it asks for, it was spilling onto the
+   paragraph below. The wrapper owns the spacing; this block only clips. */
+/* No width: 100% here. Inside a block container that would resolve to the
+   container's full inner width, then the max-width cap would only shrink the
+   margin box - leaving the line wider than the column it is meant to fit. */
+.journal-ticker { max-width: var(--content-w); margin: 0 auto; overflow: hidden; text-align: left;
   position: relative; min-width: 0;
   -webkit-mask-image: linear-gradient(to right, transparent 0, #000 2.5rem, #000 calc(100% - 2.5rem), transparent 100%);
   mask-image: linear-gradient(to right, transparent 0, #000 2.5rem, #000 calc(100% - 2.5rem), transparent 100%);
-  /* Reserve the line height so the header never jumps while the ticker runs. */
-  min-height: 1.6em; display: flex; align-items: center; }
+  /* The box is exactly as tall as one line plus breathing room for ascenders
+     and descenders; nothing below is ever overlapped. */
+  height: 1.9em; display: flex; align-items: center; }
 /* Two identical copies side by side; sliding the track by exactly one copy
    (-50% of the track) loops seamlessly, in track-width units rather than
    viewport units, so it is already moving on the first frame. */
 .journal-ticker-track { display: flex; width: max-content;
   animation: ticker-scroll var(--ticker-duration, 180s) linear infinite;
   animation-delay: var(--ticker-delay, 0s); will-change: transform; }
-.journal-ticker-track > span { white-space: nowrap; padding-right: 3rem; }
+.journal-ticker-track > span { white-space: nowrap; padding: 0 3rem 0 0; line-height: 1.5; }
 .journal-ticker:hover .journal-ticker-track { animation-play-state: paused; }
 /* Start just past the right edge of the *container*, then travel one copy. */
 @keyframes ticker-scroll {
@@ -114,12 +122,17 @@ header h1 a { color: #111 !important; text-decoration: none !important; backgrou
   /* Without motion, show the line statically but keep it readable. */
   .journal-ticker { -webkit-mask-image: none; mask-image: none; }
 }
-nav a { font-size: 1rem; }
-nav ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 1.1rem; padding: .15rem 0; margin: 0 auto; list-style: none; width: fit-content; max-width: var(--content-w); }
+/* Primary links, now living in the masthead beside the wordmark. Sized like a
+   small caps strip so they read as navigation, not as body copy, with a
+   hairline underline so they look like links without drawing a button. */
+nav a { font-size: .86rem; letter-spacing: .1em; text-transform: uppercase;
+  border-bottom: 1px solid transparent; padding-bottom: 1px; }
+nav a:hover, nav a[aria-current="page"] { border-bottom-color: currentColor; }
+nav ul { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 1.3rem; padding: 0; margin: 0; list-style: none; }
 nav li::after { content: none; }
-nav a[aria-current="page"] { font-weight: bold; }
+nav a[aria-current="page"] { font-weight: 700; }
 /* Trail centred, Back pinned to the left edge of the content column. */
-.breadcrumbs { position: relative; margin: 1.25rem auto; max-width: var(--content-w); text-align: center; font-size: .85rem;
+.breadcrumbs { position: relative; margin: 1.4rem auto 1rem; max-width: var(--content-w); text-align: center; font-size: .9rem;
   letter-spacing: .04em; }
 .back-link { position: absolute; left: 0; top: 0; white-space: nowrap; color: var(--link) !important; }
 /* Every link is hypertext blue: internal, external, back, nav, lists. */
@@ -142,26 +155,29 @@ main { min-height: 0; text-align: left; }
 main h1, main h2, main h3, main h4, main h5, main h6 { text-align: left; font-family: var(--font-serif); font-weight: 700; line-height: 1.2; }
 /* A single modular scale (1.333) keeps every heading step consistent and grid
    aligned, instead of the ad-hoc sizes that accumulated per section. */
-main h1 { font-size: 2.2rem; }
-main h2 { font-size: clamp(1.4rem, 3.2vw, 1.78rem); margin: 0 0 .6rem; }
-main h3 { font-size: 1.33rem; margin: 1.4rem 0 .4rem; }
-main h4 { font-size: 1.1rem; margin: 1.2rem 0 .3rem; }
-main h5 { font-size: 1rem; margin: 1rem 0 .3rem; }
-main h6 { font-size: .92rem; margin: 1rem 0 .3rem; letter-spacing: .04em; text-transform: uppercase; }
+main h1 { font-size: 2.3rem; letter-spacing: -.01em; }
+main h2 { font-size: clamp(1.5rem, 3.2vw, 1.95rem); letter-spacing: -.005em; margin: 0 0 .6rem; }
+main h3 { font-size: 1.42rem; margin: 1.5rem 0 .4rem; }
+main h4 { font-size: 1.16rem; margin: 1.3rem 0 .3rem; }
+main h5 { font-size: 1.02rem; margin: 1rem 0 .3rem; }
+main h6 { font-size: .9rem; margin: 1rem 0 .3rem; letter-spacing: .08em; text-transform: uppercase; }
 main > p { width: 100%; max-width: var(--content-w); margin: 1rem auto; text-align: left; }
 /* On archive pages the folder's own prose aligns to the section column, so the
    page has one left edge instead of two competing ones. */
 /* Same column as the section below it, so the page has one left edge. */
 main > .folder-intro { max-width: var(--content-w); margin: 0 auto 1rem; text-align: left; }
 main > .folder-intro p { margin: 0 0 .7rem; text-align: left; }
-pre { max-width: 100%; overflow-x: auto; margin: 1rem auto; text-align: left; width: max-content; }
-.text-viewer { width: 100%; max-width: var(--content-w); margin: 1rem auto; padding: 0; font-family: inherit; font-size: clamp(1.05rem, 2.5vw, 1.22rem); line-height: 1.8; overflow-wrap: anywhere; text-align: left; }
+/* Code blocks and the File Tree are monospace: a touch smaller and tighter than
+   body text, so long ASCII lines stay inside the column instead of scrolling. */
+pre { max-width: 100%; overflow-x: auto; margin: 1rem auto; text-align: left; width: max-content;
+  font-family: 'Courier New', Courier, monospace; font-size: .86rem; line-height: 1.55; }
+.text-viewer { width: 100%; max-width: var(--content-w); margin: 1rem auto; padding: 0; font-family: inherit; font-size: clamp(1.15rem, 2.5vw, 1.32rem); line-height: 1.75; overflow-wrap: anywhere; text-align: left; }
 .text-viewer p, .text-viewer ul, .text-viewer ol, .text-viewer blockquote { margin: 1rem 0; }
 /* Book pages: a long-form reading column. Wider lines, generous leading and a
    real paragraph gap, so a book reads like a printed page instead of a list
    of short left-aligned lines. */
 .book-viewer { width: 100%; max-width: var(--content-w); margin: 1rem auto 2rem; padding: 0;
-  text-align: left; font-size: clamp(1.05rem, 1.4vw, 1.2rem); line-height: 1.85; }
+  text-align: left; font-size: clamp(1.15rem, 1.4vw, 1.3rem); line-height: 1.8; }
 .book-viewer p { margin: 0 0 1rem; text-align: left; text-indent: 0; }
 /* Short standalone lines (contents, chapter titles) sit tight together, the way
    a printed contents page reads, instead of one per spaced paragraph. */
@@ -224,13 +240,24 @@ pre { max-width: 100%; overflow-x: auto; margin: 1rem auto; text-align: left; wi
   .readings-index, .readings-category { columns: 1; }
   .letter-index { columns: 1; }
 }
-/* Browse box: padding is set in the same rhythm as the text, and the links
-   inherit the body face and scale instead of carrying their own clamp(), which
-   left them visually off-centre inside the border after the font change. */
-.category-links { display: flex; width: 100%; max-width: var(--content-w); margin: 0 auto; box-sizing: border-box;
-  flex-wrap: wrap; align-items: center; justify-content: center; gap: 0; padding: .6rem .9rem; border: 1px solid var(--text); }
-.category-link { color: var(--link); font-size: 1.05rem; line-height: 1.4; padding: .1rem 0; }
-.category-separator { margin: 0 .5rem; opacity: .4; }
+/* Browse: a real grid of boxed links, equal cells, so the section reads as a
+   directory instead of a sentence of pipe-separated words. File Tree and Tags
+   sit in the same grid as the content folders. */
+/* Browse grid: a real 3-column grid. The nine content sections fill it as a
+   perfect 3 x 3, so there is never a half-empty final row or a lone cell. */
+.category-links { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem;
+  width: 100%; max-width: var(--content-w); margin: 0 auto; }
+.category-separator { display: none; }
+.category-link { display: flex; align-items: center; justify-content: center; min-height: 2.9rem; padding: .55rem .6rem;
+  border: 1px solid var(--text); background: var(--surface); color: var(--link); font-size: 1rem; font-weight: 500;
+  line-height: 1.2; text-align: center; text-decoration: none; transition: background-color .12s ease; }
+.category-link:hover, .category-link:focus-visible { background: var(--hover); color: #111 !important; box-shadow: none; }
+/* Site utilities (File Tree, Tags) are a separate, narrower row of two dotted
+   cells: clearly secondary to the content sections above them. */
+.category-links.utility-links { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem;
+  max-width: 22rem; margin-top: .5rem; }
+.category-link.utility { border-style: dotted; font-size: .82rem; letter-spacing: .09em; text-transform: uppercase; }
+.category-link.utility[aria-current="page"] { font-weight: 700; border-style: solid; }
 /* Text layout is one column sitewide: paragraphs fill the measure, headings
    sit on its left edge, and alignment is opt-in per paragraph. */
 .text-viewer, main > p, main h1, main h2, main h3, main h4, main h5, main h6,
@@ -246,7 +273,11 @@ p.align-justify, p.align-center, p.align-right { margin-left: auto; margin-right
 code { font-family: 'Courier New', Courier, monospace; font-size: .92em; }
 pre { width: 100%; max-width: var(--content-w); margin: 1rem auto; padding: .75rem 1rem; overflow-x: auto; text-align: left;
   border: 1px solid var(--text); background: #efeade; }
-pre code { font-size: .88em; line-height: 1.5; }
+pre code { font-size: 1em; line-height: inherit;
+  /* The tree's branch glyphs sit in the monospace face; the links inside keep
+     the site serif so the file names stay as readable as the rest of the site. */
+  font-family: inherit; }
+pre a { font-family: var(--font-serif); font-size: 1.05em; font-weight: 500; }
 mark { background: #ffe97a; color: inherit; }
 del { text-decoration: line-through; }
 hr { border: 0; border-top: 1px dotted var(--text); width: 100%; max-width: var(--content-w); margin: 1.2rem auto; display: block; }
@@ -328,91 +359,122 @@ th { border-bottom: 1px solid var(--text); font-weight: bold; }
 @media (max-width: 46rem) { .album-index { grid-template-columns: minmax(0, 1fr); } }
 .skip-link { position: absolute; left: -9999px; }
 .skip-link:focus { left: 1rem; top: 1rem; }
-footer { padding: .75rem var(--gutter) 1.1rem; font-size: .9rem; }
+footer { padding: 0 var(--gutter) .9rem; font-size: .78rem; line-height: 1.45; }
 /* Same dotted rule as the header, at the same width, so the page closes the
    way it opens. */
-.footer-rule { width: 100%; max-width: var(--content-w); margin: 0 auto .9rem; border-top: 1px dotted var(--text); }
-/* The footer is one grid: contact line, badges, counter, each centred on the
-   same column the header rule sits on. */
-.footer-inner { display: grid; justify-items: center; row-gap: .55rem; width: 100%; max-width: var(--content-w); margin: 0 auto; }
-.footer-meta { display: flex; justify-content: center; align-items: baseline; flex-wrap: wrap; gap: .2rem 1rem; }
+.footer-rule { width: 100%; max-width: var(--content-w); margin: 0 auto .55rem; border-top: 1px dotted var(--text); }
+/* The footer is one compact grid: the contact/date meta in a single line, the
+   badges beneath it, the counter beside them on a wide screen. Everything is
+   on the same column the header rule sits on. */
+.footer-inner { display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 1rem; row-gap: .3rem;
+  width: 100%; max-width: var(--content-w); margin: 0 auto; text-align: left; }
+.footer-meta { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: .1rem 1.25rem; }
 .footer-meta p { margin: 0; }
 /* Badges: a wrapping row of equal cells, so every badge keeps its pixel size
    and the whole strip stays on one line wherever it fits. */
-.badges { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .45rem .9rem; width: 100%; margin: 0; }
+.badges { display: flex; flex-wrap: wrap; justify-content: flex-start; align-items: center; gap: .4rem .85rem; width: 100%; margin: 0; }
 .badge { display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
 /* Badges are fixed-size pixel art: never scale or stretch them. */
 .badge img { display: block; width: auto; height: auto; max-width: none; image-rendering: pixelated; }
 /* The 160px pair are visually heavier than the 88px pair; scale them to 128px
    so the row carries similar weight. Pixel art stays crisp. */
 .badge img[width="160"] { width: 128px; height: 29px; }
-.visit-counter { display: flex; align-items: center; justify-content: center; gap: .35rem; min-height: 22px; margin: 0; font-size: .85rem; line-height: 1; color: var(--muted); }
+/* Free speech is a raster wordmark, not scalable pixel art: drawn at exactly its
+   native 80 x 15 so the lettering stays sharp instead of fringing. */
+.badge img[width="80"] { width: 80px; height: 15px; }
+.visit-counter { display: flex; align-items: center; justify-content: flex-end; gap: .35rem; min-height: 22px; margin: 0; font-size: .8rem; line-height: 1; color: var(--muted); }
 .visit-counter img { display: block; height: 22px; width: auto; image-rendering: pixelated; }
 
 /* Landing page: a small aligned grid. The welcome prose centres in the column
    and the Browse strip closes it, both on the same left and right edge. */
-.home-page { display: grid; justify-items: center; row-gap: .15rem; width: 100%; max-width: var(--content-w); margin: 0 auto; }
-.home-page > * { width: 100%; max-width: var(--content-w); }
-.home-page > h2 { text-align: center; margin: .3rem 0 .6rem; }
-.home-page > p { margin: .45rem 0; text-align: center; }
-.home-page > .category-links { margin-top: .5rem; }
+/* The path to the newest journal entry, centred above the welcome text. */
+.home-ticker { width: 100%; max-width: var(--content-w); margin: 0 auto 1.6rem; }
+.home-ticker .journal-ticker { margin: 0; }
+/* minmax(0, 1fr) is essential: an implicit auto column would size to the
+   ticker track's max-content width and push the whole page sideways. */
+.home-page { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; row-gap: 0;
+  width: 100%; max-width: var(--content-w); margin: 0 auto; padding-top: 1.1rem; }
+.home-page > * { width: 100%; max-width: var(--content-w); min-width: 0; }
+/* The welcome block is one bounded band: two centred paragraphs, held to a
+   comfortable reading measure, with air above and below it. */
+.home-page > p { margin: 0; text-align: center; font-size: clamp(1.1rem, 1.6vw, 1.25rem); line-height: 1.65; max-width: 40rem; }
+.home-page > p + p { margin-top: .9rem; }
+.home-page > p:last-of-type { padding-bottom: 2rem; }
+.home-page > h2 { text-align: center; margin: 0 0 .9rem; padding-top: .4rem; }
+/* The Browse heading gets a rule above it, so the page has a clear seam
+   between the welcome band and the directory. */
+.home-page > h2:not(:first-child) { border-top: 1px dotted var(--text); padding-top: 1.3rem; margin-top: .4rem; }
+.home-page > .category-links { margin-top: 0; }
+.home-page > .utility-links { margin-top: .5rem; }
 
 /* -----------------------------------------------------------------------
    Mobile: same paper, monospace and dotted rules, laid out for a phone.
    Grouped at the end so every rule here is easy to see and adjust.
    ---------------------------------------------------------------------- */
-@media (max-width: 40rem) {
-  body { padding: 0; font-size: 16px; }
+@media (max-width: 44rem) {
+  body { padding: 0; font-size: 18px; }
   .site-shell { max-width: none; min-height: 100dvh; }
 
   /* One narrower gutter for every band, so header rule, body text and footer
      rule still line up on a phone. */
-  :root { --gutter: .9rem; }
+  :root { --gutter: 1rem; }
 
-  /* Header: wordmark, then date and Est. 2005 on one tight row. */
-  header { padding: .6rem var(--gutter) .1rem; }
-  .masthead { row-gap: .2rem; }
-  .mast-row { column-gap: .4rem; }
-  header h1 { font-size: 1.85rem; letter-spacing: .02em; }
-  .est-mark { font-size: .6rem; letter-spacing: .16em; }
-  .header-rule { margin-top: .4rem; }
+  /* Header on a phone: the wordmark takes the top-left corner, the two utility
+     links sit on the same row at the right. One line, no stacked rows. */
+  .masthead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: .3rem .75rem; padding: .55rem 0 .3rem; }
+  .home-page { padding-top: .9rem; }
+  .home-page > p { max-width: none; }
+  .home-page > p:last-of-type { padding-bottom: 1.3rem; }
+  .home-ticker { margin-top: 0; margin-bottom: 1.1rem; }
+  .home-page > h2:not(:first-child) { padding-top: .9rem; margin-bottom: .7rem; }
+  header h1 { order: 0; font-size: 1.6rem; letter-spacing: .02em; }
+  nav { order: 1; }
+  nav ul { justify-content: flex-end; gap: 0 .9rem; }
+  nav a { font-size: .8rem; letter-spacing: .07em; }
 
-  /* Ticker: scroll it on mobile too, just smaller and faster so a short line
-     reads comfortably in a narrow window. */
-  .journal-ticker { margin: .4rem 0 .1rem; min-height: 1.3em; font-size: .78rem;
+  /* Ticker: scroll it on mobile too, just smaller so a short line reads
+     comfortably in a narrow window. */
+  .journal-ticker { margin: .45rem 0 0; min-height: 1.5em; font-size: .82rem;
     -webkit-mask-image: linear-gradient(to right, transparent 0, #000 1.2rem, #000 calc(100% - 1.2rem), transparent 100%);
     mask-image: linear-gradient(to right, transparent 0, #000 1.2rem, #000 calc(100% - 1.2rem), transparent 100%); }
   .journal-ticker-track { animation-duration: 200s; }
   .journal-ticker-track > span { padding-right: 2rem; }
 
-  /* Nav: big enough to tap, spread across the width. */
-  nav ul { justify-content: center; gap: .15rem .1rem; padding: .35rem 0 .15rem; }
-  nav a { font-size: .92rem; padding: .3rem .25rem; display: inline-block; }
-
   /* Content: comfortable measure and gutters. */
-  main { padding: 0 var(--gutter) 1rem; }
-  .home-page > p { text-align: left; }
-  main h2 { font-size: 1.25rem; }
-  .breadcrumbs { margin: .8rem 0; font-size: .8rem; text-align: left; }
+  main { padding: 0 var(--gutter) 1.25rem; }
+  .home-page > p { text-align: left; font-size: 1.1rem; }
+  main h2 { font-size: 1.5rem; }
+  .breadcrumbs { margin: 1rem 0 .8rem; font-size: .82rem; text-align: left; }
   .back-link { position: static; display: block; margin-bottom: .25rem; }
-  .text-viewer { font-size: 1rem; line-height: 1.7; }
+  .text-viewer { font-size: 1.1rem; line-height: 1.7; }
+  .book-viewer { font-size: 1.12rem; line-height: 1.72; }
   .journal-list, .folder-list, .tag-list { max-width: none; }
+
+  /* Browse on a phone: two per row for the content grid (9 cells -> 2+2+2+2+1,
+     the last one spanning), and the two utility cells stay side by side. */
+  .category-links { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .4rem; }
+  .category-links > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .category-links.utility-links { max-width: none; }
+  .category-links.utility-links > :last-child { grid-column: auto; }
+  .category-link { min-height: 2.9rem; padding: .45rem .3rem; font-size: .92rem; }
 
   /* List rows: keep title and action on one line with room to breathe. */
   .folder-entry-link { gap: .6rem; }
 
-  /* Footer: meta stacks neatly, badges wrap two-to-a-row without shrinking. */
-  footer { padding: .9rem var(--gutter) 1.2rem; font-size: .85rem; }
-  .footer-meta { flex-direction: column; gap: .2rem; }
-  .badges { gap: .4rem .5rem; max-width: 15rem; }
-  .visit-counter { margin-top: .1rem; }
+  /* Footer: one stacked, tight block. */
+  footer { padding: 0 var(--gutter) 1.1rem; font-size: .76rem; }
+  .footer-inner { grid-template-columns: 1fr; justify-items: start; row-gap: .4rem; }
+  .footer-meta { flex-direction: column; gap: .05rem; }
+  .visit-counter { justify-content: flex-start; }
 }
 
-/* Very narrow phones: the date line wraps under itself, nothing squeezed. */
-@media (max-width: 22rem) {
-  .mast-row { grid-template-columns: 1fr; row-gap: .15rem; }
-  .mast-row > :first-child, .mast-row > :last-child { justify-self: center; }
-  .badges { max-width: none; }
+/* Very narrow phones: the header links drop to their own line under the
+   wordmark instead of being squeezed beside it. */
+@media (max-width: 24rem) {
+  nav ul { gap: 0 .7rem; }
+  .category-links { grid-template-columns: 1fr; }
+  .category-links > :last-child:nth-child(odd) { grid-column: auto; }
 }
 `;
 
@@ -455,7 +517,7 @@ function layout(title, body, currentPath = '/', tags = []) {
   <link rel="preload" href="/fonts/charter_italic.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/style.${CSS_HASH}.css">
   <style>/* Critical: paint text in the right face and colour before style.css lands. */
-    html{background:#fbf9f3}body{margin:0;background:#fbf9f3;color:#111;font-family:Charter,"Bitstream Charter","Sitka Text",Cambria,Georgia,serif;font-size:18px;line-height:1.5}a{color:blue}</style>
+    html{background:#fbf9f3}body{margin:0;background:#fbf9f3;color:#111;font-family:Charter,"Bitstream Charter","Sitka Text",Cambria,Georgia,serif;font-size:19px;font-weight:450;line-height:1.55}a{color:blue}</style>
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
@@ -463,18 +525,12 @@ function layout(title, body, currentPath = '/', tags = []) {
   <header>
     <div class="masthead">
       <h1 class="masthead-brand"><a href="/">AMNSHK</a></h1>
-      <div class="mast-row">
-        <span></span>
-        <span class="est-mark">Est. 2005</span>
-        <span></span>
-      </div>
+      <nav aria-label="Primary navigation">
+        <ul>
+          ${navigation.map(navLink).join('\n          ')}
+        </ul>
+      </nav>
     </div>
-    ${latestJournalTicker()}
-    <nav aria-label="Primary navigation">
-      <ul>
-        ${navigation.map(navLink).join('\n        ')}
-      </ul>
-    </nav>
     <div class="header-rule" aria-hidden="true"></div>
   </header>
   <main id="main-content">${breadcrumbs}${renderTagLinks(tags)}${body}</main>
@@ -1064,24 +1120,27 @@ function renderTaggedNotes(entries, tag) {
 
 
 function renderHomeCategories() {
-  // Everything at the top level of Content/ appears in the Browse box: pages and
+  // Everything at the top level of Content/ appears in the Browse grid: pages and
   // folders alike, so anything added to the vault shows up here without a code
   // change. Welcome.md is the home page itself and is excluded.
   const entries = sortEntries(fs.readdirSync(contentRoot, { withFileTypes: true }))
     .filter((entry) => !['index.md', 'welcome.md'].includes(entry.name.toLowerCase()) && !isHiddenContent(entry.name))
     .filter((entry) => entry.isDirectory() || entry.name.toLowerCase().endsWith('.md'));
-  if (!entries.length) return '';
-  const links = entries.map((entry, index) => {
-    const separator = index ? '<span class="category-separator" aria-hidden="true"> | </span>' : '';
+  const contentLinks = entries.map((entry) => {
     if (entry.isDirectory()) {
-      return `${separator}<a class="category-link" href="${urlPath(entry.name)}/">${escapeHtml(publicLabel(entry.name))}</a>`;
+      return `<a class="category-link" href="${urlPath(entry.name)}/">${escapeHtml(publicLabel(entry.name))}</a>`;
     }
     const relativePath = entry.name;
     const destinationName = outputName(entry.name, relativePath);
     const linkPath = isTextOutput(entry.name, relativePath) ? `${destinationName}.html` : destinationName;
-    return `${separator}<a class="category-link" href="${urlPath(linkPath)}">${escapeHtml(publicLabel(displayName(destinationName)))}</a>`;
-  }).join('');
-    return links ? `<h2>Browse</h2><div class="category-links">${links}</div>` : '';
+    return `<a class="category-link" href="${urlPath(linkPath)}">${escapeHtml(publicLabel(displayName(destinationName)))}</a>`;
+  });
+  // File Tree and Tags sit on their own smaller row beneath the 3 x 3 grid.
+  const utilityLinks = navigation.map((item) => `<a class="category-link utility" href="${item.href}">${escapeHtml(item.label)}</a>`).join('');
+  if (!contentLinks.length && !utilityLinks) return '';
+  const grid = contentLinks.length ? `<div class="category-links">${contentLinks.join('')}</div>` : '';
+  const utilities = utilityLinks ? `<div class="category-links utility-links">${utilityLinks}</div>` : '';
+  return `<h2>Browse</h2>${grid}${utilities}`;
 }
 
 function outputName(fileName, relativePath) {
@@ -1786,7 +1845,10 @@ const welcomeSource = fs.existsSync(path.join(contentRoot, 'Welcome.md'))
   : '';
 const welcomeNote = parseProperties(welcomeSource);
 const welcomeHeading = markdownTitle(welcomeNote.body, '');
-const homeBody = `<div class="home-page">${welcomeHeading ? '' : '<h2>Welcome</h2>'}${markdownToHtml(welcomeNote.body, '')}${renderHomeCategories()}</div>`;
+// The latest journal line leads the welcome block: it is the first thing under
+// the masthead, then the prose, then the Browse grid. It sits inside the
+// home-page grid so it shares the same 52rem column as everything else.
+const homeBody = `<div class="home-page">${welcomeHeading ? '' : '<h2>Welcome</h2>'}${latestJournalTicker() ? `<div class="home-ticker">${latestJournalTicker()}</div>` : ''}${markdownToHtml(welcomeNote.body, '')}${renderHomeCategories()}</div>`;
 fs.writeFileSync(path.join(outputRoot, 'index.html'), layout('Home', homeBody, '/', welcomeNote.tags));
 
 const taggedEntries = collectTaggedEntries();
